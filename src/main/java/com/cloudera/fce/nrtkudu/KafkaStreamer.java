@@ -14,7 +14,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
@@ -24,21 +23,23 @@ import com.google.common.collect.Lists;
 
 import scala.Tuple2;
 
-public class KafkaStreamer 
+public class KafkaStreamer
 {
     @SuppressWarnings("serial")
     public static void main(String[] args)
     {
-        // List of Kafka brokers
-        String brokers = args[0];
-        // Kafka topic
-        String topic = args[1];
+        // The Kudu masters.
+        final String storageConnection = args[0];
+        // The Kafka brokers.
+        final String brokers = args[1];
+        // The Kafka topic to receive messages from.
+        final String topic = args[2];
         // Message type in the topic. This will correlate to which decoder and encoders are used.
-        String messageType = args[2];
+        final String messageType = args[3];
         // The number of seconds per micro-batch.
-        String batchSeconds = args[3];
+        final String batchSeconds = args[4];
         
-        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu Ingestion");
+        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu Ingestion -- " + messageType);
         
         JavaStreamingContext jssc = new JavaStreamingContext(
             sparkConf, Durations.seconds(Integer.parseInt(batchSeconds))
@@ -49,9 +50,6 @@ public class KafkaStreamer
         
         HashSet<String> topicsSet = new HashSet<>();
         topicsSet.add(topic);
-        
-        // Broadcast the message type so we can reference it within the Spark executors.
-        final Broadcast<String> messageTypeBroadcast = jssc.sparkContext().broadcast(messageType);
         
         // Assume that the Kafka topic provides messages encoded as strings.
         // TODO: allow binary messages
@@ -75,7 +73,7 @@ public class KafkaStreamer
                 JavaPairRDD<Object, Iterable<String>> messagesByKey =
                         messages.groupBy(new Function<String, Object>()
                 {
-                    private Decoder decoder = decoderFor(messageTypeBroadcast.value());
+                    private Decoder decoder = decoderFor(messageType);
                     
                     @Override
                     public Object call(String message) throws Exception {
@@ -91,7 +89,7 @@ public class KafkaStreamer
                       long start = System.currentTimeMillis();
                       
                       // Decode the Kafka messages into Avro records key by key.
-                      Decoder decoder = decoderFor(messageTypeBroadcast.value());
+                      Decoder decoder = decoderFor(messageType);
                       List<GenericRecord> decodedInput = Lists.newArrayList();
                       while (keyIterator.hasNext()) {
                           decodedInput.addAll(decoder.decode(keyIterator.next()._2));
@@ -99,7 +97,7 @@ public class KafkaStreamer
                       
                       // Encode the Avro records into the storage layer.
                       // There is an encoder per storage table.
-                      List<Encoder> encoders = encodersFor(messageTypeBroadcast.value());
+                      List<Encoder> encoders = encodersFor(messageType, storageConnection);
                       for (Encoder encoder : encoders) {
                           encoder.encode(decodedInput);
                       }
@@ -132,9 +130,8 @@ public class KafkaStreamer
         return decoder;
     }
     
-    private static List<Encoder> encodersFor(String messageType) throws Exception {
-        // This is done with reflection to show how it might work with pluggable encoders.
-        String fixEncoderClassNames = "com.cloudera.fce.nrtkudu.fix.OrdersKuduEncoder"; //,com.cloudera.fce.nrtkudu.fix.ExecRptKuduEncoder,com.cloudera.fce.nrtkudu.fix.RawFIXKuduEncoder";
+    private static List<Encoder> encodersFor(String messageType, String connection) throws Exception {
+        String fixEncoderClassNames = "com.cloudera.fce.nrtkudu.fix.OrdersKuduEncoder,com.cloudera.fce.nrtkudu.fix.RawFIXKuduEncoder";
         
         List<Encoder> encoders = Lists.newArrayList();
         
@@ -142,7 +139,9 @@ public class KafkaStreamer
             for (String encoderClassName : fixEncoderClassNames.split(",")) {
                 Class<?> clazz = Class.forName(encoderClassName);
                 Constructor<?> constructor = clazz.getConstructor();
-                encoders.add((Encoder)constructor.newInstance());
+                Encoder encoder = (Encoder)constructor.newInstance();
+                encoder.setConnection(connection);
+                encoders.add(encoder);
             }
         }
         

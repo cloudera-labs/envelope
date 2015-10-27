@@ -36,6 +36,9 @@ public abstract class Encoder {
     protected final String OPERATION_UPDATE = "U";
     protected final String OPERATION_NONE = "N";
     
+    // The string used to connect to the storage layer.
+    protected String connection;
+    
     // The table name in the storage layer.
     protected abstract String getTableName();
     
@@ -111,6 +114,12 @@ public abstract class Encoder {
     // This can be null if the encoder does not track history.   
     protected String getCurrentFlagFieldName() {
         return null;
+    }
+    
+    // The storage field name for the timestamp of the record.
+    // For history tracked tables this can be the effective from timestamp.
+    protected String getTimestampFieldName() {
+        return getEffectiveFromFieldName();
     }
     
     // The storage field name for the last updated timestamp of the record.
@@ -200,6 +209,10 @@ public abstract class Encoder {
         disconnect();
     }
     
+    public void setConnection(String connection) {
+        this.connection = connection;
+    }
+    
     // The storage layer operations required to apply the inputs without history. This means that
     // new records are inserted, and existing records are updated but only if they have changed.
     private List<Object> operationsRequiredForNoHistory(List<GenericRecord> inputsForKey,
@@ -208,19 +221,19 @@ public abstract class Encoder {
         // Sort inputs for key in reverse time order so that we can use the most recent version.
         Collections.sort(inputsForKey, Collections.reverseOrder(new TimestampComparator()));
         GenericRecord input = inputsForKey.get(0);
-        Long inputTimestamp = (Long)input.get(getEffectiveFromFieldName());
+        Long inputTimestamp = (Long)input.get(getTimestampFieldName());
         
         GenericRecord output = null;
         Long outputTimestamp = null;
         if (outputsForKey.size() > 0) {
             // When not tracking history there should be at most one output record per key.
             output = outputsForKey.get(0);
-            outputTimestamp = (Long)output.get(getEffectiveFromFieldName());
+            outputTimestamp = (Long)output.get(getTimestampFieldName());
         }
         
         // Input key seen for first time, so we insert.
         if (outputTimestamp == null) {
-            input.put(getEffectiveFromFieldName(), inputTimestamp);
+            input.put(getTimestampFieldName(), inputTimestamp);
             input.put(getLastUpdatedFieldName(), currentTimestampString());
             input.put(OPERATION_FIELD_NAME, OPERATION_INSERT);
             outputsForKey.add(input);
@@ -231,6 +244,7 @@ public abstract class Encoder {
         // Input is the same or newer version as output, so update only if changed.
         else if (inputTimestamp >= outputTimestamp && hasDifference(input, output)) {
             copyOverValueFields(input, output);
+            output.put(getTimestampFieldName(), inputTimestamp);
             output.put(getLastUpdatedFieldName(), currentTimestampString());
             output.put(OPERATION_FIELD_NAME, OPERATION_UPDATE);
         }
@@ -260,7 +274,7 @@ public abstract class Encoder {
         // Loop through each input of the key, traversing the existing output records, and
         // identifying where changes need to be made to the history.
         for (GenericRecord input : inputsForKey) {
-            Long inputTimestamp = (Long)input.get(getEffectiveFromFieldName());
+            Long inputTimestamp = (Long)input.get(getTimestampFieldName());
             
 //            System.out.println("input:");
 //            System.out.println(input);
@@ -285,7 +299,7 @@ public abstract class Encoder {
             // have either corrected the history or gone all the way through it.
             for (int position = 0; position < outputsForKey.size(); position++) {
                 GenericRecord output = outputsForKey.get(position);
-                Long outputTimestamp = (Long)output.get(getEffectiveFromFieldName());
+                Long outputTimestamp = (Long)output.get(getTimestampFieldName());
                 GenericRecord previousOutput = null;
                 Long previousOutputTimestamp = null;
                 GenericRecord nextOutput = null;
@@ -293,11 +307,11 @@ public abstract class Encoder {
 
                 if (position > 0) {
                    previousOutput = outputsForKey.get(position - 1);
-                   previousOutputTimestamp = (Long)previousOutput.get(getEffectiveFromFieldName());
+                   previousOutputTimestamp = (Long)previousOutput.get(getTimestampFieldName());
                 }
                 if (position + 1 < outputsForKey.size()) {
                     nextOutput = outputsForKey.get(position + 1);
-                    nextOutputTimestamp = (Long)nextOutput.get(getEffectiveFromFieldName());
+                    nextOutputTimestamp = (Long)nextOutput.get(getTimestampFieldName());
                 }
                 
 //                System.out.println("output:");
@@ -496,8 +510,8 @@ public abstract class Encoder {
     public class TimestampComparator implements Comparator<GenericRecord> {
         @Override
         public int compare(GenericRecord rr1, GenericRecord rr2) {
-            Long ts1 = (Long)rr1.get(getEffectiveFromFieldName());
-            Long ts2 = (Long)rr2.get(getEffectiveFromFieldName());
+            Long ts1 = (Long)rr1.get(getTimestampFieldName());
+            Long ts2 = (Long)rr2.get(getTimestampFieldName());
             if      (ts1 < ts2) return -1;
             else if (ts1 > ts2) return 1;
             else return 0;

@@ -15,6 +15,7 @@ public class FIXGenerator {
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         
+        @SuppressWarnings("resource")
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(props);
         
         String key = UUID.randomUUID().toString();

@@ -34,15 +34,14 @@ public abstract class KuduEncoder extends Encoder {
     
     // Cache the Kudu output schema so that we only have to create it once per micro-batch partition.
     private Schema outputSchema;
-    
+  
     @Override
     protected void connect() throws Exception {
-        // TODO: Let the user specify this value.
-        client = new KuduClient.KuduClientBuilder("vm1").build();
+        client = new KuduClient.KuduClientBuilder(this.connection).build();
         table = client.openTable(getTableName());
         session = client.newSession();
         
-        // We don't want to silently drop duplicates.
+        // We don't want to silently drop duplicates because there shouldn't be any.
         session.setIgnoreAllDuplicateRows(false);
         // Tell the Kudu client that we will control when we want it to flush operations.
         // Without this we would flush individual operations and throughput would plummet.
@@ -51,6 +50,7 @@ public abstract class KuduEncoder extends Encoder {
     
     @Override
     protected void disconnect() throws Exception {
+        session.close();
         client.shutdown();
     }
     
@@ -298,4 +298,5 @@ public abstract class KuduEncoder extends Encoder {
         
         return builder.build();
     }
+    
 }

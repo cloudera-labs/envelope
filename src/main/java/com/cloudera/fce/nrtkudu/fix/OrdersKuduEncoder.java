@@ -11,7 +11,7 @@ public class OrdersKuduEncoder extends KuduEncoder {
     
     @Override
     protected String getTableName() {
-        return "orders";
+        return "fix_orders";
     }
 
     @Override
@@ -93,20 +93,10 @@ public class OrdersKuduEncoder extends KuduEncoder {
     protected boolean isApplicableForOutput(GenericRecord input) {
         return input.get("MsgType").equals("D");
     }
-    
-    @Override
-    protected boolean doesContainUpdates() {
-        return true;
-    }
 
     @Override
     protected boolean doesTrackHistory() {
         return true;
     }
-
-//    @Override
-//    public protected getValueHashFieldName() {
-//        return null;
-//    }
 
 }

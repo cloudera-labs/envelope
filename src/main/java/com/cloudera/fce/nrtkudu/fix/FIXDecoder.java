@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 @SuppressWarnings("serial")
 public class FIXDecoder extends Decoder {
     
-    Schema schema = null;
+    Schema schema;
 
     @Override
     public List<GenericRecord> decode(Iterable<String> inputs) {
@@ -53,22 +53,6 @@ public class FIXDecoder extends Decoder {
                 rec.put("OrdType", Integer.valueOf(tags.get(40)));
             if (tags.containsKey(10))
                 rec.put("CheckSum", tags.get(10));
-            if (tags.containsKey(37))
-                rec.put("OrderID", tags.get(37));
-            if (tags.containsKey(17))
-                rec.put("ExecID", tags.get(17));
-            if (tags.containsKey(20))
-                rec.put("ExecTransType", Integer.valueOf(tags.get(20)));
-            if (tags.containsKey(150))
-                rec.put("ExecType", Integer.valueOf(tags.get(150)));
-            if (tags.containsKey(39))
-                rec.put("OrdStatus", Integer.valueOf(tags.get(39)));
-            if (tags.containsKey(151))
-                rec.put("LeavesQty", Integer.valueOf(tags.get(151)));
-            if (tags.containsKey(14))
-                rec.put("CumQty", Integer.valueOf(tags.get(14)));
-            if (tags.containsKey(6))
-                rec.put("AvgPx", Double.valueOf(tags.get(6)));
             rec.put("message", input);
             
             records.add(rec);
@@ -76,7 +60,7 @@ public class FIXDecoder extends Decoder {
         
         return records;
     }
-
+    
     @Override
     public Object extractGroupByKey(String input) {
         String[] kvps = input.split(String.valueOf((char) 1));
@@ -108,14 +92,6 @@ public class FIXDecoder extends Decoder {
                 .optionalInt("OrderQty")
                 .optionalInt("OrdType")
                 .optionalString("CheckSum")
-                .optionalString("OrderID")
-                .optionalString("ExecID")
-                .optionalInt("ExecTransType")
-                .optionalInt("ExecType")
-                .optionalInt("OrdStatus")
-                .optionalInt("LeavesQty")
-                .optionalInt("CumQty")
-                .optionalDouble("AvgPx")
                 .requiredString("message")
                 .endRecord();
         
