@@ -1,6 +1,7 @@
 package com.cloudera.fce.nrtkudu;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -14,7 +15,7 @@ import scala.Tuple2;
 public abstract class Decoder implements Serializable {
     
     // Convert the Kafka key+messages to Avro records.
-    public abstract List<GenericRecord> decode(Iterable<Tuple2<String, String>> inputs);
+    public abstract List<GenericRecord> decode(Iterator<Tuple2<String, String>> inputs);
     
     // The Avro schema for the messages.
     public abstract Schema getSchema();

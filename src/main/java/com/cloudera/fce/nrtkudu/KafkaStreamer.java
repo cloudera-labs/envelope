@@ -14,6 +14,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
@@ -42,10 +43,15 @@ public class KafkaStreamer
         // The number of seconds per micro-batch.
         final int batchSeconds = Integer.parseInt(props.getProperty("application.batch.seconds"));
         
-        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + applicationName);
+        final SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + applicationName);
         
-        JavaStreamingContextFactory factory = new ContextFactory(sparkConf, batchSeconds);
         String checkpointPath = props.getProperty("application.checkpoint.path");
+        JavaStreamingContextFactory factory = new JavaStreamingContextFactory() { 
+            @Override
+            public JavaStreamingContext create() {
+                return new JavaStreamingContext(sparkConf, Durations.seconds(batchSeconds));
+            }
+        };
         JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(checkpointPath, factory);
         jssc.checkpoint(checkpointPath);
         
@@ -69,34 +75,44 @@ public class KafkaStreamer
         stream.foreachRDD(new Function<JavaPairRDD<String, String>, Void>() {
             @Override
             public Void call(JavaPairRDD<String, String> batch) throws Exception {
-                // Group the messages by natural key so that we ensure natural keys cannot span RDD
-                // partitions, which would lead to race conditions in updates. This also allows us
-                // to control parallelism across any number of executors rather than just by the
-                // parallelism of the upstream Kafka topic partitions.
-                // TODO: do we need to specify the number of partitions?
-                JavaPairRDD<Object, Iterable<Tuple2<String, String>>> messagesByKey =
-                        batch.groupBy(new Function<Tuple2<String, String>, Object>()
-                {
-                    private Decoder decoder = decoderFor(props);
-                    
-                    @Override
-                    public Object call(Tuple2<String, String> keyedMessage) throws Exception {
-                        return decoder.extractGroupByKey(keyedMessage._1, keyedMessage._2);
-                    }
-                });
+                Boolean prePartitioned = Boolean.parseBoolean(props.getProperty("kafka.prepartitioned"));
+                
+                if (!prePartitioned) {
+                    // Partition the messages by natural key so that we ensure natural keys cannot span
+                    // RDD partitions, which would lead to race conditions in updates. This also allows
+                    // us to control parallelism across any number of executors rather than just by the
+                    // parallelism of the upstream Kafka topic partitions.
+                    batch = batch
+                        // TODO: do we need to specify the number of partitions?
+                        .groupBy(new Function<Tuple2<String, String>, Object>() {
+                            private Decoder decoder = decoderFor(props);
+                            
+                            @Override
+                            public Object call(Tuple2<String, String> keyedMessage) throws Exception {
+                                return decoder.extractGroupByKey(keyedMessage._1, keyedMessage._2);
+                            }
+                        })
+                        .values()
+                        .flatMapToPair(new PairFlatMapFunction<Iterable<Tuple2<String, String>>, String, String>() {
+                            @Override
+                            public Iterable<Tuple2<String, String>> call(Iterable<Tuple2<String, String>> keyedMessages) {
+                                return keyedMessages;
+                            }
+                        });
+                }
                 
                 // Process the messages for each micro-batch partition as a single unit so that we
                 // can 'bulk' update Kudu, rather than committing Kudu operations every key.
-                messagesByKey.foreachPartition(new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple2<String, String>>>>>() {
+                batch.foreachPartition(new VoidFunction<Iterator<Tuple2<String, String>>>() {
                     @Override
-                    public void call(Iterator<Tuple2<Object, Iterable<Tuple2<String, String>>>> keyIterator) throws Exception {
+                    public void call(Iterator<Tuple2<String, String>> keyIterator) throws Exception {
                       long start = System.currentTimeMillis();
                       
-                      // Decode the Kafka messages into Avro records key by key.
+                      // Decode into Avro records the Kafka messages for each natural key.
                       Decoder decoder = decoderFor(props);
                       List<GenericRecord> decodedInput = Lists.newArrayList();
                       while (keyIterator.hasNext()) {
-                          decodedInput.addAll(decoder.decode(keyIterator.next()._2));
+                          decodedInput.addAll(decoder.decode(keyIterator));
                       }
                       
                       // Encode the Avro records into the storage layer.
@@ -155,20 +171,5 @@ public class KafkaStreamer
         }
         
         return props;
-    }
-    
-    public static class ContextFactory implements JavaStreamingContextFactory {
-        private SparkConf sparkConf;
-        private int batchSeconds;
-        
-        ContextFactory(SparkConf sparkConf, int batchSeconds) {
-            this.sparkConf = sparkConf;
-            this.batchSeconds = batchSeconds;
-        }
-        
-        @Override
-        public JavaStreamingContext create() {
-            return new JavaStreamingContext(sparkConf, Durations.seconds(batchSeconds));
-        }
     }
 }

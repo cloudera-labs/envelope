@@ -1,6 +1,7 @@
 package com.cloudera.fce.nrtkudu.fix;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -23,11 +24,11 @@ public class FIXDecoder extends Decoder {
     Schema schema;
 
     @Override
-    public List<GenericRecord> decode(Iterable<Tuple2<String, String>> keyedMessages) {
+    public List<GenericRecord> decode(Iterator<Tuple2<String, String>> keyedMessages) {
         List<GenericRecord> records = Lists.newArrayList();
         
-        for (Tuple2<String, String> keyedMessage : keyedMessages) {
-            String message = keyedMessage._2;
+        while (keyedMessages.hasNext()) {
+            String message = keyedMessages.next()._2;
             
             GenericRecord rec = new GenericData.Record(getSchema());
             
