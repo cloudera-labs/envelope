@@ -12,6 +12,8 @@ import org.apache.avro.generic.GenericRecord;
 import com.cloudera.fce.nrtkudu.Decoder;
 import com.google.common.collect.Lists;
 
+import scala.Tuple2;
+
 // Example decoder for FIX messages for demonstration purposes.
 // Could be extended to a more useful scope of fields.
 
@@ -21,14 +23,16 @@ public class FIXDecoder extends Decoder {
     Schema schema;
 
     @Override
-    public List<GenericRecord> decode(Iterable<String> inputs) {
+    public List<GenericRecord> decode(Iterable<Tuple2<String, String>> keyedMessages) {
         List<GenericRecord> records = Lists.newArrayList();
         
-        for (String input : inputs) {
+        for (Tuple2<String, String> keyedMessage : keyedMessages) {
+            String message = keyedMessage._2;
+            
             GenericRecord rec = new GenericData.Record(getSchema());
             
             // FIX message key-value-pairs are separated with a ASCII 1 delimiter.
-            String[] kvps = input.split(String.valueOf((char) 1));
+            String[] kvps = message.split(String.valueOf((char) 1));
             Map<Integer, String> tags = new HashMap<>();
             for (String kvp : kvps) {
                 // FIX message keys and values are separated with an equals sign delimiter.
@@ -53,7 +57,7 @@ public class FIXDecoder extends Decoder {
                 rec.put("OrdType", Integer.valueOf(tags.get(40)));
             if (tags.containsKey(10))
                 rec.put("CheckSum", tags.get(10));
-            rec.put("message", input);
+            rec.put("message", message);
             
             records.add(rec);
         }
@@ -62,8 +66,8 @@ public class FIXDecoder extends Decoder {
     }
     
     @Override
-    public Object extractGroupByKey(String input) {
-        String[] kvps = input.split(String.valueOf((char) 1));
+    public Object extractGroupByKey(String key, String message) {
+        String[] kvps = message.split(String.valueOf((char) 1));
         
         for (String kvp : kvps) {
             String[] components = kvp.split("=");

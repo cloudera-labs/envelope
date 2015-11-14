@@ -11,7 +11,6 @@ import kafka.serializer.StringDecoder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
@@ -65,30 +64,27 @@ public class KafkaStreamer
         stream.foreachRDD(new Function<JavaPairRDD<String, String>, Void>() {
             @Override
             public Void call(JavaPairRDD<String, String> batch) throws Exception {
-                // We are not using the Kafka keys.
-                JavaRDD<String> messages = batch.values();
-                
-                // Group the messages by key so that we ensure keys cannot span RDD partitions,
-                // which would lead to race conditions in updates. This also allows us to control
-                // parallelism across any number of executors rather than just by the parallelism
-                // of the upstream Kafka topic partitions.
+                // Group the messages by natural key so that we ensure natural keys cannot span RDD
+                // partitions, which would lead to race conditions in updates. This also allows us
+                // to control parallelism across any number of executors rather than just by the
+                // parallelism of the upstream Kafka topic partitions.
                 // TODO: do we need to specify the number of partitions?
-                JavaPairRDD<Object, Iterable<String>> messagesByKey =
-                        messages.groupBy(new Function<String, Object>()
+                JavaPairRDD<Object, Iterable<Tuple2<String, String>>> messagesByKey =
+                        batch.groupBy(new Function<Tuple2<String, String>, Object>()
                 {
                     private Decoder decoder = decoderFor(messageType);
                     
                     @Override
-                    public Object call(String message) throws Exception {
-                        return decoder.extractGroupByKey(message);
+                    public Object call(Tuple2<String, String> keyedMessage) throws Exception {
+                        return decoder.extractGroupByKey(keyedMessage._1, keyedMessage._2);
                     }
                 });
                 
                 // Process the messages for each micro-batch partition as a single unit so that we
                 // can 'bulk' update Kudu, rather than committing Kudu operations every key.
-                messagesByKey.foreachPartition(new VoidFunction<Iterator<Tuple2<Object, Iterable<String>>>>() {
+                messagesByKey.foreachPartition(new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple2<String, String>>>>>() {
                     @Override
-                    public void call(Iterator<Tuple2<Object, Iterable<String>>> keyIterator) throws Exception {
+                    public void call(Iterator<Tuple2<Object, Iterable<Tuple2<String, String>>>> keyIterator) throws Exception {
                       long start = System.currentTimeMillis();
                       
                       // Decode the Kafka messages into Avro records key by key.
