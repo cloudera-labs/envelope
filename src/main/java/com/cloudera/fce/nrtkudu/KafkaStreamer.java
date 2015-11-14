@@ -32,14 +32,14 @@ public class KafkaStreamer
         final String storageConnection = args[0];
         // The Kafka brokers.
         final String brokers = args[1];
-        // The Kafka topic to receive messages from.
-        final String topic = args[2];
+        // The Kafka topics to receive messages from.
+        final String topics = args[2];
         // Message type in the topic. This will correlate to which decoder and encoders are used.
         final String messageType = args[3];
         // The number of seconds per micro-batch.
         final String batchSeconds = args[4];
         
-        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu Ingestion -- " + messageType);
+        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + messageType);
         
         JavaStreamingContext jssc = new JavaStreamingContext(
             sparkConf, Durations.seconds(Integer.parseInt(batchSeconds))
@@ -49,7 +49,10 @@ public class KafkaStreamer
         kafkaParams.put("metadata.broker.list", brokers);
         
         HashSet<String> topicsSet = new HashSet<>();
-        topicsSet.add(topic);
+        String[] topicArray = topics.split(",");
+        for (String topic : topicArray) {
+            topicsSet.add(topic);
+        }
         
         // Assume that the Kafka topic provides messages encoded as strings.
         // TODO: allow binary messages
