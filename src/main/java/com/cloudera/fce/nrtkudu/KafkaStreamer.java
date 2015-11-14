@@ -16,6 +16,7 @@ import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 
 import com.google.common.collect.Lists;
@@ -36,13 +37,15 @@ public class KafkaStreamer
         // Message type in the topic. This will correlate to which decoder and encoders are used.
         final String messageType = args[3];
         // The number of seconds per micro-batch.
-        final String batchSeconds = args[4];
+        final int batchSeconds = Integer.parseInt(args[4]);
         
         SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + messageType);
         
-        JavaStreamingContext jssc = new JavaStreamingContext(
-            sparkConf, Durations.seconds(Integer.parseInt(batchSeconds))
-        );
+        JavaStreamingContextFactory factory = new ContextFactory(sparkConf, batchSeconds);
+        JavaStreamingContext jssc = JavaStreamingContext.getOrCreate("hdfs:/tmp/nrtkudu/checkpoint", factory);
+        
+        // TODO: get this from configuration
+        jssc.checkpoint("hdfs:/tmp/nrtkudu/checkpoint");
         
         HashMap<String, String> kafkaParams = new HashMap<>();
         kafkaParams.put("metadata.broker.list", brokers);
@@ -145,5 +148,20 @@ public class KafkaStreamer
         }
         
         return encoders;
+    }
+    
+    public static class ContextFactory implements JavaStreamingContextFactory {
+        private SparkConf sparkConf;
+        private int batchSeconds;
+        
+        ContextFactory(SparkConf sparkConf, int batchSeconds) {
+            this.sparkConf = sparkConf;
+            this.batchSeconds = batchSeconds;
+        }
+        
+        @Override
+        public JavaStreamingContext create() {
+            return new JavaStreamingContext(sparkConf, Durations.seconds(batchSeconds));
+        }
     }
 }
