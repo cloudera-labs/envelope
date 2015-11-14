@@ -1,10 +1,12 @@
 package com.cloudera.fce.nrtkudu;
 
+import java.io.FileInputStream;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import kafka.serializer.StringDecoder;
 
@@ -26,26 +28,26 @@ import scala.Tuple2;
 public class KafkaStreamer
 {
     @SuppressWarnings("serial")
-    public static void main(String[] args)
-    {
-        // The Kudu masters.
-        final String storageConnection = args[0];
-        // The Kafka brokers.
-        final String brokers = args[1];
-        // The Kafka topics to receive messages from.
-        final String topics = args[2];
-        // Message type in the topic. This will correlate to which decoder and encoders are used.
-        final String messageType = args[3];
-        // The number of seconds per micro-batch.
-        final int batchSeconds = Integer.parseInt(args[4]);
+    public static void main(String[] args) throws Exception
+    {        
+        // The properties of the job.
+        final Properties props = loadProperties(args[0]);
         
-        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + messageType);
+        // The Kafka brokers.
+        final String brokers = props.getProperty("kafka.brokers");
+        // The Kafka topics to receive messages from.
+        final String topics = props.getProperty("kafka.topics");
+        // Message type in the topic. This will correlate to which decoder and encoders are used.
+        final String applicationName = props.getProperty("application.name");
+        // The number of seconds per micro-batch.
+        final int batchSeconds = Integer.parseInt(props.getProperty("application.batch.seconds"));
+        
+        SparkConf sparkConf = new SparkConf().setAppName("NRT Kudu -- " + applicationName);
         
         JavaStreamingContextFactory factory = new ContextFactory(sparkConf, batchSeconds);
-        JavaStreamingContext jssc = JavaStreamingContext.getOrCreate("hdfs:/tmp/nrtkudu/checkpoint", factory);
-        
-        // TODO: get this from configuration
-        jssc.checkpoint("hdfs:/tmp/nrtkudu/checkpoint");
+        String checkpointPath = props.getProperty("application.checkpoint.path");
+        JavaStreamingContext jssc = JavaStreamingContext.getOrCreate(checkpointPath, factory);
+        jssc.checkpoint(checkpointPath);
         
         HashMap<String, String> kafkaParams = new HashMap<>();
         kafkaParams.put("metadata.broker.list", brokers);
@@ -75,7 +77,7 @@ public class KafkaStreamer
                 JavaPairRDD<Object, Iterable<Tuple2<String, String>>> messagesByKey =
                         batch.groupBy(new Function<Tuple2<String, String>, Object>()
                 {
-                    private Decoder decoder = decoderFor(messageType);
+                    private Decoder decoder = decoderFor(props);
                     
                     @Override
                     public Object call(Tuple2<String, String> keyedMessage) throws Exception {
@@ -91,7 +93,7 @@ public class KafkaStreamer
                       long start = System.currentTimeMillis();
                       
                       // Decode the Kafka messages into Avro records key by key.
-                      Decoder decoder = decoderFor(messageType);
+                      Decoder decoder = decoderFor(props);
                       List<GenericRecord> decodedInput = Lists.newArrayList();
                       while (keyIterator.hasNext()) {
                           decodedInput.addAll(decoder.decode(keyIterator.next()._2));
@@ -99,7 +101,7 @@ public class KafkaStreamer
                       
                       // Encode the Avro records into the storage layer.
                       // There is an encoder per storage table.
-                      List<Encoder> encoders = encodersFor(messageType, storageConnection);
+                      List<Encoder> encoders = encodersFor(props);
                       for (Encoder encoder : encoders) {
                           encoder.encode(decodedInput);
                       }
@@ -119,35 +121,40 @@ public class KafkaStreamer
         jssc.awaitTermination();
     }
     
-    private static Decoder decoderFor(String messageType) throws Exception {
+    private static Decoder decoderFor(Properties props) throws Exception {
         Decoder decoder = null;
         
-        // This is done with reflection to show how it might work with pluggable decoders.
-        if (messageType.equals("FIX")) {
-            Class<?> clazz = Class.forName("com.cloudera.fce.nrtkudu.fix.FIXDecoder");
-            Constructor<?> constructor = clazz.getConstructor();
-            decoder = (Decoder)constructor.newInstance();
-        }
+        Class<?> clazz = Class.forName(props.getProperty("decoder.class"));
+        Constructor<?> constructor = clazz.getConstructor();
+        decoder = (Decoder)constructor.newInstance();
         
         return decoder;
     }
     
-    private static List<Encoder> encodersFor(String messageType, String connection) throws Exception {
-        String fixEncoderClassNames = "com.cloudera.fce.nrtkudu.fix.OrdersKuduEncoder,com.cloudera.fce.nrtkudu.fix.RawFIXKuduEncoder";
+    private static List<Encoder> encodersFor(Properties props) throws Exception {
+        String fixEncoderClassNames = props.getProperty("encoder.classes");
         
         List<Encoder> encoders = Lists.newArrayList();
         
-        if (messageType.equals("FIX")) {
-            for (String encoderClassName : fixEncoderClassNames.split(",")) {
-                Class<?> clazz = Class.forName(encoderClassName);
-                Constructor<?> constructor = clazz.getConstructor();
-                Encoder encoder = (Encoder)constructor.newInstance();
-                encoder.setConnection(connection);
-                encoders.add(encoder);
-            }
+        for (String encoderClassName : fixEncoderClassNames.split(",")) {
+            Class<?> clazz = Class.forName(encoderClassName);
+            Constructor<?> constructor = clazz.getConstructor();
+            Encoder encoder = (Encoder)constructor.newInstance();
+            encoder.setProperties(props);
+            encoders.add(encoder);
         }
         
         return encoders;
+    }
+    
+    private static Properties loadProperties(String configurationPath) throws Exception {
+        Properties props = new Properties();
+        
+        try(FileInputStream inputStream = new FileInputStream(configurationPath)) {
+            props.load(inputStream);
+        }
+        
+        return props;
     }
     
     public static class ContextFactory implements JavaStreamingContextFactory {

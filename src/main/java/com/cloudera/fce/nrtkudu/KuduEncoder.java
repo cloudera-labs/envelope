@@ -37,7 +37,8 @@ public abstract class KuduEncoder extends Encoder {
   
     @Override
     protected void connect() throws Exception {
-        client = new KuduClient.KuduClientBuilder(this.connection).build();
+        String masterAddresses = props.getProperty("storage.connection");
+        client = new KuduClient.KuduClientBuilder(masterAddresses).build();
         table = client.openTable(getTableName());
         session = client.newSession();
         

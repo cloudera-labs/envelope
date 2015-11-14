@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
@@ -36,8 +37,8 @@ public abstract class Encoder {
     protected final String OPERATION_UPDATE = "U";
     protected final String OPERATION_NONE = "N";
     
-    // The string used to connect to the storage layer.
-    protected String connection;
+    // The properties of the job.
+    protected Properties props;
     
     // The table name in the storage layer.
     protected abstract String getTableName();
@@ -209,8 +210,8 @@ public abstract class Encoder {
         disconnect();
     }
     
-    public void setConnection(String connection) {
-        this.connection = connection;
+    public void setProperties(Properties props) {
+        this.props = props;
     }
     
     // The storage layer operations required to apply the inputs without history. This means that
