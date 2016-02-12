@@ -25,6 +25,8 @@ public abstract class Planner {
         return new Date(System.currentTimeMillis()).toString();
     }
     
+    public abstract boolean requiresExisting();
+    
     public static Planner plannerFor(Properties props) throws Exception {
         String plannerName = props.getProperty("planner");
         Properties plannerProps = PropertiesUtils.prefixProperties(props, "planner.");

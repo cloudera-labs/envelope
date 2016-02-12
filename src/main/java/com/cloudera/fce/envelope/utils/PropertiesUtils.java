@@ -32,11 +32,14 @@ public class PropertiesUtils {
     }
     
     public static List<String> propertyAsList(Properties props, String propertyName) {
-        if (!props.containsKey(propertyName)) {
-            throw new RuntimeException("Property " + propertyName + " not found from: " + props.stringPropertyNames());
-        }
+        String prop = props.getProperty(propertyName);
         
-        return Arrays.asList(props.getProperty(propertyName).split(Pattern.quote(",")));
+        if (prop != null) {
+            return Arrays.asList(prop.split(Pattern.quote(",")));
+        }
+        else {
+            return null;
+        }
     }
     
 }

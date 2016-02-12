@@ -35,8 +35,6 @@ public class Streamer
         final QueueSource qs = QueueSource.queueSourceFor(props);
         JavaDStream<GenericRecord> stream = qs.dStreamFor(jssc, props);
         
-        final SQLContext sqlc = new SQLContext(jssc.sparkContext()); 
-        
         // This is what we want to do each micro-batch.
         stream.foreachRDD(new Function<JavaRDD<GenericRecord>, Void>() {
             @Override
@@ -49,6 +47,7 @@ public class Streamer
                 
                 JavaRDD<Row> batchRows = SparkSQLAvroUtils.rowsForRecords(batchRecords);
                 StructType batchStructType = SparkSQLAvroUtils.structTypeForSchema(qs.getSchema());
+                SQLContext sqlc = new SQLContext(jssc.sparkContext()); 
                 DataFrame batchDataFrame = sqlc.createDataFrame(batchRows, batchStructType);
                 batchDataFrame.registerTempTable("stream");
                 batchDataFrame.persist(StorageLevel.MEMORY_ONLY());

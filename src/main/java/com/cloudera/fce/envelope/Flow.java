@@ -39,11 +39,14 @@ public class Flow implements Serializable {
                 StorageTable storageTable = StorageTable.storageTableFor(props);
                 storageTable.connect();
                 
+                Planner planner = Planner.plannerFor(props);
                 List<GenericRecord> arriving = Lists.newArrayList(arrivingIterator);
-                List<GenericRecord> existing = storageTable.getExistingForArriving(arriving);
+                List<GenericRecord> existing = null;
+                if (planner.requiresExisting()) {
+                    existing = storageTable.getExistingForArriving(arriving);
+                }
                 RecordModel recordModel = storageTable.getRecordModel();
                 
-                Planner planner = Planner.plannerFor(props);
                 List<PlannedRecord> planned = planner.planOperations(arriving, existing, recordModel);
                 storageTable.applyPlannedOperations(planned);
                 

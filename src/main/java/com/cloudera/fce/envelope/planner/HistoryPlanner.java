@@ -176,4 +176,9 @@ public class HistoryPlanner extends Planner {
         return planned;
     }
 
+    @Override
+    public boolean requiresExisting() {
+        return true;
+    }
+
 }

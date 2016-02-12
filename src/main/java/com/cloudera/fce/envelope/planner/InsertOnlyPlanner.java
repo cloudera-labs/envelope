@@ -14,20 +14,29 @@ public class InsertOnlyPlanner extends Planner {
     public InsertOnlyPlanner(Properties props) throws Exception {
         super(props);
     }
-
+    
     @Override
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
     {
+        boolean keyUUID = Boolean.parseBoolean(props.getProperty("key.uuid", "true"));
+        
         List<PlannedRecord> planned = Lists.newArrayList();
         
         for (GenericRecord arriving : arrivingRecords) {
-            arriving.put(recordModel.getKeyFieldNames().get(0), UUID.randomUUID().toString());
+            if (keyUUID) {
+                arriving.put(recordModel.getKeyFieldNames().get(0), UUID.randomUUID().toString());
+            }
             
             planned.add(new PlannedRecord(arriving, OperationType.INSERT));
         }
         
         return planned;
+    }
+
+    @Override
+    public boolean requiresExisting() {
+        return false;
     }
     
 }

@@ -44,6 +44,9 @@ public abstract class Translator {
         if (translatorName.equals("kvp")) {
             translator = new KVPTranslator(props);
         }
+        else if (translatorName.equals("delimited")) {
+            translator = new DelimitedTranslator(props);
+        }
         else if (translatorName.equals("avro")) {
             translator = new AvroTranslator(props);
         }

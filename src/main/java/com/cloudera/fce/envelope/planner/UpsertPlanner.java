@@ -69,4 +69,9 @@ public class UpsertPlanner extends Planner {
         
     }
 
+    @Override
+    public boolean requiresExisting() {
+        return true;
+    }
+
 }
