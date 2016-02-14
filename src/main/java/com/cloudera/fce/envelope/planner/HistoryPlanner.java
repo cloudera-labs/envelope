@@ -41,13 +41,14 @@ public class HistoryPlanner extends Planner {
         Map<GenericRecord, List<GenericRecord>> existingByKey = RecordUtils.recordsByKey(existingRecords, keyFieldNames);
         
         List<PlannedRecord> planned = Lists.newArrayList();
+        List<PlannedRecord> plannedForKey = Lists.newArrayList();
         
         for (Map.Entry<GenericRecord, List<GenericRecord>> arrivingByKey : arrivedByKey.entrySet()) {
             GenericRecord key = arrivingByKey.getKey();
             List<GenericRecord> arrivingForKey = arrivingByKey.getValue();
             List<GenericRecord> existingForKey = existingByKey.get(key);
             
-            List<PlannedRecord> plannedForKey = Lists.newArrayList();
+            plannedForKey.clear();
             if (existingForKey != null) {
                 for (GenericRecord existing : existingForKey) {
                     plannedForKey.add(new PlannedRecord(existing, OperationType.NONE));
