@@ -12,8 +12,6 @@ CREATE TABLE fix_insertonly
   , ordtype INT
   , orderqty INT
   , checksum STRING
-
-  , lastupdated STRING
 )
 TBLPROPERTIES
 (

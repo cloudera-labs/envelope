@@ -2,6 +2,9 @@ package com.cloudera.fce.envelope;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Properties;
+
+import com.cloudera.fce.envelope.utils.PropertiesUtils;
 
 @SuppressWarnings("serial")
 public class RecordModel implements Serializable {
@@ -73,6 +76,20 @@ public class RecordModel implements Serializable {
     }
     public void setCurrentFlagFieldName(String currentFlagFieldName) {
         this.currentFlagFieldName = currentFlagFieldName;
+    }
+    
+    public static RecordModel recordModelFor(Properties props) {
+        RecordModel recordModel = new RecordModel();
+        
+        recordModel.setKeyFieldNames(PropertiesUtils.propertyAsList(props, "storage.table.columns.key"));
+        recordModel.setTimestampFieldName(props.getProperty("storage.table.column.timestamp"));
+        recordModel.setValueFieldNames(PropertiesUtils.propertyAsList(props, "storage.table.columns.values"));
+        recordModel.setLastUpdatedFieldName(props.getProperty("storage.table.column.last.updated"));
+        recordModel.setEffectiveFromFieldName(props.getProperty("storage.table.column.effective.from"));
+        recordModel.setEffectiveToFieldName(props.getProperty("storage.table.column.effective.to"));
+        recordModel.setCurrentFlagFieldName(props.getProperty("storage.table.column.current.flag"));
+        
+        return recordModel;
     }
     
 }

@@ -1,8 +1,8 @@
 package com.cloudera.fce.envelope.queuesource;
 
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import kafka.serializer.DefaultDecoder;
 import kafka.serializer.StringDecoder;
@@ -15,9 +15,11 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
+import org.kududb.client.shaded.com.google.common.collect.Sets;
 
 import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.translator.Translator;
+import com.google.common.collect.Maps;
 
 @SuppressWarnings("serial")
 public class KafkaQueueSource extends QueueSource {
@@ -28,17 +30,13 @@ public class KafkaQueueSource extends QueueSource {
     
     @Override
     public JavaDStream<GenericRecord> dStreamFor(JavaStreamingContext jssc, final Properties props) throws Exception {
-        HashMap<String, String> kafkaParams = new HashMap<>();
+        Map<String, String> kafkaParams = Maps.newHashMap();
         
         final String brokers = props.getProperty("source.kafka.brokers");
         kafkaParams.put("metadata.broker.list", brokers);
         
         final String topics = props.getProperty("source.kafka.topics");
-        HashSet<String> topicsSet = new HashSet<>();
-        String[] topicArray = topics.split(",");
-        for (String topic : topicArray) {
-            topicsSet.add(topic);
-        }
+        Set<String> topicsSet = Sets.newHashSet(topics.split(","));
         
         String encoding = props.getProperty("source.kafka.encoding");
         JavaDStream<GenericRecord> dStream = null;

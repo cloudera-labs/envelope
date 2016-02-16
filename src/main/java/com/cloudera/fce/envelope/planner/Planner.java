@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.avro.generic.GenericRecord;
 
@@ -25,14 +26,16 @@ public abstract class Planner {
         return new Date(System.currentTimeMillis()).toString();
     }
     
-    public abstract boolean requiresExisting();
+    public abstract boolean requiresExistingRecords();
+    public abstract boolean requiresKeyColocation();
+    public abstract Set<OperationType> getEmittedOperationTypes();
     
     public static Planner plannerFor(Properties props) throws Exception {
         String plannerName = props.getProperty("planner");
         Properties plannerProps = PropertiesUtils.prefixProperties(props, "planner.");
         
         Planner planner = null;
-
+        
         switch (plannerName) {
             case "upsert":
                 planner = new UpsertPlanner(plannerProps);
@@ -51,5 +54,5 @@ public abstract class Planner {
         
         return planner;
     }
-
+    
 }

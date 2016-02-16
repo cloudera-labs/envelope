@@ -5,8 +5,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.avro.generic.GenericRecord;
+import org.kududb.client.shaded.com.google.common.collect.Sets;
 
 import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.RecordUtils;
@@ -26,7 +28,6 @@ public class HistoryPlanner extends Planner {
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
     {
-        
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
         String timestampFieldName = recordModel.getTimestampFieldName();
         List<String> valueFieldNames = recordModel.getValueFieldNames();
@@ -66,8 +67,12 @@ public class HistoryPlanner extends Planner {
                 if (plannedForKey.size() == 0) {
                     arrived.put(effectiveFromFieldName, arrivedTimestamp);
                     arrived.put(effectiveToFieldName, FAR_FUTURE_MICROS);
-                    arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
-                    arrived.put(lastUpdatedFieldName, currentTimestampString());
+                    if (recordModel.hasCurrentFlagField()) {
+                        arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
+                    }
+                    if (recordModel.hasLastUpdatedField()) {
+                        arrived.put(lastUpdatedFieldName, currentTimestampString());
+                    }
                     plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
                 }
                 
@@ -94,7 +99,9 @@ public class HistoryPlanner extends Planner {
                     if (RecordUtils.simultaneous(arrived, plan, timestampFieldName) &&
                         RecordUtils.different(arrived, plan, valueFieldNames))
                     {
-                        arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasLastUpdatedField()) {
+                            arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         
                         if (plan.getOperationType().equals(OperationType.INSERT)) {
                             plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
@@ -114,8 +121,12 @@ public class HistoryPlanner extends Planner {
                     else if (previousPlanned == null && RecordUtils.before(arrived, plan, timestampFieldName)) {
                         arrived.put(effectiveFromFieldName, arrivedTimestamp);
                         arrived.put(effectiveToFieldName, RecordUtils.precedingTimestamp(planTimestamp));
-                        arrived.put(currentFlagFieldName, CURRENT_FLAG_NO);
-                        arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasCurrentFlagField()) {
+                            arrived.put(currentFlagFieldName, CURRENT_FLAG_NO);
+                        }
+                        if (recordModel.hasLastUpdatedField()) {
+                            arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
                         
                         break;
@@ -130,13 +141,21 @@ public class HistoryPlanner extends Planner {
                     {
                         arrived.put(effectiveFromFieldName, arrivedTimestamp);
                         arrived.put(effectiveToFieldName, RecordUtils.precedingTimestamp(nextPlannedTimestamp));
-                        arrived.put(currentFlagFieldName, CURRENT_FLAG_NO);
-                        arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasCurrentFlagField()) {
+                            arrived.put(currentFlagFieldName, CURRENT_FLAG_NO);
+                        }
+                        if (recordModel.hasLastUpdatedField()) {
+                            arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
                         
                         plan.put(effectiveFromFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
-                        plan.put(currentFlagFieldName, CURRENT_FLAG_NO);
-                        plan.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasCurrentFlagField()) {
+                            plan.put(currentFlagFieldName, CURRENT_FLAG_NO);
+                        }
+                        if (recordModel.hasLastUpdatedField()) {
+                            plan.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         if (!plan.getOperationType().equals(OperationType.INSERT)) {
                             plan.setOperationType(OperationType.UPDATE);
                         }
@@ -150,13 +169,21 @@ public class HistoryPlanner extends Planner {
                     else if (RecordUtils.after(arrived, plan, timestampFieldName) && nextPlanned == null) {
                         arrived.put(effectiveFromFieldName, arrivedTimestamp);
                         arrived.put(effectiveToFieldName, FAR_FUTURE_MICROS);
-                        arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
-                        arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasCurrentFlagField()) {
+                            arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
+                        }
+                        if (recordModel.hasLastUpdatedField()) {
+                            arrived.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
                         
                         plan.put(effectiveToFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
-                        plan.put(currentFlagFieldName, CURRENT_FLAG_NO);
-                        plan.put(lastUpdatedFieldName, currentTimestampString());
+                        if (recordModel.hasCurrentFlagField()) {
+                            plan.put(currentFlagFieldName, CURRENT_FLAG_NO);
+                        }
+                        if (recordModel.hasLastUpdatedField()) {
+                            plan.put(lastUpdatedFieldName, currentTimestampString());
+                        }
                         if (!plan.getOperationType().equals(OperationType.INSERT)) {
                             plan.setOperationType(OperationType.UPDATE);
                         }
@@ -178,8 +205,18 @@ public class HistoryPlanner extends Planner {
     }
 
     @Override
-    public boolean requiresExisting() {
+    public boolean requiresExistingRecords() {
         return true;
+    }
+
+    @Override
+    public boolean requiresKeyColocation() {
+        return true;
+    }
+
+    @Override
+    public Set<OperationType> getEmittedOperationTypes() {
+        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
     }
 
 }

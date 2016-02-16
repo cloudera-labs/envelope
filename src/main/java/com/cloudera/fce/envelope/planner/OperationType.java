@@ -4,5 +4,5 @@ public enum OperationType {
     NONE
   , INSERT
   , UPDATE
-//  , DELETE
+  , DELETE
 }

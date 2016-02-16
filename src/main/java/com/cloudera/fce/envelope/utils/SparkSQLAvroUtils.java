@@ -9,8 +9,10 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -131,6 +133,15 @@ public class SparkSQLAvroUtils {
                 return record;
             }
         });
+    }
+    
+    public static DataFrame dataFrameForRecords(JavaRDD<GenericRecord> records, Schema schema, SQLContext sqlc)
+    {
+        JavaRDD<Row> rows = rowsForRecords(records);
+        StructType structType = structTypeForSchema(schema);
+        DataFrame dataFrame = sqlc.createDataFrame(rows, structType);
+        
+        return dataFrame;
     }
     
 }

@@ -21,6 +21,7 @@ import org.kududb.client.RowResult;
 import org.kududb.client.SessionConfiguration.FlushMode;
 import org.kududb.client.shaded.com.google.common.collect.Sets;
 
+import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.planner.OperationType;
 import com.cloudera.fce.envelope.planner.PlannedRecord;
 import com.cloudera.fce.envelope.utils.RecordUtils;
@@ -31,7 +32,6 @@ public class KuduStorageTable extends StorageTable {
     private KuduClient client;
     private KuduSession session;
     private KuduTable table;
-    
     private Schema tableSchema;
     
     public KuduStorageTable(Properties props) {
@@ -80,63 +80,9 @@ public class KuduStorageTable extends StorageTable {
         session.flush();        
     }
     
-    // TODO: allow for deletes
-    private List<Operation> extractOperations(List<PlannedRecord> planned) throws Exception {
-        List<Operation> operations = Lists.newArrayList();
-        
-        for (PlannedRecord plan : planned) {
-            OperationType operationType = plan.getOperationType();
-            
-            // There are no operations if the record already existed and was not modified.
-            if (!operationType.equals(OperationType.NONE)) {
-                Operation operation = null;
-                
-                // Kudu requires us to treat inserts and updates separately.
-                if (operationType.equals(OperationType.INSERT)) {
-                    operation = table.newInsert();
-                }
-                else if (operationType.equals(OperationType.UPDATE)) {
-                    operation = table.newUpdate();
-                }
-                
-                PartialRow kuduRow = operation.getRow();
-                
-                for (ColumnSchema columnSchema : table.getSchema().getColumns()) {
-                    String outputColName = columnSchema.getName();
-                    
-                    if (plan.get(outputColName) != null) {
-                        switch (columnSchema.getType()) {
-                            case DOUBLE:
-                                kuduRow.addDouble(outputColName, (Double)plan.get(outputColName));
-                                break;
-                            case FLOAT:
-                                kuduRow.addFloat(outputColName, (Float)plan.get(outputColName));
-                                break;
-                            case INT32:
-                                kuduRow.addInt(outputColName, (Integer)plan.get(outputColName));
-                                break;
-                            case INT64:
-                                kuduRow.addLong(outputColName, (Long)plan.get(outputColName));
-                                break;
-                            case STRING:
-                                kuduRow.addString(outputColName, (String)plan.get(outputColName));
-                                break;
-                            default:
-                                throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
-                        }
-                    }
-                }
-                
-                operations.add(operation);
-            }
-        }
-        
-        return operations;
-    }
-    
     @Override
-    public List<GenericRecord> getExistingForArriving(List<GenericRecord> arriving) throws Exception {
-        List<String> keyFieldNames = getRecordModel().getKeyFieldNames();
+    public List<GenericRecord> getExistingForArriving(List<GenericRecord> arriving, RecordModel recordModel) throws Exception {
+        List<String> keyFieldNames = recordModel.getKeyFieldNames();
         
         Set<GenericRecord> arrivingKeys = Sets.newHashSet();
         for (GenericRecord arrived : arriving) {
@@ -198,6 +144,65 @@ public class KuduStorageTable extends StorageTable {
         tableSchema = RecordUtils.schemaFor(fieldNames, fieldTypes);
         
         return tableSchema;
+    }
+    
+    @Override
+    public Set<OperationType> getSupportedOperationTypes() {
+        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
+    }
+    
+    // TODO: allow for deletes
+    private List<Operation> extractOperations(List<PlannedRecord> planned) throws Exception {
+        List<Operation> operations = Lists.newArrayList();
+        
+        for (PlannedRecord plan : planned) {
+            OperationType operationType = plan.getOperationType();
+            
+            // There are no operations if the record already existed and was not modified.
+            if (!operationType.equals(OperationType.NONE)) {
+                Operation operation = null;
+                
+                // Kudu requires us to treat inserts and updates separately.
+                if (operationType.equals(OperationType.INSERT)) {
+                    operation = table.newInsert();
+                }
+                else if (operationType.equals(OperationType.UPDATE)) {
+                    operation = table.newUpdate();
+                }
+                
+                PartialRow kuduRow = operation.getRow();
+                
+                for (ColumnSchema columnSchema : table.getSchema().getColumns()) {
+                    String outputColName = columnSchema.getName();
+                    
+                    if (plan.get(outputColName) != null) {
+                        switch (columnSchema.getType()) {
+                            case DOUBLE:
+                                kuduRow.addDouble(outputColName, (Double)plan.get(outputColName));
+                                break;
+                            case FLOAT:
+                                kuduRow.addFloat(outputColName, (Float)plan.get(outputColName));
+                                break;
+                            case INT32:
+                                kuduRow.addInt(outputColName, (Integer)plan.get(outputColName));
+                                break;
+                            case INT64:
+                                kuduRow.addLong(outputColName, (Long)plan.get(outputColName));
+                                break;
+                            case STRING:
+                                kuduRow.addString(outputColName, plan.get(outputColName).toString());
+                                break;
+                            default:
+                                throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
+                        }
+                    }
+                }
+                
+                operations.add(operation);
+            }
+        }
+        
+        return operations;
     }
     
     // The Avro record representation of the Kudu scan result.
@@ -264,8 +269,8 @@ public class KuduStorageTable extends StorageTable {
                     predKey.setUpperBound((Long)columnValue);
                     break;
                 case STRING:
-                    predKey.setLowerBound((String)columnValue);
-                    predKey.setUpperBound((String)columnValue);
+                    predKey.setLowerBound(columnValue.toString());
+                    predKey.setUpperBound(columnValue.toString());
                     break;
                 default:
                     throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -276,5 +281,5 @@ public class KuduStorageTable extends StorageTable {
         
         return builder.build();
     }
-
+    
 }

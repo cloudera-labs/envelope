@@ -5,11 +5,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+
 import org.apache.avro.generic.GenericRecord;
 
 import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class UpsertPlanner extends Planner {
 
@@ -21,7 +24,6 @@ public class UpsertPlanner extends Planner {
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
     {
-        
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
         String timestampFieldName = recordModel.getTimestampFieldName();
         List<String> valueFieldNames = recordModel.getValueFieldNames();
@@ -50,7 +52,9 @@ public class UpsertPlanner extends Planner {
             }
             
             if (existing == null) {
-                arrived.put(lastUpdatedFieldName, currentTimestampString());
+                if (recordModel.hasLastUpdatedField()) {
+                    arrived.put(lastUpdatedFieldName, currentTimestampString());
+                }
                 planned.add(new PlannedRecord(arrived, OperationType.INSERT));
             }
             else if (RecordUtils.before(arrived, existing, timestampFieldName)) {
@@ -58,20 +62,31 @@ public class UpsertPlanner extends Planner {
             }
             else if ((RecordUtils.simultaneous(arrived, existing, timestampFieldName) ||
                       RecordUtils.after(arrived, existing, timestampFieldName)) &&
-                      RecordUtils.different(arrived, existing, valueFieldNames))
+                     RecordUtils.different(arrived, existing, valueFieldNames))
             {
-                arrived.put(lastUpdatedFieldName, currentTimestampString());
+                if (recordModel.hasLastUpdatedField()) {
+                    arrived.put(lastUpdatedFieldName, currentTimestampString());
+                }
                 planned.add(new PlannedRecord(arrived, OperationType.UPDATE));
             }
         }
         
         return planned;
-        
     }
 
     @Override
-    public boolean requiresExisting() {
+    public boolean requiresExistingRecords() {
         return true;
+    }
+
+    @Override
+    public boolean requiresKeyColocation() {
+        return true;
+    }
+
+    @Override
+    public Set<OperationType> getEmittedOperationTypes() {
+        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
     }
 
 }
