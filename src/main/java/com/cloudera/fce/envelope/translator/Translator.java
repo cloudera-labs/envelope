@@ -6,8 +6,6 @@ import java.util.Properties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
-import com.cloudera.fce.envelope.RecordModel;
-
 public abstract class Translator { 
     
     protected Properties props;
@@ -33,8 +31,6 @@ public abstract class Translator {
     public abstract String acceptsType();
     
     public abstract Schema getSchema();
-    
-    public abstract RecordModel getRecordModel();
     
     public static Translator translatorFor(Properties props) throws Exception {
         Translator translator = null;

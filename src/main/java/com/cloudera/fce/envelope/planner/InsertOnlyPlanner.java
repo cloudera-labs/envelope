@@ -27,6 +27,10 @@ public class InsertOnlyPlanner extends Planner {
         
         for (GenericRecord arriving : arrivingRecords) {
             if (setKeyToUUID) {
+                if (!recordModel.hasKeyFields()) {
+                    throw new RuntimeException("Key columns must be specified to provide UUID keys.");
+                }
+                
                 arriving.put(recordModel.getKeyFieldNames().get(0), UUID.randomUUID().toString());
             }
             

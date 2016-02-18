@@ -17,6 +17,9 @@ public class RecordModel implements Serializable {
     private String effectiveToFieldName;
     private String currentFlagFieldName;
     
+    public boolean hasKeyFields() {
+        return getKeyFieldNames() != null;
+    }
     public List<String> getKeyFieldNames() {
         return keyFieldNames;
     }
@@ -24,6 +27,9 @@ public class RecordModel implements Serializable {
         this.keyFieldNames = keyFieldNames;
     }
     
+    public boolean hasTimestampField() {
+        return getTimestampFieldName() != null;
+    }
     public String getTimestampFieldName() {
         return timestampFieldName;
     }
@@ -31,6 +37,9 @@ public class RecordModel implements Serializable {
         this.timestampFieldName = timestampFieldName;
     }
     
+    public boolean hasValueFields() {
+        return getValueFieldNames() != null;
+    }
     public List<String> getValueFieldNames() {
         return valueFieldNames;
     }

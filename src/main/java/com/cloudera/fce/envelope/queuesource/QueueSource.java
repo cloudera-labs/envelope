@@ -9,8 +9,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 
-import com.cloudera.fce.envelope.RecordModel;
-
 @SuppressWarnings("serial")
 public abstract class QueueSource implements Serializable {
     
@@ -28,7 +26,6 @@ public abstract class QueueSource implements Serializable {
     }
     
     public abstract Schema getSchema() throws Exception;
-    public abstract RecordModel getRecordModel() throws Exception;
     
     public static QueueSource queueSourceFor(Properties props) throws Exception {
         QueueSource qs = null;

@@ -8,7 +8,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
@@ -18,7 +17,6 @@ public class KVPTranslator extends Translator {
     private String fieldDelimiter;
     private List<String> fieldNames;
     private List<String> fieldTypes;
-    private RecordModel recordModel = new RecordModel();
     private Schema schema;
     
     public KVPTranslator(Properties props) {
@@ -28,7 +26,6 @@ public class KVPTranslator extends Translator {
         fieldDelimiter = resolveDelimiter(props.getProperty("translator.kvp.delimiter.field"));
         fieldNames = PropertiesUtils.propertyAsList(props, "translator.kvp.field.names");
         fieldTypes = PropertiesUtils.propertyAsList(props, "translator.kvp.field.types");
-        recordModel.setKeyFieldNames(PropertiesUtils.propertyAsList(props, "translator.kvp.key.field.names"));
         schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
     }
     
@@ -96,11 +93,6 @@ public class KVPTranslator extends Translator {
     @Override
     public String acceptsType() {
         return "string";
-    }
-
-    @Override
-    public RecordModel getRecordModel() {
-        return recordModel;
     }
 
 }

@@ -17,7 +17,6 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 import org.kududb.client.shaded.com.google.common.collect.Sets;
 
-import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.translator.Translator;
 import com.google.common.collect.Maps;
 
@@ -93,11 +92,6 @@ public class KafkaQueueSource extends QueueSource {
     @Override
     public Schema getSchema() throws Exception {
         return Translator.translatorFor(props).getSchema();
-    }
-
-    @Override
-    public RecordModel getRecordModel() throws Exception {
-        return Translator.translatorFor(props).getRecordModel();
     }
 
 }

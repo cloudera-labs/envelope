@@ -8,7 +8,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 
-import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
@@ -16,7 +15,6 @@ public class AvroTranslator extends Translator {
     
     private List<String> fieldNames;
     private List<String> fieldTypes;
-    private RecordModel recordModel = new RecordModel();
     private Schema schema;
     
     public AvroTranslator(Properties props) {
@@ -25,7 +23,6 @@ public class AvroTranslator extends Translator {
         fieldNames = PropertiesUtils.propertyAsList(props, "translator.avro.field.names");
         fieldTypes = PropertiesUtils.propertyAsList(props, "translator.avro.field.types");
         schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
-        recordModel.setKeyFieldNames(PropertiesUtils.propertyAsList(props, "translator.avro.key.field.names"));
     }
     
     @Override
@@ -45,11 +42,6 @@ public class AvroTranslator extends Translator {
     @Override
     public Schema getSchema() {
         return schema;
-    }
-
-    @Override
-    public RecordModel getRecordModel() {
-        return recordModel;
     }
     
 }

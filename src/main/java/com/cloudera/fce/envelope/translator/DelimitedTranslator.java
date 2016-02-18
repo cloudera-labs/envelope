@@ -8,7 +8,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
@@ -17,7 +16,6 @@ public class DelimitedTranslator extends Translator {
     private String delimiter;
     private List<String> fieldNames;
     private List<String> fieldTypes;
-    private RecordModel recordModel = new RecordModel();
     private Schema schema;
     
     public DelimitedTranslator(Properties props) {
@@ -26,7 +24,6 @@ public class DelimitedTranslator extends Translator {
         delimiter = resolveDelimiter(props.getProperty("translator.delimited.delimiter"));
         fieldNames = PropertiesUtils.propertyAsList(props, "translator.delimited.field.names");
         fieldTypes = PropertiesUtils.propertyAsList(props, "translator.delimited.field.types");
-        recordModel.setKeyFieldNames(PropertiesUtils.propertyAsList(props, "translator.delimited.key.field.names"));
         schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
     }
     
@@ -88,11 +85,6 @@ public class DelimitedTranslator extends Translator {
     @Override
     public String acceptsType() {
         return "string";
-    }
-
-    @Override
-    public RecordModel getRecordModel() {
-        return recordModel;
     }
 
 }
