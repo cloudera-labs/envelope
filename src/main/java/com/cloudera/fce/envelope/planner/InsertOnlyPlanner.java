@@ -21,7 +21,7 @@ public class InsertOnlyPlanner extends Planner {
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
     {
-        boolean setKeyToUUID = Boolean.parseBoolean(props.getProperty("key.uuid", "false"));
+        boolean setKeyToUUID = Boolean.parseBoolean(props.getProperty("uuid.key.enabled", "false"));
         
         List<PlannedRecord> planned = Lists.newArrayList();
         

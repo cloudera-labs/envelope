@@ -5,6 +5,7 @@ CREATE TABLE fix_insertonly
     keycol STRING
   , clordid STRING
   , msgtype STRING
+  , msgtypedesc STRING
   , handlinst INT
   , `symbol` STRING
   , side INT

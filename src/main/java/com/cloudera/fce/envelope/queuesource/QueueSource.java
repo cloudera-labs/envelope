@@ -20,9 +20,14 @@ public abstract class QueueSource implements Serializable {
     
     public abstract JavaDStream<GenericRecord> dStreamFor(JavaStreamingContext jssc, Properties props) throws Exception;
     
-    public abstract void enqueueStringMessage(String queue, String key, String message);
+    public abstract void enqueueMessage(String queue, String key, String message);
     public void enqueueStringMessage(String queue, String message) {
-        enqueueStringMessage(queue, null, message);
+        enqueueMessage(queue, null, message);
+    }
+    
+    public abstract void enqueueMessage(String queue, byte[] key, byte[] message);
+    public void enqueueStringMessage(String queue, byte[] message) {
+        enqueueMessage(queue, null, message);
     }
     
     public abstract Schema getSchema() throws Exception;

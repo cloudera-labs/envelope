@@ -45,6 +45,9 @@ public class SparkSQLAvroUtils {
             else if (fieldType.equals(DataTypes.LongType)) { 
                 fieldTypes.add("long");
             }
+            else if (fieldType.equals(DataTypes.BooleanType)) {
+                fieldTypes.add("boolean");
+            }
             else {
                 throw new RuntimeException("Unsupported Spark SQL field type: " + fieldType);
             }
@@ -78,6 +81,9 @@ public class SparkSQLAvroUtils {
                     break;
                 case STRING:
                     fields.add(DataTypes.createStructField(field.name(), DataTypes.StringType, true));
+                    break;
+                case BOOLEAN:
+                    fields.add(DataTypes.createStructField(field.name(), DataTypes.BooleanType, true));
                     break;
                 default:
                     throw new RuntimeException("Unsupported Avro field type: " + fieldType);

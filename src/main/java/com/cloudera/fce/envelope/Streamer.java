@@ -1,7 +1,9 @@
 package com.cloudera.fce.envelope;
 
+import java.util.List;
 import java.util.Properties;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -14,6 +16,7 @@ import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
+import org.kududb.client.shaded.com.google.common.collect.Lists;
 
 import com.cloudera.fce.envelope.queuesource.QueueSource;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
@@ -35,25 +38,39 @@ public class Streamer
             stream = expandToWindow(stream, props);
         }
         
-        final SQLContext sqlc = new SQLContext(jssc.sparkContext()); 
+        final SQLContext sqlc = new SQLContext(jssc.sparkContext());
         
         // This is what we want to do each micro-batch.
         stream.foreachRDD(new Function<JavaRDD<GenericRecord>, Void>() {
             @Override
-            public Void call(JavaRDD<GenericRecord> batchRecords) throws Exception {
+            public Void call(JavaRDD<GenericRecord> arrivingRecords) throws Exception {
                 if (doesRepartition(props)) {
-                    batchRecords = repartition(batchRecords, props);
+                    arrivingRecords = repartition(arrivingRecords, props);
                 }
                 
-                DataFrame batchDataFrame = SparkSQLAvroUtils.dataFrameForRecords(batchRecords, qs.getSchema(), sqlc);
-                batchDataFrame.registerTempTable(getStreamTableName(props));
-                batchDataFrame.persist(StorageLevel.MEMORY_ONLY());
+                Schema arrivingSchema = qs.getSchema();
+                DataFrame arrivingDataFrame = SparkSQLAvroUtils.dataFrameForRecords(arrivingRecords, arrivingSchema, sqlc);
+                arrivingDataFrame.registerTempTable(getStreamTableName(props));
+                arrivingDataFrame.persist(StorageLevel.MEMORY_ONLY());
+                
+                List<DataFrame> lookupDataFrames = Lists.newArrayList();
+                for (Lookup lookup : Lookup.lookupsFor(props)) {
+                    JavaRDD<GenericRecord> lookupRecords = lookup.getLookupRecordsFor(arrivingRecords);
+                    Schema lookupSchema = lookup.getLookupTableSchema();
+                    DataFrame lookupDataFrame = SparkSQLAvroUtils.dataFrameForRecords(lookupRecords, lookupSchema, sqlc);
+                    lookupDataFrame.registerTempTable(lookup.getLookupTableName());
+                    lookupDataFrame.persist(StorageLevel.MEMORY_ONLY());
+                    lookupDataFrames.add(lookupDataFrame);
+                }
                 
                 for (Flow flow : Flow.flowsFor(props)) {
-                    flow.runFlow(batchDataFrame);
+                    flow.runFlow(arrivingDataFrame);
                 }
                 
-                batchDataFrame.unpersist();
+                arrivingDataFrame.unpersist();
+                for (DataFrame lookupDataFrame : lookupDataFrames) {
+                    lookupDataFrame.unpersist();
+                }
                 
                 // SPARK-4557
                 return null;

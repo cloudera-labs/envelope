@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -19,6 +20,7 @@ import com.cloudera.fce.envelope.planner.OperationType;
 import com.cloudera.fce.envelope.planner.PlannedRecord;
 import com.cloudera.fce.envelope.planner.Planner;
 import com.cloudera.fce.envelope.storage.StorageTable;
+import com.cloudera.fce.envelope.storage.StorageSystems;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
@@ -45,23 +47,30 @@ public class Flow implements Serializable {
         derivedRecords.foreachPartition(new VoidFunction<Iterator<GenericRecord>>() {
             @Override
             public void call(Iterator<GenericRecord> arrivingIterator) throws Exception {
-                Planner planner = Planner.plannerFor(props);
-                StorageTable storageTable = StorageTable.storageTableFor(props);
-                validatePlannerStorageCompatibility(planner, storageTable);
-                
-                storageTable.connect();
-                
                 RecordModel recordModel = RecordModel.recordModelFor(props);
                 List<GenericRecord> arriving = Lists.newArrayList(arrivingIterator);
-                List<GenericRecord> existing = null;
+                
+                Planner planner = Planner.plannerFor(props);
+                StorageTable storageTable = StorageSystems.tableFor(props);
+                validatePlannerStorageCompatibility(planner, storageTable);
+                                
+                List<PlannedRecord> planned;
                 if (planner.requiresExistingRecords()) {
-                    existing = storageTable.getExistingForArriving(arriving, recordModel);
+                    List<GenericRecord> existing = Lists.newArrayList();
+
+                    Schema keySchema = RecordUtils.subsetSchema(arriving.get(0).getSchema(), recordModel.getKeyFieldNames());
+                    for (GenericRecord arrived : arriving) {
+                        GenericRecord key = RecordUtils.subsetRecord(arrived, keySchema);
+                        existing.addAll(storageTable.getExistingForFilter(key));
+                    }
+                    
+                    planned = planner.planOperations(arriving, existing, recordModel);
+                }
+                else {
+                    planned = planner.planOperations(arriving, recordModel);
                 }
                 
-                List<PlannedRecord> planned = planner.planOperations(arriving, existing, recordModel);
                 storageTable.applyPlannedOperations(planned);
-                
-                storageTable.disconnect();
             }
         });
     }
@@ -82,9 +91,13 @@ public class Flow implements Serializable {
     {
         return records
             .groupBy(new Function<GenericRecord, GenericRecord>() {
+                Schema schema;
                 @Override
                 public GenericRecord call(GenericRecord record) throws Exception {
-                    return RecordUtils.subsetRecord(record, recordModel.getKeyFieldNames());
+                    if (schema == null) {
+                        schema = RecordUtils.subsetSchema(record.getSchema(), recordModel.getKeyFieldNames());
+                    }
+                    return RecordUtils.subsetRecord(record, schema);
                 }
             })
             .values()

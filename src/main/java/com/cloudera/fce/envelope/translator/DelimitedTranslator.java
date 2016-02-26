@@ -53,6 +53,9 @@ public class DelimitedTranslator extends Translator {
                 case "long":
                     record.put(fieldName, Long.parseLong(fieldValue));
                     break;
+                case "boolean":
+                    record.put(fieldName, Boolean.parseBoolean(fieldValue));
+                    break;
                 default:
                     throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
             }
@@ -83,8 +86,8 @@ public class DelimitedTranslator extends Translator {
     }
 
     @Override
-    public String acceptsType() {
-        return "string";
+    public MessageEncoding acceptsType() {
+        return MessageEncoding.STRING;
     }
 
 }

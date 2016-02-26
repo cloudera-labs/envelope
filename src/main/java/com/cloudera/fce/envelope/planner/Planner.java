@@ -22,6 +22,10 @@ public abstract class Planner {
     public abstract List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception;
     
+    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords, RecordModel recordModel) throws Exception {
+        return planOperations(arrivingRecords, null, recordModel);
+    }
+    
     public static String currentTimestampString() {
         return new Date(System.currentTimeMillis()).toString();
     }

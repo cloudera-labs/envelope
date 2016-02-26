@@ -38,12 +38,8 @@ public class KVPTranslator extends Translator {
         for (int kvpPos = 0; kvpPos < kvps.length; kvpPos++) {
             String[] components = kvps[kvpPos].split(Pattern.quote(fieldDelimiter));
             
-            String kvpKey = components[0];
+            String kvpKey = RecordUtils.compatibleFieldName(components[0]);
             String kvpValue = components[1];
-            
-            if (!kvpKey.matches("^[A-Za-z_].*")) {
-                kvpKey = "_" + kvpKey;
-            }
             
             switch (fieldTypes.get(kvpPos)) {
                 case "string":
@@ -60,6 +56,9 @@ public class KVPTranslator extends Translator {
                     break;
                 case "long":
                     record.put(kvpKey, Long.parseLong(kvpValue));
+                    break;
+                case "boolean":
+                    record.put(kvpKey, Boolean.parseBoolean(kvpValue));
                     break;
                 default:
                     throw new RuntimeException("Unsupported KVP field type: " + fieldTypes.get(kvpPos));
@@ -91,8 +90,8 @@ public class KVPTranslator extends Translator {
     }
 
     @Override
-    public String acceptsType() {
-        return "string";
+    public MessageEncoding acceptsType() {
+        return MessageEncoding.STRING;
     }
 
 }

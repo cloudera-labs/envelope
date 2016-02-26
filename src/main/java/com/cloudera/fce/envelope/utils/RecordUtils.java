@@ -16,12 +16,23 @@ import org.apache.avro.generic.GenericRecord;
 import com.google.common.collect.Maps;
 
 public class RecordUtils {
-
-    public static GenericRecord subsetRecord(GenericRecord record, List<String> fieldNames) throws RuntimeException {
+    
+    public static Schema subsetSchema(Schema schema, List<String> fieldNames) {
+        return subsetSchema(schema, fieldNames, null);
+    }
+    
+    public static Schema subsetSchema(Schema schema, List<String> fieldNames, Map<String, String> renames) {
         FieldAssembler<Schema> assembler = SchemaBuilder.record("s").fields();
         
-        for (Field field : record.getSchema().getFields()) {
+        for (Field field : schema.getFields()) {
             if (fieldNames.contains(field.name())) {
+                String originalFieldName = field.name();
+                String newFieldName = originalFieldName;
+                
+                if (renames != null && renames.containsKey(originalFieldName)) {
+                    newFieldName = renames.get(originalFieldName);
+                }
+                
                 Type fieldType = field.schema().getType();
                 
                 if (fieldType.equals(Type.UNION)) {
@@ -30,19 +41,22 @@ public class RecordUtils {
                 
                 switch (fieldType) {
                     case DOUBLE:
-                        assembler = assembler.optionalDouble(field.name());
+                        assembler = assembler.optionalDouble(newFieldName);
                         break;
                     case FLOAT:
-                        assembler = assembler.optionalFloat(field.name());
+                        assembler = assembler.optionalFloat(newFieldName);
                         break;
                     case INT:
-                        assembler = assembler.optionalInt(field.name());
+                        assembler = assembler.optionalInt(newFieldName);
                         break;
                     case LONG:
-                        assembler = assembler.optionalLong(field.name());
+                        assembler = assembler.optionalLong(newFieldName);
                         break;
                     case STRING:
-                        assembler = assembler.optionalString(field.name());
+                        assembler = assembler.optionalString(newFieldName);
+                        break;
+                    case BOOLEAN:
+                        assembler = assembler.optionalBoolean(newFieldName);
                         break;
                     default:
                         throw new RuntimeException("Unsupported Avro field type: " + fieldType);
@@ -50,26 +64,44 @@ public class RecordUtils {
             }
         }
         
-        Schema schema = assembler.endRecord();
-        
-        GenericRecord subRecord = new GenericData.Record(schema);
+        return assembler.endRecord();
+    }
+
+    public static GenericRecord subsetRecord(GenericRecord record, Schema subsetSchema) {
+        return subsetRecord(record, subsetSchema, null);
+    }
+    
+    public static GenericRecord subsetRecord(GenericRecord record, Schema subsetSchema, Map<String, String> renames) {
+        GenericRecord subRecord = new GenericData.Record(subsetSchema);
         
         for (Field field : subRecord.getSchema().getFields()) {
-            subRecord.put(field.name(), record.get(field.name()));
+            String originalFieldName = field.name();
+            String newFieldName = originalFieldName;
+            
+            if (renames != null && renames.containsKey(originalFieldName)) {
+                newFieldName = renames.get(originalFieldName);
+            }
+            
+            subRecord.put(newFieldName, record.get(originalFieldName));
         }
         
         return subRecord;
     }
     
-    public static Schema schemaFor(List<String> fieldNames, List<String> fieldTypes) throws RuntimeException {
+    public static String compatibleFieldName(String original) {
+        if (!original.matches("^[A-Za-z_].*")) {
+            return "field_" + original;
+        }
+        else {
+            return original;
+        }
+    }
+    
+    public static Schema schemaFor(List<String> fieldNames, List<String> fieldTypes) {
         FieldAssembler<Schema> assembler = SchemaBuilder.record("t").fields();
         
         for (int i = 0; i < fieldNames.size(); i++) {
-            String fieldName = fieldNames.get(i);
-            
-            if (!fieldName.matches("^[A-Za-z_].*")) {
-                fieldName = "_" + fieldName;
-            }
+            String fieldName = compatibleFieldName(fieldNames.get(i));
             
             String fieldType = fieldTypes.get(i);
             
@@ -89,6 +121,9 @@ public class RecordUtils {
                 case "long":
                     assembler = assembler.optionalLong(fieldName);
                     break;
+                case "boolean":
+                    assembler = assembler.optionalBoolean(fieldName);
+                    break;
                 default:
                     throw new RuntimeException("Unsupported provided field type: " + fieldType);
             }
@@ -97,43 +132,47 @@ public class RecordUtils {
         return assembler.endRecord();
     }
     
-    public static Map<GenericRecord, List<GenericRecord>> recordsByKey(List<GenericRecord> records, List<String> keyFieldNames) throws RuntimeException {
+    public static Map<GenericRecord, List<GenericRecord>> recordsByKey(List<GenericRecord> records, List<String> keyFieldNames) {
         Map<GenericRecord, List<GenericRecord>> recordsByKey = Maps.newHashMap();
         
-        for (GenericRecord record : records) {
-            GenericRecord key = RecordUtils.subsetRecord(record, keyFieldNames);
+        if (records.size() > 0) {
+            Schema keySchema = RecordUtils.subsetSchema(records.get(0).getSchema(), keyFieldNames);
             
-            if (!recordsByKey.containsKey(key)) {
-                recordsByKey.put(key, new ArrayList<GenericRecord>());
+            for (GenericRecord record : records) {
+                
+                GenericRecord key = RecordUtils.subsetRecord(record, keySchema);
+                
+                if (!recordsByKey.containsKey(key)) {
+                    recordsByKey.put(key, new ArrayList<GenericRecord>());
+                }
+                
+                List<GenericRecord> rowsForKey = recordsByKey.get(key);
+                rowsForKey.add(record);
             }
-            
-            List<GenericRecord> rowsForKey = recordsByKey.get(key);
-            rowsForKey.add(record);
         }
         
         return recordsByKey;
     }
     
-    public static boolean different(GenericRecord first, GenericRecord second, List<String> valueFieldNames) throws RuntimeException {
+    public static boolean different(GenericRecord first, GenericRecord second, List<String> valueFieldNames) {
         boolean differenceFound = false;
         
-        GenericRecord firstValues = RecordUtils.subsetRecord(first, valueFieldNames);
-        GenericRecord secondValues = RecordUtils.subsetRecord(second, valueFieldNames);
-        
-        for (int i = 0; i < firstValues.getSchema().getFields().size(); i++) {
-            Object firstValue = firstValues.get(i);
-            Object secondValue = secondValues.get(i);
-            
-            if (firstValue != null && secondValue != null &&
-                !firstValue.equals(secondValue))
-            {
-                differenceFound = true;
-            }
-            
-            if ((firstValue != null && secondValue == null) ||
-                (firstValue == null && secondValue != null))
-            {
-                differenceFound = true;
+        for (int i = 0; i < first.getSchema().getFields().size(); i++) {
+            if (valueFieldNames.contains(first.getSchema().getFields().get(i).name())) {
+                Object firstValue = first.get(i);
+                Object secondValue = second.get(i);
+                
+                if (firstValue != null && secondValue != null &&
+                    !firstValue.equals(secondValue))
+                {
+                    differenceFound = true;
+                }
+                
+                if ((firstValue != null && secondValue == null) ||
+                    (firstValue == null && secondValue != null))
+                {
+                    differenceFound = true;
+                }
             }
         }
         

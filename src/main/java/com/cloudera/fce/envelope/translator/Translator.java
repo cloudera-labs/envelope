@@ -28,7 +28,7 @@ public abstract class Translator {
         return translate(null, message);
     }
     
-    public abstract String acceptsType();
+    public abstract MessageEncoding acceptsType();
     
     public abstract Schema getSchema();
     

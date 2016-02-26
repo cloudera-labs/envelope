@@ -10,6 +10,11 @@ import scala.Tuple2;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
@@ -23,10 +28,13 @@ import com.google.common.collect.Maps;
 @SuppressWarnings("serial")
 public class KafkaQueueSource extends QueueSource {
     
+    private KafkaProducer<String, String> stringProducer;
+    private KafkaProducer<byte[], byte[]> byteArrayProducer;
+    
     public KafkaQueueSource(Properties props) {
         super(props);
     }
-    
+
     @Override
     public JavaDStream<GenericRecord> dStreamFor(JavaStreamingContext jssc, final Properties props) throws Exception {
         Map<String, String> kafkaParams = Maps.newHashMap();
@@ -84,14 +92,43 @@ public class KafkaQueueSource extends QueueSource {
         return dStream;
     }
     
+    public void enqueueMessage(String queue, String key, String message) {
+        if (stringProducer == null) {
+            initializeProducer();
+        }
+        
+        stringProducer.send(new ProducerRecord<String, String>(queue, key, message));
+    }
+
     @Override
-    public void enqueueStringMessage(String queue, String key, String message) {
-        // TODO: do this
+    public void enqueueMessage(String queue, byte[] key, byte[] message) {
+        if (byteArrayProducer == null) {
+            initializeProducer();
+        }
+        
+        byteArrayProducer.send(new ProducerRecord<byte[], byte[]>(queue, key, message));
     }
     
     @Override
     public Schema getSchema() throws Exception {
         return Translator.translatorFor(props).getSchema();
+    }
+    
+    private void initializeProducer() {
+        String encoding = props.getProperty("source.kafka.encoding");
+        final String brokers = props.getProperty("source.kafka.brokers");
+        
+        final Properties props = new Properties();
+        props.put("bootstrap.servers", brokers);
+        
+        if (encoding.equals("string")) {
+            Serializer<String> serializer = new StringSerializer();
+            stringProducer = new KafkaProducer<String, String>(props, serializer, serializer);
+        }
+        else if (encoding.equals("bytearray")) {
+            Serializer<byte[]> serializer = new ByteArraySerializer();
+            byteArrayProducer = new KafkaProducer<byte[], byte[]>(props, serializer, serializer);
+        }
     }
 
 }

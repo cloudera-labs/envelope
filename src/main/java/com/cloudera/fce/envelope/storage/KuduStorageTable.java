@@ -1,7 +1,6 @@
 package com.cloudera.fce.envelope.storage;
 
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.avro.Schema;
@@ -18,10 +17,8 @@ import org.kududb.client.KuduTable;
 import org.kududb.client.Operation;
 import org.kududb.client.PartialRow;
 import org.kududb.client.RowResult;
-import org.kududb.client.SessionConfiguration.FlushMode;
 import org.kududb.client.shaded.com.google.common.collect.Sets;
 
-import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.planner.OperationType;
 import com.cloudera.fce.envelope.planner.PlannedRecord;
 import com.cloudera.fce.envelope.utils.RecordUtils;
@@ -34,28 +31,10 @@ public class KuduStorageTable extends StorageTable {
     private KuduTable table;
     private Schema tableSchema;
     
-    public KuduStorageTable(Properties props) {
-        super(props);
-    }
-    
-    @Override
-    public void connect() throws Exception {
-        String masterAddresses = props.getProperty("kudu.connection");
-        client = new KuduClient.KuduClientBuilder(masterAddresses).build();
-        session = client.newSession();
-        table = client.openTable(tableName);
-        
-        // We don't want to silently drop duplicates because there shouldn't be any.
-        session.setIgnoreAllDuplicateRows(false);
-        // Tell the Kudu client that we will control when we want it to flush operations.
-        // Without this we would flush individual operations and throughput would plummet.
-        session.setFlushMode(FlushMode.MANUAL_FLUSH);
-    }
-    
-    @Override
-    public void disconnect() throws Exception {
-        session.close();
-        client.shutdown();
+    public KuduStorageTable(KuduStorageSystem system, String tableName) throws Exception {
+        this.client = system.getClient();
+        this.session = system.getSession();
+        this.table = system.getClient().openTable(tableName);
     }
     
     @Override
@@ -68,7 +47,6 @@ public class KuduStorageTable extends StorageTable {
             session.apply(operation);
             
             // Flush every 500 operations.
-            // TODO: optimize this figure
             if (count++ == 500) {
                 session.flush();
                 count = 0;
@@ -81,22 +59,13 @@ public class KuduStorageTable extends StorageTable {
     }
     
     @Override
-    public List<GenericRecord> getExistingForArriving(List<GenericRecord> arriving, RecordModel recordModel) throws Exception {
-        List<String> keyFieldNames = recordModel.getKeyFieldNames();
-        
-        Set<GenericRecord> arrivingKeys = Sets.newHashSet();
-        for (GenericRecord arrived : arriving) {
-            arrivingKeys.add(RecordUtils.subsetRecord(arrived, keyFieldNames));
-        }
-        
+    public List<GenericRecord> getExistingForFilter(GenericRecord filter) throws Exception {
         List<GenericRecord> existing = Lists.newArrayList();
         
-        for (GenericRecord key : arrivingKeys) {
-            KuduScanner scanner = scannerForKey(key);
-            while (scanner.hasMoreRows()) {
-                for (RowResult rowResult : scanner.nextRows()) {
-                    existing.add(resultAsRecord(rowResult));
-                }
+        KuduScanner scanner = scannerForFilter(filter);
+        while (scanner.hasMoreRows()) {
+            for (RowResult rowResult : scanner.nextRows()) {
+                existing.add(resultAsRecord(rowResult));
             }
         }
         
@@ -105,7 +74,6 @@ public class KuduStorageTable extends StorageTable {
     
     @Override
     public Schema getSchema() throws RuntimeException {
-        // Use the cached schema if we have already created it.
         if (tableSchema != null) {
             return tableSchema;
         }
@@ -133,6 +101,9 @@ public class KuduStorageTable extends StorageTable {
                 case STRING:
                     fieldType = "string";
                     break;
+                case BOOL:
+                    fieldType = "boolean";
+                    break;
                 default:
                     throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
             }
@@ -148,26 +119,30 @@ public class KuduStorageTable extends StorageTable {
     
     @Override
     public Set<OperationType> getSupportedOperationTypes() {
-        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
+        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE, OperationType.DELETE);
     }
     
-    // TODO: allow for deletes
     private List<Operation> extractOperations(List<PlannedRecord> planned) throws Exception {
         List<Operation> operations = Lists.newArrayList();
         
         for (PlannedRecord plan : planned) {
             OperationType operationType = plan.getOperationType();
             
-            // There are no operations if the record already existed and was not modified.
             if (!operationType.equals(OperationType.NONE)) {
                 Operation operation = null;
                 
-                // Kudu requires us to treat inserts and updates separately.
-                if (operationType.equals(OperationType.INSERT)) {
-                    operation = table.newInsert();
-                }
-                else if (operationType.equals(OperationType.UPDATE)) {
-                    operation = table.newUpdate();
+                switch (operationType) {
+                    case DELETE:
+                        operation = table.newDelete();
+                        break;
+                    case INSERT:
+                        operation = table.newInsert();
+                        break;
+                    case UPDATE:
+                        operation = table.newUpdate();
+                        break;
+                    default:
+                        throw new RuntimeException("Unknown operation type: " + operationType.toString());
                 }
                 
                 PartialRow kuduRow = operation.getRow();
@@ -191,6 +166,9 @@ public class KuduStorageTable extends StorageTable {
                                 break;
                             case STRING:
                                 kuduRow.addString(outputColName, plan.get(outputColName).toString());
+                                break;
+                            case BOOL:
+                                kuduRow.addBoolean(outputColName, (Boolean)plan.get(outputColName));
                                 break;
                             default:
                                 throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -232,6 +210,9 @@ public class KuduStorageTable extends StorageTable {
                 case STRING:
                     record.put(columnName, result.getString(columnName));
                     break;
+                case BOOL:
+                    record.put(columnName, result.getBoolean(columnName));
+                    break;
                 default:
                     throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
             }
@@ -240,43 +221,45 @@ public class KuduStorageTable extends StorageTable {
         return record;
     }
     
-    // The Kudu scanner that corresponds to the provided key for the provided table.
-    private KuduScanner scannerForKey(GenericRecord key) {
+    private KuduScanner scannerForFilter(GenericRecord filter) {
         KuduScannerBuilder builder = client.newScannerBuilder(table);
         
-        // Build the Kudu scanner one key field at a time.
-        for (Field field : key.getSchema().getFields()) {
+        for (Field field : filter.getSchema().getFields()) {
             String columnName = field.name();
-            Object columnValue = key.get(columnName);
-            ColumnRangePredicate predKey = new ColumnRangePredicate(table.getSchema().getColumn(columnName));
+            Object columnValue = filter.get(columnName);
+            ColumnRangePredicate predicate = new ColumnRangePredicate(table.getSchema().getColumn(columnName));
             ColumnSchema columnSchema = table.getSchema().getColumn(columnName);
             
             switch (columnSchema.getType()) {
                 case DOUBLE:
-                    predKey.setLowerBound((Double)columnValue);
-                    predKey.setUpperBound((Double)columnValue);
+                    predicate.setLowerBound((Double)columnValue);
+                    predicate.setUpperBound((Double)columnValue);
                     break;
                 case FLOAT:
-                    predKey.setLowerBound((Float)columnValue);
-                    predKey.setUpperBound((Float)columnValue);
+                    predicate.setLowerBound((Float)columnValue);
+                    predicate.setUpperBound((Float)columnValue);
                     break;
                 case INT32:
-                    predKey.setLowerBound((Integer)columnValue);
-                    predKey.setUpperBound((Integer)columnValue);
+                    predicate.setLowerBound((Integer)columnValue);
+                    predicate.setUpperBound((Integer)columnValue);
                     break;
                 case INT64:
-                    predKey.setLowerBound((Long)columnValue);
-                    predKey.setUpperBound((Long)columnValue);
+                    predicate.setLowerBound((Long)columnValue);
+                    predicate.setUpperBound((Long)columnValue);
                     break;
                 case STRING:
-                    predKey.setLowerBound(columnValue.toString());
-                    predKey.setUpperBound(columnValue.toString());
+                    predicate.setLowerBound(columnValue.toString());
+                    predicate.setUpperBound(columnValue.toString());
+                    break;
+                case BOOL:
+                    predicate.setLowerBound((Boolean)columnValue);
+                    predicate.setUpperBound((Boolean)columnValue);
                     break;
                 default:
                     throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
             }
             
-            builder = builder.addColumnRangePredicate(predKey);
+            builder = builder.addColumnRangePredicate(predicate);
         }
         
         return builder.build();

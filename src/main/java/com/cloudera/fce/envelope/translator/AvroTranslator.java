@@ -35,8 +35,8 @@ public class AvroTranslator extends Translator {
     }
     
     @Override
-    public String acceptsType() {
-        return "bytearray";
+    public MessageEncoding acceptsType() {
+        return MessageEncoding.BYTEARRAY;
     }
     
     @Override

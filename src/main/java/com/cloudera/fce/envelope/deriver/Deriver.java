@@ -15,7 +15,7 @@ public abstract class Deriver {
         this.props = props;
     }
     
-    public abstract DataFrame derive(DataFrame input);
+    public abstract DataFrame derive(DataFrame input) throws Exception;
     
     public static Deriver deriverFor(Properties props) throws Exception {
         String deriverName = props.getProperty("deriver");
