@@ -55,13 +55,13 @@ Stages 4 to 6 can be defined multiple times per pipeline so that a stream can be
 
 #### Queue Sourcing
 
-A queue source interacts with an instance of a message queueing system. Envelope provides an implementation of this for Kafka via the built-in Spark Streaming integration. User-provided implementations can be referenced if they extend the `[QueueSource](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/queuesource/QueueSource.java)` class.
+A queue source interacts with an instance of a message queueing system. Envelope provides an implementation of this for Kafka via the built-in Spark Streaming integration. User-provided implementations can be referenced if they extend the `QueueSource` class.
 
 #### Translation
 
-A translator interprets the messages from a queue source as typed records. Envelope uses Avro `[GenericRecord](https://avro.apache.org/docs/1.7.6/api/java/org/apache/avro/generic/GenericRecord.html)` as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
+A translator interprets the messages from a queue source as typed records. Envelope uses Avro `GenericRecord`s as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
 
-Envelope provides translator implementations for delimited messages, key-value pair messages, and serialized Avro records. User-provided implementations can be referenced if they extend the `[Translator](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/translator/Translator.java)` class.
+Envelope provides translator implementations for delimited messages, key-value pair messages, and serialized Avro records. User-provided implementations can be referenced if they extend the `Translator` class.
 
 #### Lookup
 
@@ -69,7 +69,7 @@ The lookup stage retrieves existing records from a storage layer. This is often 
 
 #### Derivation
 
-A deriver is used to transform the stream data model into the storage data model. Envelope provides a Spark SQL implementation that allows a SQL SELECT statement to be used to define the transformation. The SQL can be provided either directly into the configuration or as a reference to an HDFS file that contains the SQL statement. User-provided deriver implementations can be referenced if they extend the `[Deriver](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/deriver/Deriver.java)` class.
+A deriver is used to transform the stream data model into the storage data model. Envelope provides a Spark SQL implementation that allows a SQL SELECT statement to be used to define the transformation. The SQL can be provided either directly into the configuration or as a reference to an HDFS file that contains the SQL statement. User-provided deriver implementations can be referenced if they extend the `Deriver` class.
 
 #### Planning
 
@@ -80,11 +80,11 @@ Envelope provides three planner implementations:
 * Upsert: records that have an existing storage record for the same key are planned as updates, and those that do not are planned as inserts. However, no update is planned where the timestamp is before that of an existing record of the same key, or where the timestamp is the same as an existing record of the same key but no values have changed.
 * History: plans to store all versions of a key using [Type II modeling](https://en.wikipedia.org/wiki/Slowly_changing_dimension#Type_2). This may require multiple mutations of the storage table for a single arriving record where the start/end dates and current flags of existing versions need to be altered to reflect the new history.
 
-User-provided planner implementations can be referenced if they extend the `[Planner](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/planner/Planner.java)` class.
+User-provided planner implementations can be referenced if they extend the `Planner` class.
 
 #### Storing
 
-Storage is represented in Envelope as systems that contain mutable tables. A planner is compatible with a storage system if the storage system can apply all of the mutation types (e.g. insert, update, delete) that the planner may produce. Envelope currently provides a storage implementation for Kudu. User-provided storage implementations can be referenced if they extend the `[StorageSystem](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageSystem.java)` and `[StorageTable](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageTable.java)` classes.
+Storage is represented in Envelope as systems that contain mutable tables. A planner is compatible with a storage system if the storage system can apply all of the mutation types (e.g. insert, update, delete) that the planner may produce. Envelope currently provides a storage implementation for Kudu. User-provided storage implementations can be referenced if they extend the `StorageSystem` and `StorageTable` classes.
 
 #### Flows
 
