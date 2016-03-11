@@ -1,10 +1,10 @@
 ## Envelope
 
-Envelope is a Spark Streaming application that can be configured to easily implement streaming data pipelines.
+Envelope is a Spark Streaming application that can be configured to easily implement streaming data pipelines on a CDH cluster.
 
 The target use cases for Envelope are pipelines that need to move, and perhaps transform using SQL along the way, data from a queue (such as Kafka) to a storage layer (such as Kudu). The goal of Envelope is to reduce the amount of plumbing code required to develop these pipelines -- sometimes without requiring any code at all.
 
-Running an Envelope pipeline is as simple as submitting the Envelope application to Spark along with the configuration that defines the pipeline being implemented. Configuration is provided as a simple properties file. Where Envelope does not already provide the functionality to develop a specific pipeline there are pluggable points in the data flow that user-provided code can be referenced from the configuration.
+Running an Envelope pipeline is as simple as submitting the Envelope application to Spark along with the configuration that defines the pipeline being implemented. Configuration is provided as a simple properties file. Where Envelope does not already provide the functionality to develop a specific pipeline there are pluggable points in the data flow that user-provided code can be inserted.
 
 ### Examples
 
@@ -22,11 +22,11 @@ The configuration for this example is found here. The messages are only represen
 
 After creating the required Kudu tables using the provided Impala scripts, the example can be run as:
 
-> spark-submit envelope-0.1.0.jar tick.properties
+    spark-submit envelope-0.1.0.jar tick.properties
 
 A Kafka producer to generate sample messages for the example, and push them in to the "tick" topic, can be run as:
 
-> spark-submit --class com.cloudera.fce.envelope.example.tick.ExampleTickDataGenerator envelope-0.1.0.jar kafkabrokerhost:9092 tick
+    spark-submit --class com.cloudera.fce.envelope.example.tick.ExampleTickDataGenerator envelope-0.1.0.jar kafkabrokerhost:9092 tick
 
 #### Traffic
 
@@ -34,15 +34,15 @@ The traffic example is an Envelope pipeline that retrieves measurements of traff
 
 The configuration for this example is found here. After creating the required Kudu tables using the provided Impala scripts, the example can be run as:
 
-> spark-submit envelope-0.1.0.jar traffic.properties
+    spark-submit envelope-0.1.0.jar traffic.properties
 
 A Kafka producer to generate sample messages for the example, and push them in to the "traffic" topic, can be run as:
 
-> spark-submit --class com.cloudera.fce.envelope.example.traffic.ExampleTrafficGenerator envelope-0.1.0.jar kafkabrokerhost:9092 traffic
+    spark-submit --class com.cloudera.fce.envelope.example.traffic.ExampleTrafficGenerator envelope-0.1.0.jar kafkabrokerhost:9092 traffic
 
 ### Functionality
 
-Envelope pipelines implement six stages:
+Envelope pipelines run these six stages every Spark Streaming micro-batch:
 
  1. Queue Sourcing -- retrieve the queued messages
  2. Translation -- translate the queue messages into typed records
@@ -55,13 +55,13 @@ Stages 4 to 6 can be defined multiple times per pipeline so that a stream can be
 
 #### Queue Sourcing
 
-A queue source interacts with an instance of a message queueing system. Envelope provides an implementation of this for Kafka via the built-in Spark Streaming integration. User-provided implementations can be referenced if they extend the [`QueueSource`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/queuesource/QueueSource.java) class.
+A queue source interacts with an instance of a message queueing system. Envelope provides an implementation of this for Kafka via the built-in Spark Streaming integration. User-provided implementations can be referenced if they extend the `[QueueSource]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/queuesource/QueueSource.java) class.
 
 #### Translation
 
-A translator interprets the messages from a queue source as typed records. Envelope uses Avro [`GenericRecord`](https://avro.apache.org/docs/1.7.6/api/java/org/apache/avro/generic/GenericRecord.html) as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
+A translator interprets the messages from a queue source as typed records. Envelope uses Avro `[GenericRecord]`(https://avro.apache.org/docs/1.7.6/api/java/org/apache/avro/generic/GenericRecord.html) as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
 
-Envelope provides translator implementations for delimited messages, key-value pair messages, and serialized Avro records. User-provided implementations can be referenced if they extend the [`Translator`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/translator/Translator.java) class.
+Envelope provides translator implementations for delimited messages, key-value pair messages, and serialized Avro records. User-provided implementations can be referenced if they extend the `[Translator]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/translator/Translator.java) class.
 
 #### Lookup
 
@@ -69,7 +69,7 @@ The lookup stage retrieves existing records from a storage layer. This is often 
 
 #### Derivation
 
-A deriver is used to transform the stream data model into the storage data model. Envelope provides a Spark SQL implementation that allows a SQL SELECT statement to be used to define the transformation. The SQL can be provided either directly into the configuration or as a reference to an HDFS file that contains the SQL statement. User-provided deriver implementations can be referenced if they extend the [`Deriver`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/deriver/Deriver.java) class.
+A deriver is used to transform the stream data model into the storage data model. Envelope provides a Spark SQL implementation that allows a SQL SELECT statement to be used to define the transformation. The SQL can be provided either directly into the configuration or as a reference to an HDFS file that contains the SQL statement. User-provided deriver implementations can be referenced if they extend the `[Deriver]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/deriver/Deriver.java) class.
 
 #### Planning
 
@@ -80,11 +80,11 @@ Envelope provides three planner implementations:
 * Upsert: records that have an existing storage record for the same key are planned as updates, and those that do not are planned as inserts. However, no update is planned where the timestamp is before that of an existing record of the same key, or where the timestamp is the same as an existing record of the same key but no values have changed.
 * History: plans to store all versions of a key using [Type II modeling](https://en.wikipedia.org/wiki/Slowly_changing_dimension#Type_2). This may require multiple mutations of the storage table for a single arriving record where the start/end dates and current flags of existing versions need to be altered to reflect the new history.
 
-User-provided planner implementations can be referenced if they extend the [`Planner`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/planner/Planner.java) class.
+User-provided planner implementations can be referenced if they extend the `[Planner]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/planner/Planner.java) class.
 
 #### Storing
 
-Storage is represented in Envelope as systems that contain mutable tables. A planner is compatible with a storage system if the storage system can apply all of the mutation types (e.g. insert, update, delete) that the planner may produce. Envelope currently provides a storage implementation for Kudu. User-provided storage implementations can be referenced if they extend the [`StorageSystem`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageSystem.java) and [`StorageTable`](http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageTable.java) classes.
+Storage is represented in Envelope as systems that contain mutable tables. A planner is compatible with a storage system if the storage system can apply all of the mutation types (e.g. insert, update, delete) that the planner may produce. Envelope currently provides a storage implementation for Kudu. User-provided storage implementations can be referenced if they extend the `[StorageSystem]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageSystem.java) and `[StorageTable]`(http://github.mtv.cloudera.com/jeremy/envelope/blob/master/src/main/java/com/cloudera/fce/envelope/storage/StorageTable.java) classes.
 
 #### Flows
 
