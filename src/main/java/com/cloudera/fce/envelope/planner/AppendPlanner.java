@@ -13,13 +13,13 @@ import com.google.common.collect.Sets;
 
 public class AppendPlanner extends Planner {
     
-    public AppendPlanner(Properties props) throws Exception {
+    public AppendPlanner(Properties props) {
         super(props);
     }
     
     @Override
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
-            List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
+            List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         boolean setKeyToUUID = Boolean.parseBoolean(props.getProperty("uuid.key.enabled", "false"));
         

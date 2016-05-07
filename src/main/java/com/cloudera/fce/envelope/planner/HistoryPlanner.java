@@ -20,13 +20,13 @@ public class HistoryPlanner extends Planner {
     private String CURRENT_FLAG_NO = "N";
     private Long FAR_FUTURE_MICROS = 253402214400000000L; // 9999-12-31
     
-    public HistoryPlanner(Properties props) throws Exception {
+    public HistoryPlanner(Properties props) {
         super(props);
     }
     
     @Override
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
-            List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
+            List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
         String timestampFieldName = recordModel.getTimestampFieldName();

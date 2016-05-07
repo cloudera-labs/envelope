@@ -16,13 +16,13 @@ import com.google.common.collect.Sets;
 
 public class UpsertPlanner extends Planner {
 
-    public UpsertPlanner(Properties props) throws Exception {
+    public UpsertPlanner(Properties props) {
         super(props);
     }
     
     @Override
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
-            List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception
+            List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
         String timestampFieldName = recordModel.getTimestampFieldName();

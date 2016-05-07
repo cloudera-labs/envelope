@@ -15,12 +15,12 @@ public abstract class Planner {
     
     protected Properties props;
     
-    public Planner(Properties props) throws Exception {
+    public Planner(Properties props) {
         this.props = props;
     }
     
     public abstract List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
-            List<GenericRecord> existingRecords, RecordModel recordModel) throws Exception;
+            List<GenericRecord> existingRecords, RecordModel recordModel);
     
     public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords, RecordModel recordModel) throws Exception {
         return planOperations(arrivingRecords, null, recordModel);

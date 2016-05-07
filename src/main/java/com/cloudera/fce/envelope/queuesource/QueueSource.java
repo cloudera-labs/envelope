@@ -42,7 +42,7 @@ public abstract class QueueSource implements Serializable {
         }
         else {
             Class<?> clazz = Class.forName(queueSourceName);
-            Constructor<?> constructor = clazz.getConstructor();
+            Constructor<?> constructor = clazz.getConstructor(Properties.class);
             qs = (QueueSource)constructor.newInstance(props);
         }
         

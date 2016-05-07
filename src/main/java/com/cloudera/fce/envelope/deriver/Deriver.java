@@ -29,7 +29,7 @@ public abstract class Deriver {
         }
         else {
             Class<?> clazz = Class.forName(deriverName);
-            Constructor<?> constructor = clazz.getConstructor();
+            Constructor<?> constructor = clazz.getConstructor(Properties.class);
             deriver = (Deriver)constructor.newInstance(deriverProps);
         }
         

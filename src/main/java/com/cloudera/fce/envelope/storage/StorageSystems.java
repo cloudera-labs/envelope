@@ -44,7 +44,7 @@ public enum StorageSystems {
         }
         else {
             Class<?> clazz = Class.forName(storageTableName);
-            Constructor<?> constructor = clazz.getConstructor();
+            Constructor<?> constructor = clazz.getConstructor(Properties.class);
             storage = (StorageSystem)constructor.newInstance(storageProps);
         }
         
