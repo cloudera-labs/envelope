@@ -1,8 +1,8 @@
 package com.cloudera.fce.envelope.planner;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Properties;
@@ -20,7 +20,7 @@ public class TestAppendPlanner {
 
     @Test
     public void testPlansInserts() {
-        AppendPlanner ap = new AppendPlanner(new Properties());
+        Planner ap = new AppendPlanner(new Properties());
         
         List<GenericRecord> records = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
@@ -29,18 +29,20 @@ public class TestAppendPlanner {
         
         RecordModel rm = new RecordModel();
         
-        List<PlannedRecord> planned = ap.planOperations(records, null, rm);
+        List<PlannedRecord> planned = ap.planOperations(records, rm);
         
         for (PlannedRecord plan : planned) {
-            assertTrue(plan.getOperationType().equals(OperationType.INSERT));
+            assertEquals(plan.getOperationType(), OperationType.INSERT);
         }
+        
+        assertEquals(planned.size(), 10);
     }
     
     @Test
     public void testUUIDKey() {
         Properties props = new Properties();
         props.setProperty("uuid.key.enabled", "true");
-        AppendPlanner ap = new AppendPlanner(props);
+        Planner ap = new AppendPlanner(props);
         
         List<GenericRecord> records = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
@@ -50,7 +52,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setKeyFieldNames(Lists.newArrayList("key"));
         
-        List<PlannedRecord> planned = ap.planOperations(records, null, rm);
+        List<PlannedRecord> planned = ap.planOperations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNotNull(plan.get("key"));
@@ -61,7 +63,7 @@ public class TestAppendPlanner {
     public void testNoUUIDKey() {
         Properties props = new Properties();
         props.setProperty("uuid.key.enabled", "false");
-        AppendPlanner ap = new AppendPlanner(props);
+        Planner ap = new AppendPlanner(props);
         
         List<GenericRecord> records = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
@@ -71,7 +73,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setKeyFieldNames(Lists.newArrayList("key"));
         
-        List<PlannedRecord> planned = ap.planOperations(records, null, rm);
+        List<PlannedRecord> planned = ap.planOperations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNull(plan.get("key"));
@@ -81,7 +83,7 @@ public class TestAppendPlanner {
     @Test
     public void testLastUpdated() {
         Properties props = new Properties();
-        AppendPlanner ap = new AppendPlanner(props);
+        Planner ap = new AppendPlanner(props);
         
         List<GenericRecord> records = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
@@ -91,7 +93,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = ap.planOperations(records, null, rm);
+        List<PlannedRecord> planned = ap.planOperations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNotNull(plan.get("lastupdated"));
@@ -101,7 +103,7 @@ public class TestAppendPlanner {
     @Test
     public void testNoLastUpdated() {
         Properties props = new Properties();
-        AppendPlanner ap = new AppendPlanner(props);
+        Planner ap = new AppendPlanner(props);
         
         List<GenericRecord> records = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
@@ -110,7 +112,7 @@ public class TestAppendPlanner {
         
         RecordModel rm = new RecordModel();
         
-        List<PlannedRecord> planned = ap.planOperations(records, null, rm);
+        List<PlannedRecord> planned = ap.planOperations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNull(plan.get("lastupdated"));
@@ -118,7 +120,7 @@ public class TestAppendPlanner {
     }
     
     private GenericRecord createTestRecord() {
-        Schema schema = SchemaBuilder.builder().record("a").fields()
+        Schema schema = SchemaBuilder.builder().record("test").fields()
                 .optionalString("key")
                 .optionalInt("value")
                 .optionalString("lastupdated")

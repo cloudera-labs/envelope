@@ -22,7 +22,7 @@ public abstract class Planner {
     public abstract List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel);
     
-    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords, RecordModel recordModel) throws Exception {
+    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords, RecordModel recordModel) {
         return planOperations(arrivingRecords, null, recordModel);
     }
     
