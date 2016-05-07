@@ -48,7 +48,7 @@ public abstract class Translator {
         }
         else {
             Class<?> clazz = Class.forName(translatorName);
-            Constructor<?> constructor = clazz.getConstructor();
+            Constructor<?> constructor = clazz.getConstructor(Properties.class);
             translator = (Translator)constructor.newInstance(props);
         }
         

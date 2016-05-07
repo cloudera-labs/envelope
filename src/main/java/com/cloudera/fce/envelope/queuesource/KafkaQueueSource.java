@@ -4,10 +4,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import kafka.serializer.DefaultDecoder;
-import kafka.serializer.StringDecoder;
-import scala.Tuple2;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -20,10 +16,14 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
-import org.kududb.client.shaded.com.google.common.collect.Sets;
 
 import com.cloudera.fce.envelope.translator.Translator;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import kafka.serializer.DefaultDecoder;
+import kafka.serializer.StringDecoder;
+import scala.Tuple2;
 
 @SuppressWarnings("serial")
 public class KafkaQueueSource extends QueueSource {
@@ -34,7 +34,7 @@ public class KafkaQueueSource extends QueueSource {
     public KafkaQueueSource(Properties props) {
         super(props);
     }
-
+    
     @Override
     public JavaDStream<GenericRecord> dStreamFor(JavaStreamingContext jssc, final Properties props) throws Exception {
         Map<String, String> kafkaParams = Maps.newHashMap();
@@ -99,7 +99,7 @@ public class KafkaQueueSource extends QueueSource {
         
         stringProducer.send(new ProducerRecord<String, String>(queue, key, message));
     }
-
+    
     @Override
     public void enqueueMessage(String queue, byte[] key, byte[] message) {
         if (byteArrayProducer == null) {

@@ -8,23 +8,29 @@ import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.kududb.ColumnSchema;
-import org.kududb.client.ColumnRangePredicate;
 import org.kududb.client.KuduClient;
+import org.kududb.client.KuduPredicate;
+import org.kududb.client.KuduPredicate.ComparisonOp;
 import org.kududb.client.KuduScanner;
 import org.kududb.client.KuduScanner.KuduScannerBuilder;
 import org.kududb.client.KuduSession;
 import org.kududb.client.KuduTable;
 import org.kududb.client.Operation;
 import org.kududb.client.PartialRow;
+import org.kududb.client.RowError;
 import org.kududb.client.RowResult;
-import org.kududb.client.shaded.com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.fce.envelope.planner.OperationType;
 import com.cloudera.fce.envelope.planner.PlannedRecord;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class KuduStorageTable extends StorageTable {
+    
+    private final Logger LOG = LoggerFactory.getLogger(KuduStorageTable.class);
     
     private KuduClient client;
     private KuduSession session;
@@ -34,28 +40,28 @@ public class KuduStorageTable extends StorageTable {
     public KuduStorageTable(KuduStorageSystem system, String tableName) throws Exception {
         this.client = system.getClient();
         this.session = system.getSession();
-        this.table = system.getClient().openTable(tableName);
+        this.table = client.openTable(tableName);
     }
     
     @Override
-    public void applyPlannedOperations(List<PlannedRecord> planned) throws Exception {
+    public void applyPlannedMutations(List<PlannedRecord> planned) throws Exception {
         List<Operation> operations = extractOperations(planned);
-        
-        int count = 0;
         
         for (Operation operation : operations) {
             session.apply(operation);
-            
-            // Flush every 500 operations.
-            if (count++ == 500) {
-                session.flush();
-                count = 0;
-                
-                // TODO: capture errors
-            }            
         }
         
-        session.flush();        
+        while (session.hasPendingOperations()) {
+            Thread.sleep(1);
+        }
+        
+        if (session.countPendingErrors() > 0) {
+            RowError[] errors = session.getPendingErrors().getRowErrors();
+            
+            for (RowError error : errors) {
+                LOG.error("Error '{}' during operation '{}' at tablet server '{}'", error.getErrorStatus().toString(), error.getOperation(), error.getTsUUID());
+            }
+        }
     }
     
     @Override
@@ -65,7 +71,8 @@ public class KuduStorageTable extends StorageTable {
         KuduScanner scanner = scannerForFilter(filter);
         while (scanner.hasMoreRows()) {
             for (RowResult rowResult : scanner.nextRows()) {
-                existing.add(resultAsRecord(rowResult));
+                GenericRecord resultRecord = resultAsRecord(rowResult);
+                existing.add(resultRecord);
             }
         }
         
@@ -227,39 +234,33 @@ public class KuduStorageTable extends StorageTable {
         for (Field field : filter.getSchema().getFields()) {
             String columnName = field.name();
             Object columnValue = filter.get(columnName);
-            ColumnRangePredicate predicate = new ColumnRangePredicate(table.getSchema().getColumn(columnName));
+            KuduPredicate predicate;
             ColumnSchema columnSchema = table.getSchema().getColumn(columnName);
             
             switch (columnSchema.getType()) {
                 case DOUBLE:
-                    predicate.setLowerBound((Double)columnValue);
-                    predicate.setUpperBound((Double)columnValue);
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, (Double)columnValue);
                     break;
                 case FLOAT:
-                    predicate.setLowerBound((Float)columnValue);
-                    predicate.setUpperBound((Float)columnValue);
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, (Float)columnValue);
                     break;
                 case INT32:
-                    predicate.setLowerBound((Integer)columnValue);
-                    predicate.setUpperBound((Integer)columnValue);
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, (Integer)columnValue);
                     break;
                 case INT64:
-                    predicate.setLowerBound((Long)columnValue);
-                    predicate.setUpperBound((Long)columnValue);
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, (Long)columnValue);
                     break;
                 case STRING:
-                    predicate.setLowerBound(columnValue.toString());
-                    predicate.setUpperBound(columnValue.toString());
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, columnValue.toString());
                     break;
                 case BOOL:
-                    predicate.setLowerBound((Boolean)columnValue);
-                    predicate.setUpperBound((Boolean)columnValue);
+                    predicate = KuduPredicate.newComparisonPredicate(columnSchema, ComparisonOp.EQUAL, (Boolean)columnValue);
                     break;
                 default:
                     throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
             }
             
-            builder = builder.addColumnRangePredicate(predicate);
+            builder = builder.addPredicate(predicate);
         }
         
         return builder.build();

@@ -3,6 +3,7 @@ package com.cloudera.fce.envelope;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -19,12 +20,13 @@ import com.cloudera.fce.envelope.deriver.Deriver;
 import com.cloudera.fce.envelope.planner.OperationType;
 import com.cloudera.fce.envelope.planner.PlannedRecord;
 import com.cloudera.fce.envelope.planner.Planner;
-import com.cloudera.fce.envelope.storage.StorageTable;
 import com.cloudera.fce.envelope.storage.StorageSystems;
+import com.cloudera.fce.envelope.storage.StorageTable;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
 public class Flow implements Serializable {
@@ -35,8 +37,9 @@ public class Flow implements Serializable {
         this.props = props;
     }
     
-    public void runFlow(DataFrame batch) throws Exception {
-        DataFrame derivedDataFrame = Deriver.deriverFor(props).derive(batch);
+    public void runFlow(DataFrame stream, Map<String, DataFrame> lookups) throws Exception {
+        Deriver deriver = Deriver.deriverFor(props);
+        DataFrame derivedDataFrame = deriver.derive(stream, lookups);
         JavaRDD<Row> derivedRows = derivedDataFrame.javaRDD();
         JavaRDD<GenericRecord> derivedRecords = SparkSQLAvroUtils.recordsForRows(derivedRows);
         
@@ -44,7 +47,11 @@ public class Flow implements Serializable {
             derivedRecords = colocateByKey(derivedRecords, props, RecordModel.recordModelFor(props));
         }
         
-        derivedRecords.foreachPartition(new VoidFunction<Iterator<GenericRecord>>() {
+        runFlow(derivedRecords);
+    }
+    
+    public void runFlow(JavaRDD<GenericRecord> storageRecords) {
+        storageRecords.foreachPartition(new VoidFunction<Iterator<GenericRecord>>() {
             @Override
             public void call(Iterator<GenericRecord> arrivingIterator) throws Exception {
                 RecordModel recordModel = RecordModel.recordModelFor(props);
@@ -53,11 +60,11 @@ public class Flow implements Serializable {
                 Planner planner = Planner.plannerFor(props);
                 StorageTable storageTable = StorageSystems.tableFor(props);
                 validatePlannerStorageCompatibility(planner, storageTable);
-                                
+                
                 List<PlannedRecord> planned;
                 if (planner.requiresExistingRecords()) {
                     List<GenericRecord> existing = Lists.newArrayList();
-
+                    
                     Schema keySchema = RecordUtils.subsetSchema(arriving.get(0).getSchema(), recordModel.getKeyFieldNames());
                     for (GenericRecord arrived : arriving) {
                         GenericRecord key = RecordUtils.subsetRecord(arrived, keySchema);
@@ -70,7 +77,7 @@ public class Flow implements Serializable {
                     planned = planner.planOperations(arriving, recordModel);
                 }
                 
-                storageTable.applyPlannedOperations(planned);
+                storageTable.applyPlannedMutations(planned);
             }
         });
     }
@@ -86,8 +93,7 @@ public class Flow implements Serializable {
         }
     }
     
-    private JavaRDD<GenericRecord> colocateByKey(JavaRDD<GenericRecord> records, Properties props,
-            final RecordModel recordModel)
+    private JavaRDD<GenericRecord> colocateByKey(JavaRDD<GenericRecord> records, Properties props, final RecordModel recordModel)
     {
         return records
             .groupBy(new Function<GenericRecord, GenericRecord>() {
@@ -109,8 +115,12 @@ public class Flow implements Serializable {
             });
     }
     
-    public static List<Flow> flowsFor(Properties props) {
-        List<Flow> flows = Lists.newArrayList();
+    public boolean hasDeriver() {
+        return props.containsKey("deriver");
+    }
+    
+    public static Set<Flow> flowsFor(Properties props) {
+        Set<Flow> flows = Sets.newHashSet();
         
         List<String> flowNames = PropertiesUtils.propertyAsList(props, "flows");
         

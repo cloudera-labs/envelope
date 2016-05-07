@@ -21,11 +21,8 @@ public class KuduStorageSystem extends StorageSystem {
         client = new KuduClient.KuduClientBuilder(masterAddresses).build();
         session = client.newSession();
         
-        // We don't want to silently drop duplicates because there shouldn't be any.
         session.setIgnoreAllDuplicateRows(false);
-        // Tell the Kudu client that we will control when we want it to flush operations.
-        // Without this we would flush individual operations and throughput would plummet.
-        session.setFlushMode(FlushMode.MANUAL_FLUSH);
+        session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
     }
     
     @Override
@@ -39,7 +36,7 @@ public class KuduStorageSystem extends StorageSystem {
     public KuduSession getSession() { return session; }
 
     @Override
-    protected StorageTable tableFor(Properties props) throws Exception {
+    public StorageTable tableFor(Properties props) throws Exception {
         return new KuduStorageTable(this, props.getProperty("storage.table.name"));
     }
 

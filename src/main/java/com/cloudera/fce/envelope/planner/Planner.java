@@ -41,18 +41,18 @@ public abstract class Planner {
         Planner planner = null;
         
         switch (plannerName) {
+            case "append":
+                planner = new AppendPlanner(plannerProps);
+                break;
             case "upsert":
                 planner = new UpsertPlanner(plannerProps);
                 break;
             case "history":
                 planner = new HistoryPlanner(plannerProps);
                 break;
-            case "insertonly":
-                planner = new InsertOnlyPlanner(plannerProps);
-                break;
             default:
                 Class<?> clazz = Class.forName(plannerName);
-                Constructor<?> constructor = clazz.getConstructor();
+                Constructor<?> constructor = clazz.getConstructor(Properties.class);
                 planner = (Planner)constructor.newInstance(plannerProps);
         }
         

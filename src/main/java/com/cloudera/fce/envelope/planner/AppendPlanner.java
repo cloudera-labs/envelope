@@ -11,9 +11,9 @@ import com.cloudera.fce.envelope.RecordModel;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class InsertOnlyPlanner extends Planner {
+public class AppendPlanner extends Planner {
     
-    public InsertOnlyPlanner(Properties props) throws Exception {
+    public AppendPlanner(Properties props) throws Exception {
         super(props);
     }
     

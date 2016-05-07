@@ -6,6 +6,11 @@ The target use cases for Envelope are pipelines that need to move, and perhaps t
 
 Running an Envelope pipeline is as simple as submitting the Envelope application to Spark along with the configuration that defines the pipeline being implemented. Configuration is provided as a simple properties file. Where Envelope does not already provide the functionality to develop a specific pipeline there are pluggable points in the data flow that user-provided code can be inserted.
 
+#### Table of contents
+1. [Examples](#examples)
+2. [Functionality](#functionality)
+3. [Configuration](#configuration)
+
 ### Examples
 
 Envelope includes example configurations to demonstrate what can be achieved and as a reference for building new Envelope pipelines. All of the examples source from Kafka and store in to Kudu, which in turn allows immediate user access to streaming data via fast Impala queries.
@@ -42,16 +47,16 @@ A Kafka producer to generate sample messages for the example, and push them in t
 
 ### Functionality
 
-Envelope pipelines run these six stages every Spark Streaming micro-batch:
+An Envelope pipeline runs six steps every Spark Streaming micro-batch:
 
  1. Queue Sourcing -- retrieve the queued messages
  2. Translation -- translate the queue messages into typed records
- 3. Lookup -- optionally retrieve existing storage records
- 4. Derivation -- use SQL to transform the stream and lookup records into the storage data model
+ 3. Lookup -- optionally retrieve existing storage records for following step
+ 4. Derivation -- optionally use SQL to transform the stream into the storage data model
  5. Planning -- determine the mutations required to update the storage layer
  6. Storing -- apply the planned mutations to the storage layer
 
-Stages 4 to 6 can be defined multiple times per pipeline so that a stream can be fed into multiple storage tables. Each of these is called a flow.
+Steps 4 to 6 can be defined multiple times per pipeline so that a stream can be fed into multiple storage tables, even across different storage systems. Each of these is called a flow.
 
 #### Queue Sourcing
 
@@ -86,7 +91,4 @@ User-provided planner implementations can be referenced if they extend the `Plan
 
 Storage is represented in Envelope as systems that contain mutable tables. A planner is compatible with a storage system if the storage system can apply all of the mutation types (e.g. insert, update, delete) that the planner may produce. Envelope currently provides a storage implementation for Kudu. User-provided storage implementations can be referenced if they extend the `StorageSystem` and `StorageTable` classes.
 
-#### Flows
-
-A flow is a definition of the derivation to planning to storing stages. An Envelope pipeline defines one or more flows. Each flow is automatically executed in parallel by Spark.
-
+### Configuration

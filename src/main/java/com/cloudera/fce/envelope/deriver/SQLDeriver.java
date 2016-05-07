@@ -2,6 +2,7 @@ package com.cloudera.fce.envelope.deriver;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -19,7 +20,7 @@ public class SQLDeriver extends Deriver {
     }
     
     @Override
-    public DataFrame derive(DataFrame input) throws Exception {
+    public DataFrame derive(DataFrame stream, Map<String, DataFrame> lookups) throws Exception {
         String query;
         
         if (props.containsKey("query.literal")) {
@@ -32,7 +33,9 @@ public class SQLDeriver extends Deriver {
             throw new RuntimeException("SQL deriver query not provided. Use 'query.literal' or 'query.file'.");
         }
         
-        return input.sqlContext().sql(query);
+        DataFrame derived = stream.sqlContext().sql(query);
+        
+        return derived;
     }
     
     private String hdfsFileAsString(String hdfsFile) throws Exception {

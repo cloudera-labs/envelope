@@ -16,6 +16,6 @@ public abstract class StorageTable {
     
     public abstract List<GenericRecord> getExistingForFilter(GenericRecord filter) throws Exception;
     
-    public abstract void applyPlannedOperations(List<PlannedRecord> operations) throws Exception;
+    public abstract void applyPlannedMutations(List<PlannedRecord> mutations) throws Exception;
     
 }

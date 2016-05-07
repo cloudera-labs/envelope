@@ -4,19 +4,21 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.kududb.client.shaded.com.google.common.collect.Lists;
-import org.kududb.client.shaded.com.google.common.collect.Maps;
+import org.apache.spark.api.java.function.Function;
 
 import com.cloudera.fce.envelope.storage.StorageSystems;
 import com.cloudera.fce.envelope.storage.StorageTable;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
 public class Lookup implements Serializable {
@@ -29,30 +31,34 @@ public class Lookup implements Serializable {
     
     public JavaRDD<GenericRecord> getLookupRecordsFor(JavaRDD<GenericRecord> arriving) {
         return arriving
-        .flatMap(new FlatMapFunction<GenericRecord, GenericRecord>() {
+        .map(new Function<GenericRecord, GenericRecord>() {
             boolean initialized = false;
-            transient StorageTable storageTable;
             transient Schema lookupFilterSchema;
             transient Map<String, String> fieldMappings;
-            
             @Override
-            public Iterable<GenericRecord> call(GenericRecord arriving) throws Exception {
+            public GenericRecord call(GenericRecord arrived) throws Exception {
                 if (!initialized) {
-                    storageTable = StorageSystems.tableFor(props);
                     fieldMappings = extractFieldMappings(props.getProperty("stream.field.mapping"));
                     List<String> keyFieldNames = PropertiesUtils.propertyAsList(props, "storage.table.columns.key");
-                    lookupFilterSchema = RecordUtils.subsetSchema(arriving.getSchema(), keyFieldNames, fieldMappings);
+                    lookupFilterSchema = RecordUtils.subsetSchema(arrived.getSchema(), keyFieldNames, fieldMappings);
                     initialized = true;
                 }
-                
-                GenericRecord lookupKey = RecordUtils.subsetRecord(arriving, lookupFilterSchema, fieldMappings);
-                
-                List<GenericRecord> existing = storageTable.getExistingForFilter(lookupKey);
-                
-                return existing;
+                GenericRecord lookupFilter = RecordUtils.subsetRecord(arrived, lookupFilterSchema, fieldMappings);
+                return lookupFilter;
             }
         })
-        .distinct();
+        .distinct()
+        .flatMap(new FlatMapFunction<GenericRecord, GenericRecord>() {
+            transient StorageTable storageTable;
+            @Override
+            public Iterable<GenericRecord> call(GenericRecord lookupKey) throws Exception {
+                if (storageTable == null) {
+                    storageTable = StorageSystems.tableFor(props);
+                }
+                List<GenericRecord> existing = storageTable.getExistingForFilter(lookupKey);
+                return existing;
+            }
+        });
     }
     
     public Schema getLookupTableSchema() throws Exception {
@@ -85,8 +91,8 @@ public class Lookup implements Serializable {
         return fieldMappings;
     }
     
-    public static List<Lookup> lookupsFor(Properties props) {
-        List<Lookup> lookups = Lists.newArrayList();
+    public static Set<Lookup> lookupsFor(Properties props) {
+        Set<Lookup> lookups = Sets.newHashSet();
         
         if (!props.containsKey("lookups")) {
             return lookups;

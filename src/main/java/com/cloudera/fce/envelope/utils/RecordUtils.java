@@ -204,7 +204,7 @@ public class RecordUtils {
     }
     
     public static class TimestampComparator implements Comparator<GenericRecord> {
-        String timestampFieldName;
+        private String timestampFieldName;
         
         public TimestampComparator(String timestampFieldName) {
             this.timestampFieldName = timestampFieldName;

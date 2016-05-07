@@ -1,6 +1,7 @@
 package com.cloudera.fce.envelope.deriver;
 
 import java.lang.reflect.Constructor;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.spark.sql.DataFrame;
@@ -15,7 +16,7 @@ public abstract class Deriver {
         this.props = props;
     }
     
-    public abstract DataFrame derive(DataFrame input) throws Exception;
+    public abstract DataFrame derive(DataFrame stream, Map<String, DataFrame> lookups) throws Exception;
     
     public static Deriver deriverFor(Properties props) throws Exception {
         String deriverName = props.getProperty("deriver");

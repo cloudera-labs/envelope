@@ -11,7 +11,7 @@ public class PropertiesUtils {
     public static Properties loadProperties(String configurationPath) throws Exception {
         Properties props = new Properties();
         
-        try(FileInputStream inputStream = new FileInputStream(configurationPath)) {
+        try (FileInputStream inputStream = new FileInputStream(configurationPath)) {
             props.load(inputStream);
         }
         

@@ -1,7 +1,8 @@
 package com.cloudera.fce.envelope;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -16,20 +17,21 @@ import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
-import org.kududb.client.shaded.com.google.common.collect.Lists;
 
 import com.cloudera.fce.envelope.queuesource.QueueSource;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
+import com.google.common.collect.Maps;
 
 @SuppressWarnings("serial")
 public class Streamer
 {
+    
     public static void main(String[] args) throws Exception
     {
         final Properties props = PropertiesUtils.loadProperties(args[0]);
         
-        final JavaStreamingContext jssc = getStreamingContext(props);
+        JavaStreamingContext jssc = getStreamingContext(props);
         
         final QueueSource qs = QueueSource.queueSourceFor(props);
         JavaDStream<GenericRecord> stream = qs.dStreamFor(jssc, props);
@@ -43,33 +45,47 @@ public class Streamer
         // This is what we want to do each micro-batch.
         stream.foreachRDD(new Function<JavaRDD<GenericRecord>, Void>() {
             @Override
-            public Void call(JavaRDD<GenericRecord> arrivingRecords) throws Exception {
+            public Void call(JavaRDD<GenericRecord> streamRecords) throws Exception {
                 if (doesRepartition(props)) {
-                    arrivingRecords = repartition(arrivingRecords, props);
+                    streamRecords = repartition(streamRecords, props);
                 }
                 
-                Schema arrivingSchema = qs.getSchema();
-                DataFrame arrivingDataFrame = SparkSQLAvroUtils.dataFrameForRecords(arrivingRecords, arrivingSchema, sqlc);
-                arrivingDataFrame.registerTempTable(getStreamTableName(props));
-                arrivingDataFrame.persist(StorageLevel.MEMORY_ONLY());
-                
-                List<DataFrame> lookupDataFrames = Lists.newArrayList();
-                for (Lookup lookup : Lookup.lookupsFor(props)) {
-                    JavaRDD<GenericRecord> lookupRecords = lookup.getLookupRecordsFor(arrivingRecords);
-                    Schema lookupSchema = lookup.getLookupTableSchema();
-                    DataFrame lookupDataFrame = SparkSQLAvroUtils.dataFrameForRecords(lookupRecords, lookupSchema, sqlc);
-                    lookupDataFrame.registerTempTable(lookup.getLookupTableName());
-                    lookupDataFrame.persist(StorageLevel.MEMORY_ONLY());
-                    lookupDataFrames.add(lookupDataFrame);
+                DataFrame streamDataFrame = null;
+                Map<String, DataFrame> lookupDataFrames = null;
+                Set<Flow> flows = Flow.flowsFor(props);
+                if (hasAtLeastOneDeriver(flows)) {
+                    Schema streamSchema = qs.getSchema();
+                    streamDataFrame = SparkSQLAvroUtils.dataFrameForRecords(streamRecords, streamSchema, sqlc);
+                    streamDataFrame.registerTempTable(getStreamTableName(props));
+                    streamDataFrame.persist(StorageLevel.MEMORY_ONLY());
+                    
+                    lookupDataFrames = Maps.newHashMap();
+                    Set<Lookup> lookups = Lookup.lookupsFor(props);
+                    for (Lookup lookup : lookups) {
+                        JavaRDD<GenericRecord> lookupRecords = lookup.getLookupRecordsFor(streamRecords);
+                        Schema lookupSchema = lookup.getLookupTableSchema();
+                        DataFrame lookupDataFrame = SparkSQLAvroUtils.dataFrameForRecords(lookupRecords, lookupSchema, sqlc);
+                        String lookupTableName = lookup.getLookupTableName();
+                        lookupDataFrame.registerTempTable(lookupTableName);
+                        lookupDataFrame.persist(StorageLevel.MEMORY_ONLY());
+                        lookupDataFrames.put(lookupTableName, lookupDataFrame);
+                    }
                 }
                 
-                for (Flow flow : Flow.flowsFor(props)) {
-                    flow.runFlow(arrivingDataFrame);
+                for (Flow flow : flows) {
+                    if (flow.hasDeriver()) {
+                        flow.runFlow(streamDataFrame, lookupDataFrames);
+                    }
+                    else {
+                        flow.runFlow(streamRecords);
+                    }
                 }
                 
-                arrivingDataFrame.unpersist();
-                for (DataFrame lookupDataFrame : lookupDataFrames) {
-                    lookupDataFrame.unpersist();
+                if (hasAtLeastOneDeriver(flows)) {
+                    streamDataFrame.unpersist();
+                    for (DataFrame lookupDataFrame : lookupDataFrames.values()) {
+                        lookupDataFrame.unpersist();
+                    }
                 }
                 
                 // SPARK-4557
@@ -83,16 +99,13 @@ public class Streamer
     }
     
     private static JavaStreamingContext getStreamingContext(final Properties props) {
-        final SparkConf sparkConf = new SparkConf();
+        final SparkConf sparkConf = getSparkConfiguration(props);
         
         String applicationName = props.getProperty("application.name");
         sparkConf.setAppName(applicationName);
         
         int batchMilliseconds = Integer.parseInt(props.getProperty("application.batch.milliseconds"));
         final Duration batchDuration = Durations.milliseconds(batchMilliseconds);
-        
-        sparkConf.set("spark.dynamicAllocation.enabled", "false");
-        sparkConf.set("spark.streaming.backpressure.enabled", "true");
         
         JavaStreamingContext jssc;
         boolean toCheckpoint = Boolean.parseBoolean(props.getProperty("application.checkpoint.enabled", "false"));
@@ -114,6 +127,43 @@ public class Streamer
         return jssc;
     }
     
+    private static SparkConf getSparkConfiguration(Properties props) {
+        SparkConf sparkConf = new SparkConf();
+        
+        sparkConf.set("spark.dynamicAllocation.enabled", "false");
+        sparkConf.set("spark.streaming.backpressure.enabled", "true");
+        sparkConf.set("spark.streaming.kafka.maxRatePerPartition", "5000");
+        sparkConf.set("spark.sql.shuffle.partitions", "2");
+        
+        if (props.containsKey("application.executors")) {
+            sparkConf.set("spark.executor.instances", props.getProperty("application.executors"));
+        }
+        if (props.containsKey("application.executor.cores")) {
+            sparkConf.set("spark.executor.cores", props.getProperty("application.executor.cores"));
+        }
+        if (props.containsKey("application.executor.memory")) {
+            sparkConf.set("spark.executor.memory", props.getProperty("application.executor.memory"));
+        }
+        if (props.containsKey("application.executors") && props.containsKey("application.executor.cores")) {
+            int executors = Integer.parseInt(props.getProperty("application.executors"));
+            int executorCores = Integer.parseInt(props.getProperty("application.executor.cores"));
+            Integer shufflePartitions = executors * executorCores;
+            
+            sparkConf.set("spark.sql.shuffle.partitions", shufflePartitions.toString());
+        }
+        
+        for (String propertyName : props.stringPropertyNames()) {
+            if (propertyName.startsWith("application.spark.conf.")) {
+                String sparkConfigName = propertyName.substring("application.spark.conf.".length());
+                String sparkConfigValue = props.getProperty(propertyName);
+                
+                sparkConf.set(sparkConfigName, sparkConfigValue);
+            }
+        }
+        
+        return sparkConf;
+    }
+    
     private static boolean doesExpandToWindow(Properties props) {
         return Boolean.parseBoolean(props.getProperty("application.window.enable", "false"));
     }
@@ -125,17 +175,27 @@ public class Streamer
     }
     
     private static boolean doesRepartition(Properties props) {
-        return Boolean.parseBoolean(props.getProperty("source.repartition", "false"));
+        return Boolean.parseBoolean(props.getProperty("source.repartition", "true"));
     }
     
     private static <T> JavaRDD<T> repartition(JavaRDD<T> records, Properties props) {
-        int numPartitions = Integer.parseInt(props.getProperty("source.repartition.partitions"));
+        int numPartitions = Integer.parseInt(props.getProperty("source.repartition.partitions", "2"));
         
         return records.repartition(numPartitions);
     }
     
     private static String getStreamTableName(Properties props) {
         return "stream";
+    }
+    
+    private static boolean hasAtLeastOneDeriver(Set<Flow> flows) {
+        for (Flow flow : flows) {
+            if (flow.hasDeriver()) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
 }

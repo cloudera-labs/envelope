@@ -8,11 +8,11 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.avro.generic.GenericRecord;
-import org.kududb.client.shaded.com.google.common.collect.Sets;
 
 import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class HistoryPlanner extends Planner {
     
@@ -56,11 +56,9 @@ public class HistoryPlanner extends Planner {
                 }
             }
             
+            Collections.sort(plannedForKey, tc);
+            
             for (GenericRecord arrived : arrivingForKey) {
-                // TODO: don't re-sort if there was no change
-                // TODO: don't re-sort if there are no more input records for the key
-                Collections.sort(plannedForKey, tc);
-                
                 Long arrivedTimestamp = (Long)arrived.get(timestampFieldName);
                 
                 // There was no existing record for the key, so we just insert the input record.
@@ -191,6 +189,10 @@ public class HistoryPlanner extends Planner {
                         break;
                     }
                 }
+                
+                // TODO: don't re-sort if there was no change
+                // TODO: don't re-sort if there are no more input records for the key
+                Collections.sort(plannedForKey, tc);
             }
             
             for (PlannedRecord plan : plannedForKey) {
@@ -203,20 +205,20 @@ public class HistoryPlanner extends Planner {
         
         return planned;
     }
-
+    
     @Override
     public boolean requiresExistingRecords() {
         return true;
     }
-
+    
     @Override
     public boolean requiresKeyColocation() {
         return true;
     }
-
+    
     @Override
     public Set<OperationType> getEmittedOperationTypes() {
         return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
     }
-
+    
 }

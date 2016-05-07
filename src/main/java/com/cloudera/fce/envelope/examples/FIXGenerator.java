@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.example.fix;
+package com.cloudera.fce.envelope.examples;
 
 import java.util.Properties;
 import java.util.Random;
@@ -11,6 +11,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class FIXGenerator {
+    
     public static void main(final String[] args) throws Exception {
         final Properties props = new Properties();
         props.put("bootstrap.servers", args[0]);
@@ -73,4 +74,5 @@ public class FIXGenerator {
             });
         }
     }
+    
 }
