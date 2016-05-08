@@ -165,7 +165,7 @@ public class Streamer
     }
     
     private static boolean doesExpandToWindow(Properties props) {
-        return Boolean.parseBoolean(props.getProperty("application.window.enable", "false"));
+        return Boolean.parseBoolean(props.getProperty("application.window.enabled", "false"));
     }
     
     private static <T> JavaDStream<T> expandToWindow(JavaDStream<T> stream, Properties props) {        
