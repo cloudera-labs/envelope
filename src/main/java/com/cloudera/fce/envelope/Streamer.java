@@ -175,11 +175,11 @@ public class Streamer
     }
     
     private static boolean doesRepartition(Properties props) {
-        return Boolean.parseBoolean(props.getProperty("source.repartition", "true"));
+        return Boolean.parseBoolean(props.getProperty("source.repartition", "false"));
     }
     
     private static <T> JavaRDD<T> repartition(JavaRDD<T> records, Properties props) {
-        int numPartitions = Integer.parseInt(props.getProperty("source.repartition.partitions", "2"));
+        int numPartitions = Integer.parseInt(props.getProperty("source.repartition.partitions"));
         
         return records.repartition(numPartitions);
     }

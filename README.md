@@ -36,33 +36,11 @@ Envelope includes example configurations to demonstrate what can be achieved and
 
 ##### FIX
 
-The FIX example is an Envelope pipeline that receives [FIX financial messages](https://en.wikipedia.org/wiki/Financial_Information_eXchange) of order fulfillment and updates the representation of the order in Kudu. This use case would allow near-real-time analytics of order history. More information on this example can be found [here](http://github.mtv.cloudera.com/jeremy/envelope/tree/master/example/fix).
-
-##### Tick data
-
-The tick data example is an Envelope pipeline that retrieves sparse [tick-level](http://www.investopedia.com/terms/t/tick.asp) market data where only the updated values of the security are provided, and stores the ticks into Kudu with all values populated by using the previous state of the security for the values that are not provided. This use case would allow near-real-time analytics of the state of the market for any security, ranging from the most recent state to many years of history.
-
-The configuration for this example is found here. The messages are only representative of real sparsely-populated ticks but should be sufficient to demonstrate how a complete implementation could be developed.
-
-After creating the required Kudu tables using the provided Impala scripts, the example can be run as:
-
-    spark-submit envelope-0.1.0.jar tick.properties
-
-A Kafka producer to generate sample messages for the example, and push them in to the "tick" topic, can be run as:
-
-    spark-submit --class com.cloudera.fce.envelope.example.tick.ExampleTickDataGenerator envelope-0.1.0.jar kafkabrokerhost:9092 tick
+The FIX example is an Envelope pipeline that receives [FIX financial messages](https://en.wikipedia.org/wiki/Financial_Information_eXchange) of order fulfillment and updates the representation of the order in Kudu. This use case would allow near-real-time analytics of order history. More information on this example can be found [here](http://github.mtv.cloudera.com/jeremy/envelope/tree/master/examples/fix).
 
 ##### Traffic
 
-The traffic example is an Envelope pipeline that retrieves measurements of traffic congestion and stores an aggregated view of the traffic congestion at a point in time using the current measurement and all of those in the previous 60 seconds. Within Envelope this uses the Spark Streaming window operations functionality. This example demonstrates use cases that need to do live aggregations of recently received messages prior to user querying.
-
-The configuration for this example is found here. After creating the required Kudu tables using the provided Impala scripts, the example can be run as:
-
-    spark-submit envelope-0.1.0.jar traffic.properties
-
-A Kafka producer to generate sample messages for the example, and push them in to the "traffic" topic, can be run as:
-
-    spark-submit --class com.cloudera.fce.envelope.example.traffic.ExampleTrafficGenerator envelope-0.1.0.jar kafkabrokerhost:9092 traffic
+The traffic example is an Envelope pipeline that retrieves measurements of traffic congestion and stores an aggregated view of the traffic congestion at a point in time using the current measurement and all of those in the previous 60 seconds. More information on this example can be found [here](http://github.mtv.cloudera.com/jeremy/envelope/tree/master/examples/traffic).
 
 ### Functionality
 

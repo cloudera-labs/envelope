@@ -7,17 +7,17 @@ import org.kududb.client.KuduSession;
 import org.kududb.client.SessionConfiguration.FlushMode;
 
 public class KuduStorageSystem extends StorageSystem {
-
+    
     public KuduStorageSystem(Properties props) {
         super(props);
     }
-
+    
     private KuduClient client;
     private KuduSession session;
     
     @Override
     public void connect() throws Exception {
-        String masterAddresses = props.getProperty("kudu.connection");
+        String masterAddresses = props.getProperty("connection");
         client = new KuduClient.KuduClientBuilder(masterAddresses).build();
         session = client.newSession();
         
@@ -34,10 +34,10 @@ public class KuduStorageSystem extends StorageSystem {
     public KuduClient getClient() { return client; }
     
     public KuduSession getSession() { return session; }
-
+    
     @Override
     public StorageTable tableFor(Properties props) throws Exception {
         return new KuduStorageTable(this, props.getProperty("storage.table.name"));
     }
-
+    
 }
