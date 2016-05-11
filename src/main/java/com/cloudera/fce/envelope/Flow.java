@@ -37,20 +37,23 @@ public class Flow implements Serializable {
         this.props = props;
     }
     
+    // For this flow, derive the storage records from the stream and lookup. 
     public void runFlow(DataFrame stream, Map<String, DataFrame> lookups) throws Exception {
         Deriver deriver = Deriver.deriverFor(props);
         DataFrame derivedDataFrame = deriver.derive(stream, lookups);
         JavaRDD<Row> derivedRows = derivedDataFrame.javaRDD();
         JavaRDD<GenericRecord> derivedRecords = SparkSQLAvroUtils.recordsForRows(derivedRows);
         
-        if (Planner.plannerFor(props).requiresKeyColocation()) {
-            derivedRecords = colocateByKey(derivedRecords, props, RecordModel.recordModelFor(props));
-        }
-        
         runFlow(derivedRecords);
     }
     
-    public void runFlow(JavaRDD<GenericRecord> storageRecords) {
+    // For this flow, plan the mutations and apply them to the storage.
+    public void runFlow(JavaRDD<GenericRecord> storageRecords) throws Exception {
+        // Co-locate all records of the same key in the same RDD partition, if the planner requires it.
+        if (Planner.plannerFor(props).requiresKeyColocation()) {
+            storageRecords = colocateByKey(storageRecords, props, RecordModel.recordModelFor(props));
+        }
+        
         storageRecords.foreachPartition(new VoidFunction<Iterator<GenericRecord>>() {
             @Override
             public void call(Iterator<GenericRecord> arrivingIterator) throws Exception {
@@ -93,9 +96,11 @@ public class Flow implements Serializable {
         }
     }
     
+    // Co-locate all records for the same key in the same RDD partition.
     private JavaRDD<GenericRecord> colocateByKey(JavaRDD<GenericRecord> records, Properties props, final RecordModel recordModel)
     {
         return records
+            // Group together all records for the same key
             .groupBy(new Function<GenericRecord, GenericRecord>() {
                 Schema schema;
                 @Override
@@ -106,7 +111,9 @@ public class Flow implements Serializable {
                     return RecordUtils.subsetRecord(record, schema);
                 }
             })
+            // Remove the key
             .values()
+            // Flatten out the grouped values of the keys
             .flatMap(new FlatMapFunction<Iterable<GenericRecord>, GenericRecord>() {
                 @Override
                 public Iterable<GenericRecord> call(Iterable<GenericRecord> keyedRecords) {

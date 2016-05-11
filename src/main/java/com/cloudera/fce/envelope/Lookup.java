@@ -29,36 +29,41 @@ public class Lookup implements Serializable {
         this.props = props;
     }
     
+    // Retrieve the corresponding lookup records for the provided arriving stream records
     public JavaRDD<GenericRecord> getLookupRecordsFor(JavaRDD<GenericRecord> arriving) {
         return arriving
-        .map(new Function<GenericRecord, GenericRecord>() {
-            boolean initialized = false;
-            transient Schema lookupFilterSchema;
-            transient Map<String, String> fieldMappings;
-            @Override
-            public GenericRecord call(GenericRecord arrived) throws Exception {
-                if (!initialized) {
-                    fieldMappings = extractFieldMappings(props.getProperty("stream.field.mapping"));
-                    List<String> keyFieldNames = PropertiesUtils.propertyAsList(props, "storage.table.columns.key");
-                    lookupFilterSchema = RecordUtils.subsetSchema(arrived.getSchema(), keyFieldNames, fieldMappings);
-                    initialized = true;
+            // Extract the filters (typically just the key) to send to the storage table
+            .map(new Function<GenericRecord, GenericRecord>() {
+                boolean initialized = false;
+                transient Schema lookupFilterSchema;
+                transient Map<String, String> fieldMappings;
+                @Override
+                public GenericRecord call(GenericRecord arrived) throws Exception {
+                    if (!initialized) {
+                        fieldMappings = extractFieldMappings(props.getProperty("stream.field.mapping"));
+                        List<String> keyFieldNames = PropertiesUtils.propertyAsList(props, "storage.table.columns.key");
+                        lookupFilterSchema = RecordUtils.subsetSchema(arrived.getSchema(), keyFieldNames, fieldMappings);
+                        initialized = true;
+                    }
+                    GenericRecord lookupFilter = RecordUtils.subsetRecord(arrived, lookupFilterSchema, fieldMappings);
+                    return lookupFilter;
                 }
-                GenericRecord lookupFilter = RecordUtils.subsetRecord(arrived, lookupFilterSchema, fieldMappings);
-                return lookupFilter;
-            }
-        })
-        .distinct()
-        .flatMap(new FlatMapFunction<GenericRecord, GenericRecord>() {
-            transient StorageTable storageTable;
-            @Override
-            public Iterable<GenericRecord> call(GenericRecord lookupKey) throws Exception {
-                if (storageTable == null) {
-                    storageTable = StorageSystems.tableFor(props);
+            })
+            // Get the unique list of filters so that we don't waste valuable time sending the
+            // same request multiple times
+            .distinct()
+            // Send the filter to the storage and get back the zero-to-many records that match
+            .flatMap(new FlatMapFunction<GenericRecord, GenericRecord>() {
+                transient StorageTable storageTable;
+                @Override
+                public Iterable<GenericRecord> call(GenericRecord lookupKey) throws Exception {
+                    if (storageTable == null) {
+                        storageTable = StorageSystems.tableFor(props);
+                    }
+                    List<GenericRecord> existing = storageTable.getExistingForFilter(lookupKey);
+                    return existing;
                 }
-                List<GenericRecord> existing = storageTable.getExistingForFilter(lookupKey);
-                return existing;
-            }
-        });
+            });
     }
     
     public Schema getLookupTableSchema() throws Exception {
@@ -71,6 +76,7 @@ public class Lookup implements Serializable {
         return props.getProperty("storage.table.name");
     }
     
+    // Get the mappings of stream field names to storage field names for when they are not the same
     private Map<String, String> extractFieldMappings(String fieldMappingProperty) {
         if (fieldMappingProperty == null) {
             return null;

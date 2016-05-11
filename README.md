@@ -14,6 +14,10 @@ Running an Envelope pipeline is as simple as submitting the Envelope application
 
 ### Getting started
 
+##### Requirements
+
+Envelope requires a CDH5.5+ cluster. Kafka 0.9 and Kudu 0.8 are required if connecting to those systems.
+
 ##### Compiling Envelope
 
 You can build the Envelope application from the top-level directory of the source code by running the Maven command:
@@ -24,7 +28,7 @@ This will create `envelope-0.1.0.jar` in the target directory.
 
 ##### Running an Envelope pipeline
 
-On a CDH5.5 or higher cluster you can run Envelope by submitting it to Spark with the properties file for your pipeline:
+You can run Envelope by submitting it to Spark with the properties file for your pipeline:
 
     spark-submit envelope-0.1.0.jar yourpipeline.properties
     

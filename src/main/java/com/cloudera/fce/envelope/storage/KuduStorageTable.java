@@ -51,10 +51,12 @@ public class KuduStorageTable extends StorageTable {
             session.apply(operation);
         }
         
+        // Wait until all operations have completed before checking for errors.
         while (session.hasPendingOperations()) {
             Thread.sleep(1);
         }
         
+        // Log Kudu operation errors instead of stopping the job.
         if (session.countPendingErrors() > 0) {
             RowError[] errors = session.getPendingErrors().getRowErrors();
             

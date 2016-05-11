@@ -25,40 +25,52 @@ import com.google.common.collect.Maps;
 
 @SuppressWarnings("serial")
 public class Streamer
-{
-    
+{   
     public static void main(String[] args) throws Exception
     {
+        // Retrieve the properties for the pipeline being executed
         final Properties props = PropertiesUtils.loadProperties(args[0]);
         
+        // Instantiate the Spark Streaming job
         JavaStreamingContext jssc = getStreamingContext(props);
         
+        // Initialize the stream
         final QueueSource qs = QueueSource.queueSourceFor(props);
         JavaDStream<GenericRecord> stream = qs.dStreamFor(jssc, props);
-        
+
+        // If required, expand the stream window beyond the micro-batch length
         if (doesExpandToWindow(props)) {
             stream = expandToWindow(stream, props);
         }
         
+        // If required, repartition the stream across the executors
+        if (doesRepartition(props)) {
+            stream = repartition(stream, props);
+        }
+        
+        // Instantiate Spark SQL
         final SQLContext sqlc = new SQLContext(jssc.sparkContext());
         
-        // This is what we want to do each micro-batch.
+        // This is what we want to do each micro-batch
         stream.foreachRDD(new Function<JavaRDD<GenericRecord>, Void>() {
             @Override
             public Void call(JavaRDD<GenericRecord> streamRecords) throws Exception {
-                if (doesRepartition(props)) {
-                    streamRecords = repartition(streamRecords, props);
-                }
-                
                 DataFrame streamDataFrame = null;
                 Map<String, DataFrame> lookupDataFrames = null;
+                
+                // Create the flows that we are going to run for the micro-batch
                 Set<Flow> flows = Flow.flowsFor(props);
+                
+                // We only use DataFrames in derivers, so we only need to convert to a DataFrame
+                // if there is at least one deriver in the pipeline
                 if (hasAtLeastOneDeriver(flows)) {
+                    // Convert the stream to a DataFrame
                     Schema streamSchema = qs.getSchema();
                     streamDataFrame = SparkSQLAvroUtils.dataFrameForRecords(streamRecords, streamSchema, sqlc);
                     streamDataFrame.registerTempTable(getStreamTableName(props));
                     streamDataFrame.persist(StorageLevel.MEMORY_ONLY());
                     
+                    // Load all the required lookups for the micro-batch
                     lookupDataFrames = Maps.newHashMap();
                     Set<Lookup> lookups = Lookup.lookupsFor(props);
                     for (Lookup lookup : lookups) {
@@ -72,15 +84,19 @@ public class Streamer
                     }
                 }
                 
+                // Run each of the flows of the pipeline
                 for (Flow flow : flows) {
                     if (flow.hasDeriver()) {
                         flow.runFlow(streamDataFrame, lookupDataFrames);
                     }
+                    // Flows that don't have derivers do not need to pay the penalty of converting
+                    // into and back from DataFrames, so we just skip that part altogether
                     else {
                         flow.runFlow(streamRecords);
                     }
                 }
                 
+                // Remove all the cached DataFrames from memory
                 if (hasAtLeastOneDeriver(flows)) {
                     streamDataFrame.unpersist();
                     for (DataFrame lookupDataFrame : lookupDataFrames.values()) {
@@ -88,7 +104,7 @@ public class Streamer
                     }
                 }
                 
-                // SPARK-4557
+                // Required due to SPARK-4557
                 return null;
             }
         });
@@ -130,9 +146,18 @@ public class Streamer
     private static SparkConf getSparkConfiguration(Properties props) {
         SparkConf sparkConf = new SparkConf();
         
+        // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
+        // of the resource requests are too long.
         sparkConf.set("spark.dynamicAllocation.enabled", "false");
+        // Spark Streaming back-pressure helps automatically tune the size of the micro-batches so
+        // that they don't breach the micro-batch length.
         sparkConf.set("spark.streaming.backpressure.enabled", "true");
+        // Rate limit the micro-batches when using Kafka to 5000 records per Kafka topic partition
+        // per second. Without this we could end up with arbitrarily large initial micro-batches
+        // for existing topics.
         sparkConf.set("spark.streaming.kafka.maxRatePerPartition", "5000");
+        // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise,
+        // the default is typically 200 partitions, which is very high for micro-batches.
         sparkConf.set("spark.sql.shuffle.partitions", "2");
         
         if (props.containsKey("application.executors")) {
@@ -144,6 +169,7 @@ public class Streamer
         if (props.containsKey("application.executor.memory")) {
             sparkConf.set("spark.executor.memory", props.getProperty("application.executor.memory"));
         }
+        // Override the Spark SQL shuffle partitions with the number of cores, if known.
         if (props.containsKey("application.executors") && props.containsKey("application.executor.cores")) {
             int executors = Integer.parseInt(props.getProperty("application.executors"));
             int executorCores = Integer.parseInt(props.getProperty("application.executor.cores"));
@@ -152,6 +178,8 @@ public class Streamer
             sparkConf.set("spark.sql.shuffle.partitions", shufflePartitions.toString());
         }
         
+        // Allow the user to provide any Spark configuration and we will just pass it on. These can
+        // also override any of the configurations above.
         for (String propertyName : props.stringPropertyNames()) {
             if (propertyName.startsWith("application.spark.conf.")) {
                 String sparkConfigName = propertyName.substring("application.spark.conf.".length());
@@ -178,12 +206,13 @@ public class Streamer
         return Boolean.parseBoolean(props.getProperty("source.repartition", "false"));
     }
     
-    private static <T> JavaRDD<T> repartition(JavaRDD<T> records, Properties props) {
+    private static <T> JavaDStream<T> repartition(JavaDStream<T> stream, Properties props) {
         int numPartitions = Integer.parseInt(props.getProperty("source.repartition.partitions"));
         
-        return records.repartition(numPartitions);
+        return stream.repartition(numPartitions);
     }
     
+    // The Spark SQL table name for the stream
     private static String getStreamTableName(Properties props) {
         return "stream";
     }
@@ -197,5 +226,4 @@ public class Streamer
         
         return false;
     }
-
 }

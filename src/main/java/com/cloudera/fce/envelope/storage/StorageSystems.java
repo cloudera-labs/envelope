@@ -11,6 +11,7 @@ import scala.Tuple2;
 
 public enum StorageSystems {
     
+    // The singleton of StorageSystems. There can only be one!
     INSTANCE;
     
     private Map<Tuple2<String, String>, StorageSystem> systems = Maps.newHashMap();
@@ -22,6 +23,7 @@ public enum StorageSystems {
     public StorageSystem getStorageSystem(Properties props) throws Exception {
         String type = props.getProperty("storage");
         String instance = props.getProperty("storage.connection");
+        // A StorageSystem is identified by its type and its connection string
         Tuple2<String, String> systemReference = new Tuple2<String, String>(type, instance);
         
         if (!systems.containsKey(systemReference)) {

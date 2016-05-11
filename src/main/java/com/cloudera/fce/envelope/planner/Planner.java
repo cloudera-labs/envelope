@@ -38,7 +38,7 @@ public abstract class Planner {
         String plannerName = props.getProperty("planner");
         Properties plannerProps = PropertiesUtils.prefixProperties(props, "planner.");
         
-        Planner planner = null;
+        Planner planner;
         
         switch (plannerName) {
             case "append":
