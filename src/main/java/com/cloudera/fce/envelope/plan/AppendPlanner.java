@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.planner;
+package com.cloudera.fce.envelope.plan;
 
 import java.util.List;
 import java.util.Properties;
@@ -18,7 +18,7 @@ public class AppendPlanner extends Planner {
     }
     
     @Override
-    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
+    public List<PlannedRecord> planMutations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         boolean setKeyToUUID = Boolean.parseBoolean(props.getProperty("uuid.key.enabled", "false"));
@@ -38,7 +38,7 @@ public class AppendPlanner extends Planner {
                 arriving.put(recordModel.getLastUpdatedFieldName(), currentTimestampString());
             }
             
-            planned.add(new PlannedRecord(arriving, OperationType.INSERT));
+            planned.add(new PlannedRecord(arriving, MutationType.INSERT));
         }
         
         return planned;
@@ -55,8 +55,8 @@ public class AppendPlanner extends Planner {
     }
 
     @Override
-    public Set<OperationType> getEmittedOperationTypes() {
-        return Sets.newHashSet(OperationType.INSERT);
+    public Set<MutationType> getEmittedMutationTypes() {
+        return Sets.newHashSet(MutationType.INSERT);
     }
     
 }

@@ -14,6 +14,10 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.Test;
 
 import com.cloudera.fce.envelope.RecordModel;
+import com.cloudera.fce.envelope.plan.MutationType;
+import com.cloudera.fce.envelope.plan.PlannedRecord;
+import com.cloudera.fce.envelope.plan.Planner;
+import com.cloudera.fce.envelope.plan.UpsertPlanner;
 import com.google.common.collect.Lists;
 
 public class TestUpsertPlanner {
@@ -37,10 +41,10 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
-        assertEquals(planned.get(0).getOperationType(), OperationType.INSERT);
+        assertEquals(planned.get(0).getMutationType(), MutationType.INSERT);
     }
     
     @Test
@@ -67,10 +71,10 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
-        assertEquals(planned.get(0).getOperationType(), OperationType.UPDATE);
+        assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
     }
     
     @Test
@@ -97,7 +101,7 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 0);
     }
@@ -126,7 +130,7 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 0);
     }
@@ -155,10 +159,10 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
-        assertEquals(planned.get(0).getOperationType(), OperationType.UPDATE);
+        assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
     }
     
     @Test
@@ -185,7 +189,7 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 0);
     }
@@ -216,10 +220,10 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
-        assertEquals(planned.get(0).getOperationType(), OperationType.UPDATE);
+        assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
         assertEquals(planned.get(0).get("value"), "Value for timestamp 200");
     }
     
@@ -242,7 +246,7 @@ public class TestUpsertPlanner {
         rm.setValueFieldNames(Lists.newArrayList("value"));
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
         assertNotNull(planned.get(0).get("lastupdated"));
@@ -266,7 +270,7 @@ public class TestUpsertPlanner {
         rm.setTimestampFieldName("timestamp");
         rm.setValueFieldNames(Lists.newArrayList("value"));
         
-        List<PlannedRecord> planned = p.planOperations(arriving, existing, rm);
+        List<PlannedRecord> planned = p.planMutations(arriving, existing, rm);
         
         assertEquals(planned.size(), 1);
         assertNull(planned.get(0).get("lastupdated"));

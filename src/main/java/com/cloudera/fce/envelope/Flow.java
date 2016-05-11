@@ -16,12 +16,12 @@ import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.fce.envelope.deriver.Deriver;
-import com.cloudera.fce.envelope.planner.OperationType;
-import com.cloudera.fce.envelope.planner.PlannedRecord;
-import com.cloudera.fce.envelope.planner.Planner;
-import com.cloudera.fce.envelope.storage.StorageSystems;
-import com.cloudera.fce.envelope.storage.StorageTable;
+import com.cloudera.fce.envelope.derive.Deriver;
+import com.cloudera.fce.envelope.plan.MutationType;
+import com.cloudera.fce.envelope.plan.PlannedRecord;
+import com.cloudera.fce.envelope.plan.Planner;
+import com.cloudera.fce.envelope.store.StorageSystems;
+import com.cloudera.fce.envelope.store.StorageTable;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
@@ -74,10 +74,10 @@ public class Flow implements Serializable {
                         existing.addAll(storageTable.getExistingForFilter(key));
                     }
                     
-                    planned = planner.planOperations(arriving, existing, recordModel);
+                    planned = planner.planMutations(arriving, existing, recordModel);
                 }
                 else {
-                    planned = planner.planOperations(arriving, recordModel);
+                    planned = planner.planMutations(arriving, recordModel);
                 }
                 
                 storageTable.applyPlannedMutations(planned);
@@ -86,11 +86,11 @@ public class Flow implements Serializable {
     }
     
     private void validatePlannerStorageCompatibility(Planner planner, StorageTable storageTable) {
-        Set<OperationType> storageOTs = storageTable.getSupportedOperationTypes();
-        Set<OperationType> plannerOTs = planner.getEmittedOperationTypes();
+        Set<MutationType> storageMTs = storageTable.getSupportedMutationTypes();
+        Set<MutationType> plannerMTs = planner.getEmittedMutationTypes();
         
-        for (OperationType planOT : plannerOTs) {
-            if (!storageOTs.contains(planOT)) {
+        for (MutationType planMT : plannerMTs) {
+            if (!storageMTs.contains(planMT)) {
                 throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and storage (" + storageTable.getClass() + ").");
             }
         }

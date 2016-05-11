@@ -18,7 +18,7 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
 
-import com.cloudera.fce.envelope.queuesource.QueueSource;
+import com.cloudera.fce.envelope.source.QueueSource;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
 import com.google.common.collect.Maps;

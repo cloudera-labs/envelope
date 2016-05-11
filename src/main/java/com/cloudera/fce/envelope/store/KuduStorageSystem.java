@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.storage;
+package com.cloudera.fce.envelope.store;
 
 import java.util.Properties;
 

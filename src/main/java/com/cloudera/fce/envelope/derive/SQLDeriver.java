@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.deriver;
+package com.cloudera.fce.envelope.derive;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;

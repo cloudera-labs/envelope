@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.deriver;
+package com.cloudera.fce.envelope.derive;
 
 import java.lang.reflect.Constructor;
 import java.util.Map;

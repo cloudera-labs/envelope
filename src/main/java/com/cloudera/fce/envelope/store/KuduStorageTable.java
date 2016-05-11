@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.storage;
+package com.cloudera.fce.envelope.store;
 
 import java.util.List;
 import java.util.Set;
@@ -22,8 +22,8 @@ import org.kududb.client.RowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.fce.envelope.planner.OperationType;
-import com.cloudera.fce.envelope.planner.PlannedRecord;
+import com.cloudera.fce.envelope.plan.MutationType;
+import com.cloudera.fce.envelope.plan.PlannedRecord;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -127,17 +127,17 @@ public class KuduStorageTable extends StorageTable {
     }
     
     @Override
-    public Set<OperationType> getSupportedOperationTypes() {
-        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE, OperationType.DELETE);
+    public Set<MutationType> getSupportedMutationTypes() {
+        return Sets.newHashSet(MutationType.INSERT, MutationType.UPDATE, MutationType.DELETE);
     }
     
     private List<Operation> extractOperations(List<PlannedRecord> planned) throws Exception {
         List<Operation> operations = Lists.newArrayList();
         
         for (PlannedRecord plan : planned) {
-            OperationType operationType = plan.getOperationType();
+            MutationType operationType = plan.getMutationType();
             
-            if (!operationType.equals(OperationType.NONE)) {
+            if (!operationType.equals(MutationType.NONE)) {
                 Operation operation = null;
                 
                 switch (operationType) {

@@ -13,8 +13,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 
-import com.cloudera.fce.envelope.storage.StorageSystems;
-import com.cloudera.fce.envelope.storage.StorageTable;
+import com.cloudera.fce.envelope.store.StorageSystems;
+import com.cloudera.fce.envelope.store.StorageTable;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Maps;

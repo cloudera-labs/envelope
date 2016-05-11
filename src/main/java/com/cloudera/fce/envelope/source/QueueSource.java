@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.queuesource;
+package com.cloudera.fce.envelope.source;
 
 import java.io.Serializable;
 import java.lang.reflect.Constructor;

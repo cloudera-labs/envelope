@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.planner;
+package com.cloudera.fce.envelope.plan;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -21,7 +21,7 @@ public class UpsertPlanner extends Planner {
     }
     
     @Override
-    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
+    public List<PlannedRecord> planMutations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
@@ -55,7 +55,7 @@ public class UpsertPlanner extends Planner {
                 if (recordModel.hasLastUpdatedField()) {
                     arrived.put(lastUpdatedFieldName, currentTimestampString());
                 }
-                planned.add(new PlannedRecord(arrived, OperationType.INSERT));
+                planned.add(new PlannedRecord(arrived, MutationType.INSERT));
             }
             else if (RecordUtils.before(arrived, existing, timestampFieldName)) {
                 // We do nothing because the arriving record is older than the existing record
@@ -67,7 +67,7 @@ public class UpsertPlanner extends Planner {
                 if (recordModel.hasLastUpdatedField()) {
                     arrived.put(lastUpdatedFieldName, currentTimestampString());
                 }
-                planned.add(new PlannedRecord(arrived, OperationType.UPDATE));
+                planned.add(new PlannedRecord(arrived, MutationType.UPDATE));
             }
         }
         
@@ -85,8 +85,8 @@ public class UpsertPlanner extends Planner {
     }
 
     @Override
-    public Set<OperationType> getEmittedOperationTypes() {
-        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
+    public Set<MutationType> getEmittedMutationTypes() {
+        return Sets.newHashSet(MutationType.INSERT, MutationType.UPDATE);
     }
 
 }

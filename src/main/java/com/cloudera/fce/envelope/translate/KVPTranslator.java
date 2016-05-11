@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.translator;
+package com.cloudera.fce.envelope.translate;
 
 import java.util.List;
 import java.util.Properties;
@@ -11,53 +11,57 @@ import org.apache.avro.generic.GenericRecord;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
-public class DelimitedTranslator extends Translator {
+public class KVPTranslator extends Translator {
     
-    private String delimiter;
+    private String kvpDelimiter;
+    private String fieldDelimiter;
     private List<String> fieldNames;
     private List<String> fieldTypes;
     private Schema schema;
     
-    public DelimitedTranslator(Properties props) {
+    public KVPTranslator(Properties props) {
         super(props);
         
-        delimiter = resolveDelimiter(props.getProperty("translator.delimited.delimiter"));
-        fieldNames = PropertiesUtils.propertyAsList(props, "translator.delimited.field.names");
-        fieldTypes = PropertiesUtils.propertyAsList(props, "translator.delimited.field.types");
+        kvpDelimiter = resolveDelimiter(props.getProperty("translator.kvp.delimiter.kvp"));
+        fieldDelimiter = resolveDelimiter(props.getProperty("translator.kvp.delimiter.field"));
+        fieldNames = PropertiesUtils.propertyAsList(props, "translator.kvp.field.names");
+        fieldTypes = PropertiesUtils.propertyAsList(props, "translator.kvp.field.types");
         schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
     }
     
     @Override
     public GenericRecord translate(String key, String message) {
-        String[] values = message.split(Pattern.quote(delimiter));
+        String[] kvps = message.split(Pattern.quote(kvpDelimiter));
         
         GenericRecord record = new GenericData.Record(schema);
         
-        for (int valuePos = 0; valuePos < values.length; valuePos++) {
-            String fieldName = fieldNames.get(valuePos);
-            String fieldValue = values[valuePos];
+        for (int kvpPos = 0; kvpPos < kvps.length; kvpPos++) {
+            String[] components = kvps[kvpPos].split(Pattern.quote(fieldDelimiter));
             
-            switch (fieldTypes.get(valuePos)) {
+            String kvpKey = RecordUtils.compatibleFieldName(components[0]);
+            String kvpValue = components[1];
+            
+            switch (fieldTypes.get(kvpPos)) {
                 case "string":
-                    record.put(fieldName, fieldValue);
+                    record.put(kvpKey, kvpValue);
                     break;
                 case "float":
-                    record.put(fieldName, Float.parseFloat(fieldValue));
+                    record.put(kvpKey, Float.parseFloat(kvpValue));
                     break;
                 case "double":
-                    record.put(fieldName, Double.parseDouble(fieldValue));
+                    record.put(kvpKey, Double.parseDouble(kvpValue));
                     break;
                 case "int":
-                    record.put(fieldName, Integer.parseInt(fieldValue));
+                    record.put(kvpKey, Integer.parseInt(kvpValue));
                     break;
                 case "long":
-                    record.put(fieldName, Long.parseLong(fieldValue));
+                    record.put(kvpKey, Long.parseLong(kvpValue));
                     break;
                 case "boolean":
-                    record.put(fieldName, Boolean.parseBoolean(fieldValue));
+                    record.put(kvpKey, Boolean.parseBoolean(kvpValue));
                     break;
                 default:
-                    throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
+                    throw new RuntimeException("Unsupported KVP field type: " + fieldTypes.get(kvpPos));
             }
         }
         

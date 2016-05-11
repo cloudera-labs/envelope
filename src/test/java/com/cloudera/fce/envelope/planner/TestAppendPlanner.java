@@ -14,6 +14,10 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.Test;
 
 import com.cloudera.fce.envelope.RecordModel;
+import com.cloudera.fce.envelope.plan.AppendPlanner;
+import com.cloudera.fce.envelope.plan.MutationType;
+import com.cloudera.fce.envelope.plan.PlannedRecord;
+import com.cloudera.fce.envelope.plan.Planner;
 import com.google.common.collect.Lists;
 
 public class TestAppendPlanner {
@@ -29,10 +33,10 @@ public class TestAppendPlanner {
         
         RecordModel rm = new RecordModel();
         
-        List<PlannedRecord> planned = ap.planOperations(records, rm);
+        List<PlannedRecord> planned = ap.planMutations(records, rm);
         
         for (PlannedRecord plan : planned) {
-            assertEquals(plan.getOperationType(), OperationType.INSERT);
+            assertEquals(plan.getMutationType(), MutationType.INSERT);
         }
         
         assertEquals(planned.size(), 10);
@@ -52,7 +56,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setKeyFieldNames(Lists.newArrayList("key"));
         
-        List<PlannedRecord> planned = ap.planOperations(records, rm);
+        List<PlannedRecord> planned = ap.planMutations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNotNull(plan.get("key"));
@@ -73,7 +77,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setKeyFieldNames(Lists.newArrayList("key"));
         
-        List<PlannedRecord> planned = ap.planOperations(records, rm);
+        List<PlannedRecord> planned = ap.planMutations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNull(plan.get("key"));
@@ -93,7 +97,7 @@ public class TestAppendPlanner {
         RecordModel rm = new RecordModel();
         rm.setLastUpdatedFieldName("lastupdated");
         
-        List<PlannedRecord> planned = ap.planOperations(records, rm);
+        List<PlannedRecord> planned = ap.planMutations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNotNull(plan.get("lastupdated"));
@@ -112,7 +116,7 @@ public class TestAppendPlanner {
         
         RecordModel rm = new RecordModel();
         
-        List<PlannedRecord> planned = ap.planOperations(records, rm);
+        List<PlannedRecord> planned = ap.planMutations(records, rm);
         
         for (PlannedRecord plan : planned) {
             assertNull(plan.get("lastupdated"));

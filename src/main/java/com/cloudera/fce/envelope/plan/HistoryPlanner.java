@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.planner;
+package com.cloudera.fce.envelope.plan;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -25,7 +25,7 @@ public class HistoryPlanner extends Planner {
     }
     
     @Override
-    public List<PlannedRecord> planOperations(List<GenericRecord> arrivingRecords,
+    public List<PlannedRecord> planMutations(List<GenericRecord> arrivingRecords,
             List<GenericRecord> existingRecords, RecordModel recordModel)
     {
         List<String> keyFieldNames = recordModel.getKeyFieldNames();
@@ -52,7 +52,7 @@ public class HistoryPlanner extends Planner {
             plannedForKey.clear();
             if (existingForKey != null) {
                 for (GenericRecord existing : existingForKey) {
-                    plannedForKey.add(new PlannedRecord(existing, OperationType.NONE));
+                    plannedForKey.add(new PlannedRecord(existing, MutationType.NONE));
                 }
             }
             
@@ -71,7 +71,7 @@ public class HistoryPlanner extends Planner {
                     if (recordModel.hasLastUpdatedField()) {
                         arrived.put(lastUpdatedFieldName, currentTimestampString());
                     }
-                    plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
+                    plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                 }
                 
                 // Iterate through each existing record of the key in time order, stopping when
@@ -101,11 +101,11 @@ public class HistoryPlanner extends Planner {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
                         
-                        if (plan.getOperationType().equals(OperationType.INSERT)) {
-                            plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
+                        if (plan.getMutationType().equals(MutationType.INSERT)) {
+                            plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         }
                         else {
-                            plannedForKey.add(new PlannedRecord(arrived, OperationType.UPDATE));
+                            plannedForKey.add(new PlannedRecord(arrived, MutationType.UPDATE));
                         }
                         plannedForKey.remove(plan);
                         
@@ -125,7 +125,7 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
-                        plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
+                        plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         
                         break;
                     }
@@ -145,7 +145,7 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
-                        plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
+                        plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         
                         plan.put(effectiveFromFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
                         if (recordModel.hasCurrentFlagField()) {
@@ -154,8 +154,8 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             plan.put(lastUpdatedFieldName, currentTimestampString());
                         }
-                        if (!plan.getOperationType().equals(OperationType.INSERT)) {
-                            plan.setOperationType(OperationType.UPDATE);
+                        if (!plan.getMutationType().equals(MutationType.INSERT)) {
+                            plan.setMutationType(MutationType.UPDATE);
                         }
                         
                         break;
@@ -173,7 +173,7 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
-                        plannedForKey.add(new PlannedRecord(arrived, OperationType.INSERT));
+                        plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         
                         plan.put(effectiveToFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
                         if (recordModel.hasCurrentFlagField()) {
@@ -182,8 +182,8 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             plan.put(lastUpdatedFieldName, currentTimestampString());
                         }
-                        if (!plan.getOperationType().equals(OperationType.INSERT)) {
-                            plan.setOperationType(OperationType.UPDATE);
+                        if (!plan.getMutationType().equals(MutationType.INSERT)) {
+                            plan.setMutationType(MutationType.UPDATE);
                         }
                         
                         break;
@@ -196,7 +196,7 @@ public class HistoryPlanner extends Planner {
             }
             
             for (PlannedRecord plan : plannedForKey) {
-                if (!plan.getOperationType().equals(OperationType.NONE))
+                if (!plan.getMutationType().equals(MutationType.NONE))
                 {
                     planned.add(plan);
                 }
@@ -217,8 +217,8 @@ public class HistoryPlanner extends Planner {
     }
     
     @Override
-    public Set<OperationType> getEmittedOperationTypes() {
-        return Sets.newHashSet(OperationType.INSERT, OperationType.UPDATE);
+    public Set<MutationType> getEmittedMutationTypes() {
+        return Sets.newHashSet(MutationType.INSERT, MutationType.UPDATE);
     }
     
 }

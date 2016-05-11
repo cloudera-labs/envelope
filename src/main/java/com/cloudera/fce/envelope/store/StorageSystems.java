@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.storage;
+package com.cloudera.fce.envelope.store;
 
 import java.lang.reflect.Constructor;
 import java.util.Map;

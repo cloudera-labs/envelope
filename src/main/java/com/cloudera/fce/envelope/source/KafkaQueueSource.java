@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.queuesource;
+package com.cloudera.fce.envelope.source;
 
 import java.util.Map;
 import java.util.Properties;
@@ -17,7 +17,7 @@ import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 
-import com.cloudera.fce.envelope.translator.Translator;
+import com.cloudera.fce.envelope.translate.Translator;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 

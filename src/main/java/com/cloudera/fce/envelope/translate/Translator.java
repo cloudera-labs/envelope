@@ -1,4 +1,4 @@
-package com.cloudera.fce.envelope.translator;
+package com.cloudera.fce.envelope.translate;
 
 import java.lang.reflect.Constructor;
 import java.util.Properties;
