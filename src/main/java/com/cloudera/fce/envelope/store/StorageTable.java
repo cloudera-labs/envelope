@@ -10,7 +10,7 @@ import com.cloudera.fce.envelope.plan.MutationType;
 import com.cloudera.fce.envelope.plan.PlannedRecord;
 
 /**
- * A table within a storage system that Envelope can write a stream to.
+ * Abstract class for storage tables to extend.
  */
 public abstract class StorageTable {
     
@@ -31,14 +31,12 @@ public abstract class StorageTable {
      * @param filter The record whose field names and values are used as an equality filter on
      * the storage table.
      * @return The list of storage records in the table schema that match the filter.
-     * @throws Exception
      */
     public abstract List<GenericRecord> getExistingForFilter(GenericRecord filter) throws Exception;
     
     /**
      * Apply the planned mutations to the storage table.
-     * @param mutations
-     * @throws Exception
+     * @param mutations The list of planned mutations.
      */
     public abstract void applyPlannedMutations(List<PlannedRecord> mutations) throws Exception;
     

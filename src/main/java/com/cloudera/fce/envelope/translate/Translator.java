@@ -7,7 +7,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 /**
- * Translates the queue source messages to typed records.
+ * Abstract class for translators to extend.
  */
 public abstract class Translator { 
     

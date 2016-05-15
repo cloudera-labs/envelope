@@ -12,7 +12,7 @@ import com.cloudera.fce.envelope.RecordModel;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 
 /**
- * Plans the mutations required to effect the records arriving to the storage table.
+ * Abstract class for planners to extend.
  */
 public abstract class Planner {
     
