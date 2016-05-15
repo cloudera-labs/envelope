@@ -60,6 +60,8 @@ public class Flow implements Serializable {
                 RecordModel recordModel = RecordModel.recordModelFor(props);
                 List<GenericRecord> arriving = Lists.newArrayList(arrivingIterator);
                 
+                if (arriving.size() == 0) return;
+                
                 Planner planner = Planner.plannerFor(props);
                 StorageTable storageTable = StorageSystems.tableFor(props);
                 validatePlannerStorageCompatibility(planner, storageTable);

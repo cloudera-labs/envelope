@@ -20,9 +20,17 @@ import org.apache.spark.sql.types.StructType;
 
 import com.google.common.collect.Lists;
 
+/**
+ * Convenience utility methods for converting between Spark SQL and Avro serializations.
+ */
 public class SparkSQLAvroUtils {
 
-    public static Schema schemaForStructType(StructType structType) throws RuntimeException {
+    /**
+     * The equivalent Avro schema for the given Spark SQL schema.
+     * @param structType The Spark SQL schema.
+     * @return The equivalent Avro schema.
+     */
+    public static Schema schemaForStructType(StructType structType) {
         List<String> fieldNames = Lists.newArrayList();
         List<String> fieldTypes = Lists.newArrayList();
         
@@ -56,7 +64,12 @@ public class SparkSQLAvroUtils {
         return RecordUtils.schemaFor(fieldNames, fieldTypes);
     }
     
-    public static StructType structTypeForSchema(Schema schema) throws RuntimeException {
+    /**
+     * The equivalent Spark SQL schema for the given Avro schema.
+     * @param schema The Avro schema.
+     * @return The equivalent Spark SQL schema.
+     */
+    public static StructType structTypeForSchema(Schema schema) {
         List<StructField> fields = Lists.newArrayList();
         
         for (Field field : schema.getFields()) {
@@ -93,6 +106,11 @@ public class SparkSQLAvroUtils {
         return DataTypes.createStructType(fields);
     }
     
+    /**
+     * The equivalent RDD of Rows for the given RDD of Avro records.
+     * @param records The RDD of Avro records.
+     * @return The equivalent RDD of Rows.
+     */
     @SuppressWarnings("serial")
     public static JavaRDD<Row> rowsForRecords(JavaRDD<GenericRecord> records) {
         return records.map(new Function<GenericRecord, Row>() {
@@ -120,6 +138,11 @@ public class SparkSQLAvroUtils {
         });
     }
     
+    /**
+     * The equivalent RDD of Avro records for the given RDD of Rows.
+     * @param rows The RDD of Rows.
+     * @return The equivalent RDD of Avro records.
+     */
     @SuppressWarnings("serial")
     public static JavaRDD<GenericRecord> recordsForRows(JavaRDD<Row> rows) {
         return rows.map(new Function<Row, GenericRecord>() {
@@ -141,6 +164,13 @@ public class SparkSQLAvroUtils {
         });
     }
     
+    /**
+     * The equivalent DataFrame for the given RDD of Avro records.
+     * @param records The RDD of Avro records.
+     * @param schema The Avro schema of the records in the RDD.
+     * @param sqlc The SQLContext to use to create the DataFrame.
+     * @return The equivalent DataFrame.
+     */
     public static DataFrame dataFrameForRecords(JavaRDD<GenericRecord> records, Schema schema, SQLContext sqlc)
     {
         JavaRDD<Row> rows = rowsForRecords(records);

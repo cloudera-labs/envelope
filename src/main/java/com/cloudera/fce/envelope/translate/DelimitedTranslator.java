@@ -85,9 +85,4 @@ public class DelimitedTranslator extends Translator {
         }
     }
 
-    @Override
-    public MessageEncoding acceptsType() {
-        return MessageEncoding.STRING;
-    }
-
 }

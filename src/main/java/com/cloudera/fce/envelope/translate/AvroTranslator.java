@@ -35,11 +35,6 @@ public class AvroTranslator extends Translator {
     }
     
     @Override
-    public MessageEncoding acceptsType() {
-        return MessageEncoding.BYTEARRAY;
-    }
-    
-    @Override
     public Schema getSchema() {
         return schema;
     }

@@ -89,9 +89,4 @@ public class KVPTranslator extends Translator {
         }
     }
 
-    @Override
-    public MessageEncoding acceptsType() {
-        return MessageEncoding.STRING;
-    }
-
 }
