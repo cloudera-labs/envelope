@@ -28,6 +28,10 @@ import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * A flow processes a translated stream, including transformation and storage. Each micro-batch can
+ * run multiple flows.
+ */
 @SuppressWarnings("serial")
 public class Flow implements Serializable {
     

@@ -11,6 +11,9 @@ import org.apache.avro.generic.GenericRecord;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
+/**
+ * A translator implementation for text key-value pair messages.
+ */
 public class KVPTranslator extends Translator {
     
     private String kvpDelimiter;

@@ -6,6 +6,9 @@ import org.kududb.client.KuduClient;
 import org.kududb.client.KuduSession;
 import org.kududb.client.SessionConfiguration.FlushMode;
 
+/**
+ * A storage system implementation for Kudu.
+ */
 public class KuduStorageSystem extends StorageSystem {
     
     public KuduStorageSystem(Properties props) {

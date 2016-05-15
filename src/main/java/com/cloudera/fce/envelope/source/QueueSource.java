@@ -10,8 +10,7 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 
 /**
- * @author jeremy
- *
+ * Provides the stream of messages that are queued in the source for processing.
  */
 @SuppressWarnings("serial")
 public abstract class QueueSource implements Serializable {

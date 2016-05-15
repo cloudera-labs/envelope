@@ -20,6 +20,9 @@ import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+/**
+ * A lookup provides existing records to the deriver for the arriving records of the stream.
+ */
 @SuppressWarnings("serial")
 public class Lookup implements Serializable {
     

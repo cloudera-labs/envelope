@@ -13,6 +13,9 @@ import org.apache.spark.sql.DataFrame;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 
+/**
+ * A deriver implementaton for Spark SQL.
+ */
 public class SQLDeriver extends Deriver {
     
     public SQLDeriver(Properties props) {

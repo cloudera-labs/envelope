@@ -7,9 +7,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class TrafficGenerator {
-
+    
     public static void main(final String[] args) throws Exception {
-        
         final Properties props = new Properties();
         props.put("bootstrap.servers", args[0]);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -30,7 +29,6 @@ public class TrafficGenerator {
             
             Thread.sleep(1000);
         }
-        
     }
     
 }

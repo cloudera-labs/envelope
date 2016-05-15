@@ -14,6 +14,10 @@ import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * A planner implementation for updating existing and inserting new (upsert). This maintains the
+ * most recent version of the values of a key, which is equivalent to Type I SCD modeling.
+ */
 public class UpsertPlanner extends Planner {
 
     public UpsertPlanner(Properties props) {

@@ -11,6 +11,9 @@ import com.cloudera.fce.envelope.RecordModel;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * A planner implementation for appending the stream to the storage table. Only plans insert mutations.
+ */
 public class AppendPlanner extends Planner {
     
     public AppendPlanner(Properties props) {

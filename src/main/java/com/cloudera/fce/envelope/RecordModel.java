@@ -6,6 +6,9 @@ import java.util.Properties;
 
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 
+/**
+ * A record model describes the semantics of the record fields, such as the key or timestamp.
+ */
 @SuppressWarnings("serial")
 public class RecordModel implements Serializable {
 

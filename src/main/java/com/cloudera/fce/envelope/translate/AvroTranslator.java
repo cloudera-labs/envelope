@@ -11,6 +11,9 @@ import org.apache.avro.io.DecoderFactory;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
+/**
+ * A translator implementation for binary Avro generic record messages.
+ */
 public class AvroTranslator extends Translator {
     
     private List<String> fieldNames;

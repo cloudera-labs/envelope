@@ -23,6 +23,9 @@ import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.SparkSQLAvroUtils;
 import com.google.common.collect.Maps;
 
+/**
+ * The entry point into Envelope. Configures the Spark Streaming job and runs it indefinitely.
+ */
 @SuppressWarnings("serial")
 public class Streamer
 {   
@@ -37,7 +40,7 @@ public class Streamer
         // Initialize the stream
         final QueueSource qs = QueueSource.queueSourceFor(props);
         JavaDStream<GenericRecord> stream = qs.dStreamFor(jssc, props);
-
+        
         // If required, expand the stream window beyond the micro-batch length
         if (doesExpandToWindow(props)) {
             stream = expandToWindow(stream, props);
@@ -48,7 +51,7 @@ public class Streamer
             stream = repartition(stream, props);
         }
         
-        // Instantiate Spark SQL
+        // Initialize Spark SQL
         final SQLContext sqlc = new SQLContext(jssc.sparkContext());
         
         // This is what we want to do each micro-batch
@@ -156,7 +159,7 @@ public class Streamer
         // per second. Without this we could end up with arbitrarily large initial micro-batches
         // for existing topics.
         sparkConf.set("spark.streaming.kafka.maxRatePerPartition", "5000");
-        // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise,
+        // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise
         // the default is typically 200 partitions, which is very high for micro-batches.
         sparkConf.set("spark.sql.shuffle.partitions", "2");
         

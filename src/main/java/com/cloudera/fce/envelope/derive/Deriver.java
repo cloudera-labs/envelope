@@ -8,6 +8,9 @@ import org.apache.spark.sql.DataFrame;
 
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 
+/**
+ * Derives the storage data model from the stream data model.
+ */
 public abstract class Deriver {
     
     /**

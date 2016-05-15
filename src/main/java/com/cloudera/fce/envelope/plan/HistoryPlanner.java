@@ -14,6 +14,10 @@ import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * A planner implementation for storing all versions of the values of a key (its history) using
+ * Type II SCD modeling.
+ */
 public class HistoryPlanner extends Planner {
     
     private String CURRENT_FLAG_YES = "Y";

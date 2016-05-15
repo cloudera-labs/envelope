@@ -6,6 +6,9 @@ import java.util.Properties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
+/**
+ * Translates the queue source messages to typed records.
+ */
 public abstract class Translator { 
     
     /**

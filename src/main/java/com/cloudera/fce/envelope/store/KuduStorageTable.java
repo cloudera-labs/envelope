@@ -28,6 +28,9 @@ import com.cloudera.fce.envelope.utils.RecordUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * A storage table implementation for Kudu. Supported types are INT32, INT64, DOUBLE, FLOAT, STRING, BOOL.
+ */
 public class KuduStorageTable extends StorageTable {
     
     private final Logger LOG = LoggerFactory.getLogger(KuduStorageTable.class);

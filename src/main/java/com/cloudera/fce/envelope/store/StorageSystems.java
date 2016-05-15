@@ -9,6 +9,10 @@ import com.google.common.collect.Maps;
 
 import scala.Tuple2;
 
+/**
+ * The singleton of all storage system instances opened by the executor JVM. This allows storage
+ * system connections to be held open across functions within a micro-batch, and across micro-batches.
+ */
 public enum StorageSystems {
     
     // The singleton of StorageSystems. There can only be one!

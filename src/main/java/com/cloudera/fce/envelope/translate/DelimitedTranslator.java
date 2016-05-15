@@ -11,6 +11,9 @@ import org.apache.avro.generic.GenericRecord;
 import com.cloudera.fce.envelope.utils.PropertiesUtils;
 import com.cloudera.fce.envelope.utils.RecordUtils;
 
+/**
+ * A translator implementation for plain delimited text messages, e.g. CSV.
+ */
 public class DelimitedTranslator extends Translator {
     
     private String delimiter;

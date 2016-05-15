@@ -25,6 +25,9 @@ import kafka.serializer.DefaultDecoder;
 import kafka.serializer.StringDecoder;
 import scala.Tuple2;
 
+/**
+ * A queue source implementation for Kafka. Uses the built-in Kafka direct connector in Spark Streaming.
+ */
 @SuppressWarnings("serial")
 public class KafkaQueueSource extends QueueSource {
     

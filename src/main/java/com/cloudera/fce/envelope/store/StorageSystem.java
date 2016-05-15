@@ -5,6 +5,10 @@ import java.util.Properties;
 
 import com.google.common.collect.Maps;
 
+/**
+ * An instance of a storage system, as defined by a connection to it. Maintains a handle
+ * to requested tables within the system so that they can be reused by future tasks.
+ */
 public abstract class StorageSystem {
     
     /**

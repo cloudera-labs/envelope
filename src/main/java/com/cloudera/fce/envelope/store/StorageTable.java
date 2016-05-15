@@ -9,6 +9,9 @@ import org.apache.avro.generic.GenericRecord;
 import com.cloudera.fce.envelope.plan.MutationType;
 import com.cloudera.fce.envelope.plan.PlannedRecord;
 
+/**
+ * A table within a storage system that Envelope can write a stream to.
+ */
 public abstract class StorageTable {
     
     /**
