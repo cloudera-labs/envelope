@@ -27,9 +27,11 @@ import com.google.common.collect.Sets;
 public class Lookup implements Serializable {
     
     private Properties props;
+    private String lookupName;
     
-    public Lookup(Properties props) {
+    public Lookup(Properties props, String lookupName) {
         this.props = props;
+        this.lookupName = lookupName;
     }
     
     // Retrieve the corresponding lookup records for the provided arriving stream records
@@ -76,7 +78,7 @@ public class Lookup implements Serializable {
     }
     
     public String getLookupTableName() {
-        return props.getProperty("storage.table.name");
+        return lookupName;
     }
     
     // Get the mappings of stream field names to storage field names for when they are not the same
@@ -111,7 +113,7 @@ public class Lookup implements Serializable {
         
         for (String lookupName : lookupNames) {
             Properties lookupProps = PropertiesUtils.prefixProperties(props, "lookup." + lookupName + ".");
-            Lookup lookup = new Lookup(lookupProps);
+            Lookup lookup = new Lookup(lookupProps, lookupName);
             lookups.add(lookup);
         }
         

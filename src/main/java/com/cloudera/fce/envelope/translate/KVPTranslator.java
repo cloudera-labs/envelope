@@ -41,10 +41,11 @@ public class KVPTranslator extends Translator {
         for (int kvpPos = 0; kvpPos < kvps.length; kvpPos++) {
             String[] components = kvps[kvpPos].split(Pattern.quote(fieldDelimiter));
             
-            String kvpKey = RecordUtils.compatibleFieldName(components[0]);
+            String rawKvpKey = components[0];
+            String kvpKey = RecordUtils.compatibleFieldName(rawKvpKey);
             String kvpValue = components[1];
             
-            switch (fieldTypes.get(kvpPos)) {
+            switch (fieldTypes.get(fieldNames.indexOf(rawKvpKey))) {
                 case "string":
                     record.put(kvpKey, kvpValue);
                     break;

@@ -126,7 +126,7 @@ public class SparkSQLAvroUtils {
                         fieldType = field.schema().getTypes().get(1).getType();
                     }
                     // Avro returns Utf8s for strings, which Spark SQL doesn't know how to use
-                    if (fieldType.equals(Type.STRING)) {
+                    if (fieldType.equals(Type.STRING) && value != null) {
                         value = value.toString();
                     }
                     

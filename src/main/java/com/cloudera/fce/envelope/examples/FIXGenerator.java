@@ -2,13 +2,12 @@ package com.cloudera.fce.envelope.examples;
 
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+
+import com.google.common.collect.Sets;
 
 public class FIXGenerator {
     
@@ -17,61 +16,140 @@ public class FIXGenerator {
         props.put("bootstrap.servers", args[0]);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        @SuppressWarnings("resource")
+        KafkaProducer<String, String> producer = new KafkaProducer<>(props);
         
-        int numThreads = Integer.parseInt(args[2]);
+        Set<Order> openOrders = Sets.newHashSet();
+        Set<Order> completedOrders = Sets.newHashSet();
         
-        ExecutorService threadPool = Executors.newFixedThreadPool(numThreads);
-        
-        for (int i = 0; i < numThreads; i++) {
-            threadPool.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    @SuppressWarnings("resource")
-                    KafkaProducer<String, String> producer = new KafkaProducer<>(props);
-                    
-                    Random random = new Random(); // random
-                    String key = UUID.randomUUID().toString();
-                    
-                    while(true) {
-                        int leavesQty = Math.abs(random.nextInt()) % 3000;
-                        
-                        while (leavesQty > 0) {
-                            String tag35 = "D";
-                            String tag11 = key;
-                            String tag21 = "2";
-                            String tag55 = "AAPL";
-                            String tag54 = "2";
-                            String tag60 = Long.toString(System.currentTimeMillis());
-                            String tag38 = Integer.toString(leavesQty);
-                            String tag40 = "2";
-                            String tag10 = "0";
-                            
-                            String message = String.format(
-                                    "%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s",
-                                    35, tag35, 11, tag11, 21, tag21, 55, tag55, 54, tag54,
-                                    60, tag60, 38, tag38, 40, tag40, 10, tag10);
-                            
-                            producer.send(new ProducerRecord<String, String>(args[1], message));
-                            
-                            leavesQty -= Math.abs(random.nextInt()) % 3000;
-                            
-                            if (leavesQty <= 0) {
-                                Thread.sleep(2);
-                                
-                                message = String.format(
-                                        "%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s\001%d=%s",
-                                        35, tag35, 11, tag11, 21, tag21, 55, tag55, 54, tag54,
-                                        60, Long.toString(System.currentTimeMillis()), 38, "0", 40, tag40, 10, tag10);
-                                producer.send(new ProducerRecord<String, String>(args[1], message));
-                            }
-                            
-                            Thread.sleep(2);
-                        }
-                        
-                        key = UUID.randomUUID().toString();
+        while(true) {
+            while (openOrders.size() < 100) {
+                Order newOrder = new Order();
+                String newOrderSingleFIX = newOrder.newOrderSingleFIX();
+                producer.send(new ProducerRecord<String, String>(args[1], newOrderSingleFIX));
+                openOrders.add(newOrder);
+            }
+            
+            for (Order order : openOrders) {
+                if (!order.isComplete()) {
+                    if (order.hasFurtherExecuted()) {
+                        String executionReportFIX = order.nextExecutionReportFIX();
+                        producer.send(new ProducerRecord<String, String>(args[1], executionReportFIX));
                     }
                 }
-            });
+                else {
+                    completedOrders.add(order);
+                }
+            }
+            
+            for (Order completedOrder : completedOrders) {
+                openOrders.remove(completedOrder);
+            }
+            completedOrders.clear();
+            
+            Thread.sleep(1);
+        }
+    }
+    
+    private static class Order {
+        private String clordid;
+        private String orderid;
+        private int orderqty;
+        private int leavesqty;
+        private Symbol symbol;
+        
+        private final String pairDelimiter = "\001";
+        private final String kvDelimiter = "=";
+        
+        private enum Symbol {
+            AAPL, MSFT, ORCL, VMW, GOOG, AMZN, FB, TWTR
+        }
+        
+        public Order() {
+            clordid = UUID.randomUUID().toString();
+            orderid = UUID.randomUUID().toString();
+            orderqty = new Random().nextInt(10000);
+            leavesqty = orderqty;
+            symbol = Symbol.values()[new Random().nextInt(Symbol.values().length)];
+        }
+        
+        public String newOrderSingleFIX() {
+            /*
+                35: msgtype
+                11: clordid
+                21: handlinst
+                55: symbol
+                54: side
+                60: transacttime
+                38: orderqty
+                40: ordtype
+                10: checksum
+            */
+            
+            StringBuilder message = new StringBuilder();
+            
+            message.append(constructKVP("35", "D"));
+            message.append(constructKVP("11", clordid));
+            message.append(constructKVP("21", 2));
+            message.append(constructKVP("55", symbol));
+            message.append(constructKVP("54", 2));
+            message.append(constructKVP("60", System.currentTimeMillis()));
+            message.append(constructKVP("38", orderqty));
+            message.append(constructKVP("40", 2));
+            message.append(constructKVP("10", "000"));
+            
+            return message.toString();
+        }
+        
+        public boolean isComplete() { return leavesqty == 0; }
+        
+        public boolean hasFurtherExecuted() { return new Random().nextInt(1000) == 0; }
+        
+        public String nextExecutionReportFIX() {
+            /*
+                35: msgtype
+                37: orderid
+                11: clordid
+                17: execid
+                20: exectranstype
+                150: exectype
+                39: ordstatus
+                55: symbol
+                54: side
+                151: leavesqty
+                14: cumqty
+                6: avgpx
+                60: transacttime
+                10: checksum
+             */
+            
+            int execRptQty = new Random().nextInt(3000);
+            leavesqty -= execRptQty;
+            if (leavesqty < 0) leavesqty = 0;
+            
+            StringBuilder message = new StringBuilder();
+            
+            message.append(constructKVP("35", "8"));
+            message.append(constructKVP("37", orderid));
+            message.append(constructKVP("11", clordid));
+            message.append(constructKVP("17", UUID.randomUUID()));
+            message.append(constructKVP("20", 0));
+            message.append(constructKVP("150", 0));
+            message.append(constructKVP("39", leavesqty == 0 ? 2 : 1));
+            message.append(constructKVP("55", symbol));
+            message.append(constructKVP("54", 1));
+            message.append(constructKVP("151", leavesqty));
+            message.append(constructKVP("14", orderqty - leavesqty));
+            message.append(constructKVP("6", new Random().nextFloat()));
+            message.append(constructKVP("60", System.currentTimeMillis()));
+            message.append(constructKVP("10", "000"));
+            
+            return message.toString();
+        }
+        
+        private String constructKVP(String tag, Object value) {
+            return tag + kvDelimiter + value + pairDelimiter;
         }
     }
     

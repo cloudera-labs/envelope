@@ -1,18 +1,17 @@
-DROP TABLE IF EXISTS fix_history;
+DROP TABLE IF EXISTS fix_orderhistory;
 
-CREATE TABLE fix_history
+CREATE TABLE fix_orderhistory
 (
     clordid STRING
   , startdate BIGINT
 
   , msgtype STRING
-  , handlinst INT
   , `symbol` STRING
-  , side INT
   , transacttime BIGINT
-  , ordtype INT
   , orderqty INT
-  , checksum STRING
+  , leavesqty INT
+  , cumqty INT
+  , avgpx DOUBLE
 
   , enddate BIGINT
   , currentflag STRING
@@ -21,7 +20,7 @@ CREATE TABLE fix_history
 TBLPROPERTIES
 (
     'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
-  , 'kudu.table_name' = 'fix_history'
+  , 'kudu.table_name' = 'fix_orderhistory'
   , 'kudu.master_addresses' = 'vm1:7051'
   , 'kudu.key_columns' = 'clordid,startdate'
 );

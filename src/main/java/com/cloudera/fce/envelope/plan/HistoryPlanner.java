@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.GenericRecord;
 
 import com.cloudera.fce.envelope.RecordModel;
@@ -22,7 +23,7 @@ public class HistoryPlanner extends Planner {
     
     private String CURRENT_FLAG_YES = "Y";
     private String CURRENT_FLAG_NO = "N";
-    private Long FAR_FUTURE_MICROS = 253402214400000000L; // 9999-12-31
+    private Long FAR_FUTURE_MILLIS = 253402214400000L; // 9999-12-31
     
     public HistoryPlanner(Properties props) {
         super(props);
@@ -68,7 +69,7 @@ public class HistoryPlanner extends Planner {
                 // There was no existing record for the key, so we just insert the input record.
                 if (plannedForKey.size() == 0) {
                     arrived.put(effectiveFromFieldName, arrivedTimestamp);
-                    arrived.put(effectiveToFieldName, FAR_FUTURE_MICROS);
+                    arrived.put(effectiveToFieldName, FAR_FUTURE_MILLIS);
                     if (recordModel.hasCurrentFlagField()) {
                         arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
                     }
@@ -78,7 +79,7 @@ public class HistoryPlanner extends Planner {
                     plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                 }
                 
-                // Iterate through each existing record of the key in time order, stopping when
+                // Iterate through each existing record of the key in time order, stopping when we
                 // have either corrected the history or gone all the way through it.
                 for (int position = 0; position < plannedForKey.size(); position++) {
                     PlannedRecord plan = plannedForKey.get(position);
@@ -149,6 +150,7 @@ public class HistoryPlanner extends Planner {
                         if (recordModel.hasLastUpdatedField()) {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
+                        carryForwardWhenNull(arrived, plan);
                         plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         
                         plan.put(effectiveFromFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
@@ -170,13 +172,14 @@ public class HistoryPlanner extends Planner {
                     // to be effective until just prior to the input record.
                     else if (RecordUtils.after(arrived, plan, timestampFieldName) && nextPlanned == null) {
                         arrived.put(effectiveFromFieldName, arrivedTimestamp);
-                        arrived.put(effectiveToFieldName, FAR_FUTURE_MICROS);
+                        arrived.put(effectiveToFieldName, FAR_FUTURE_MILLIS);
                         if (recordModel.hasCurrentFlagField()) {
                             arrived.put(currentFlagFieldName, CURRENT_FLAG_YES);
                         }
                         if (recordModel.hasLastUpdatedField()) {
                             arrived.put(lastUpdatedFieldName, currentTimestampString());
                         }
+                        carryForwardWhenNull(arrived, plan);
                         plannedForKey.add(new PlannedRecord(arrived, MutationType.INSERT));
                         
                         plan.put(effectiveToFieldName, RecordUtils.precedingTimestamp(arrivedTimestamp));
@@ -208,6 +211,19 @@ public class HistoryPlanner extends Planner {
         }
         
         return planned;
+    }
+    
+    // When the arrived record value is null then we have the option to carry forward
+    // the value from the previous record. This is useful for handling sparse stream records.
+    private void carryForwardWhenNull(GenericRecord arrived, GenericRecord previous) {
+        if (Boolean.parseBoolean(props.getProperty("carry.forward.when.null", "false"))) {
+            for (Field field : arrived.getSchema().getFields()) {
+                String fieldName = field.name();
+                if (arrived.get(fieldName) == null && previous.get(fieldName) != null) {
+                    arrived.put(fieldName, previous.get(fieldName));
+                }
+            }
+        }
     }
     
     @Override

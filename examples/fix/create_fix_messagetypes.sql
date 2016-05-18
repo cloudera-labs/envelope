@@ -12,3 +12,5 @@ TBLPROPERTIES
   , 'kudu.master_addresses' = 'vm1:7051'
   , 'kudu.key_columns' = 'msgtype'
 );
+
+INSERT INTO fix_messagetypes VALUES ('D', 'Order Single'), ('8', 'Execution Report');

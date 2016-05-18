@@ -119,14 +119,14 @@ public class RecordUtils {
     }
     
     /**
-     * The original field name adjusted, if necessary, to conform to Avro's field name requirements.
-     * If the original field name does not conform then it is prefixed with "field_". 
+     * The original field name adjusted, if necessary, to conform to Avro's field name requirements
+     * by prefixing it with an underscore. 
      * @param original The original field name.
      * @return The adjusted-if-necessary field name.
      */
     public static String compatibleFieldName(String original) {
         if (!original.matches("^[A-Za-z_].*")) {
-            return "field_" + original;
+            return "_" + original;
         }
         else {
             return original;
@@ -187,7 +187,6 @@ public class RecordUtils {
             Schema keySchema = RecordUtils.subsetSchema(records.get(0).getSchema(), keyFieldNames);
             
             for (GenericRecord record : records) {
-                
                 GenericRecord key = RecordUtils.subsetRecord(record, keySchema);
                 
                 if (!recordsByKey.containsKey(key)) {
@@ -211,28 +210,20 @@ public class RecordUtils {
      * @return True if the records are considered different, or false otherwise.
      */
     public static boolean different(GenericRecord first, GenericRecord second, List<String> valueFieldNames) {
-        boolean differenceFound = false;
-        
-        for (int i = 0; i < first.getSchema().getFields().size(); i++) {
-            if (valueFieldNames.contains(first.getSchema().getFields().get(i).name())) {
-                Object firstValue = first.get(i);
-                Object secondValue = second.get(i);
-                
-                if (firstValue != null && secondValue != null &&
-                    !firstValue.equals(secondValue))
-                {
-                    differenceFound = true;
-                }
-                
-                if ((firstValue != null && secondValue == null) ||
-                    (firstValue == null && secondValue != null))
-                {
-                    differenceFound = true;
-                }
+        for (String valueFieldName : valueFieldNames) {
+            Object firstValue = first.get(valueFieldName);
+            Object secondValue = second.get(valueFieldName);
+            
+            if (firstValue != null && secondValue != null && !firstValue.equals(secondValue)) {
+                return true;
+            }
+            
+            if ((firstValue != null && secondValue == null) || (firstValue == null && secondValue != null)) {
+                return true;
             }
         }
         
-        return differenceFound;
+        return false;
     }
     
     /**

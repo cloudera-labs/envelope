@@ -203,7 +203,7 @@ public class KuduStorageTable extends StorageTable {
             String columnName = columnSchema.getName();
             
             if (result.isNull(columnName)) {
-                break;
+                continue;
             }
             
             switch (columnSchema.getType()) {
