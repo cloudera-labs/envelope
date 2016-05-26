@@ -25,6 +25,6 @@ TBLPROPERTIES
 (
     'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
   , 'kudu.table_name' = 'fix_execrpt'
-  , 'kudu.master_addresses' = 'vm1:7051'
+  , 'kudu.master_addresses' = 'REPLACEME:7051'
   , 'kudu.key_columns' = 'execid'
 );
