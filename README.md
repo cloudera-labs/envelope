@@ -40,11 +40,11 @@ Envelope includes example configurations to demonstrate what can be achieved and
 
 ##### FIX
 
-The FIX example is an Envelope pipeline that receives [FIX financial messages](https://en.wikipedia.org/wiki/Financial_Information_eXchange) of order fulfillment and updates the representation of the order in Kudu. This use case would allow near-real-time analytics of order history. More information on this example can be found [here](http://github.mtv.cloudera.com/jeremy/envelope/tree/master/examples/fix).
+The FIX example is an Envelope pipeline that receives [FIX financial messages](https://en.wikipedia.org/wiki/Financial_Information_eXchange) of order fulfillment and updates the representation of the order in Kudu. This use case would allow near-real-time analytics of order history. More information on this example can be found [here](http://github.com/cloudera-labs/envelope/tree/master/examples/fix).
 
 ##### Traffic
 
-The traffic example is an Envelope pipeline that retrieves measurements of traffic congestion and stores an aggregated view of the traffic congestion at a point in time using the current measurement and all of those in the previous 60 seconds. More information on this example can be found [here](http://github.mtv.cloudera.com/jeremy/envelope/tree/master/examples/traffic).
+The traffic example is an Envelope pipeline that retrieves measurements of traffic congestion and stores an aggregated view of the traffic congestion at a point in time using the current measurement and all of those in the previous 60 seconds. More information on this example can be found [here](http://github.com/cloudera-labs/envelope/tree/master/examples/traffic).
 
 ### Functionality
 
@@ -108,4 +108,4 @@ Additionally, each pipeline can have:
 - One or more lookup tables
 - One deriver for a flow
 
-For documentation of the individual configurations see the [Configuration wiki page](http://github.mtv.cloudera.com/jeremy/envelope/wiki/Configurations).
+For documentation of the individual configurations see the [Configuration wiki page](http://github.com/cloudera-labs/envelope/wiki/Configurations).
