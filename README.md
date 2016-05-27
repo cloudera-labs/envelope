@@ -1,8 +1,8 @@
 ## Envelope
 
-Envelope is a Spark Streaming application that can be configured to easily implement streaming data pipelines on a CDH cluster.
+Envelope is an Apache Spark Streaming application that can be configured to easily implement streaming data pipelines on a CDH cluster.
 
-The target use cases for Envelope are pipelines that need to move, and perhaps transform using SQL along the way, data from a queue (such as Kafka) to a storage layer (such as Kudu). The goal of Envelope is to reduce the amount of plumbing code required to develop these pipelines -- sometimes without requiring any code at all.
+The target use cases for Envelope are pipelines that need to move, and perhaps transform using SQL along the way, data from a queue (such as Apache Kafka) to a storage layer (such as Apache Kudu (incubating)). The goal of Envelope is to reduce the amount of plumbing code required to develop these pipelines -- sometimes without requiring any code at all.
 
 Running an Envelope pipeline is as simple as submitting the Envelope application to Spark along with the configuration that defines the pipeline being implemented. Configuration is provided as a simple properties file. Where Envelope does not already provide the functionality to develop a specific pipeline there are pluggable points in the data flow that user-provided code can be inserted.
 
@@ -36,7 +36,7 @@ A helpful place to monitor your running pipeline is from the Spark UI for the jo
 
 ### Examples
 
-Envelope includes example configurations to demonstrate what can be achieved and as a reference for building new Envelope pipelines. All of the examples source from Kafka and store in to Kudu, which in turn allows immediate user access to streaming data via fast Impala queries.
+Envelope includes example configurations to demonstrate what can be achieved and as a reference for building new Envelope pipelines. All of the examples source from Kafka and store in to Kudu, which in turn allows immediate user access to streaming data via fast Apache Impala (incubating) queries.
 
 ##### FIX
 
@@ -65,7 +65,7 @@ A queue source interacts with an instance of a message queueing system. Envelope
 
 ##### Translation
 
-A translator interprets the messages from a queue source as typed records. Envelope uses Avro `GenericRecord`s as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
+A translator interprets the messages from a queue source as typed records. Envelope uses Apache Avro `GenericRecord`s as the in-memory record format between the stages of the pipeline. The translated records are registered as a Spark SQL temporary table named "stream".
 
 Envelope provides translator implementations for delimited messages, key-value pair messages, and serialized Avro records. User-provided implementations can be referenced if they extend the `Translator` class.
 
