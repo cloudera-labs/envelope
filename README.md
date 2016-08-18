@@ -2,7 +2,7 @@
 
 Envelope is an Apache Spark Streaming application that can be configured to easily implement streaming data pipelines on a CDH cluster.
 
-The target use cases for Envelope are pipelines that need to move, and perhaps transform using SQL along the way, data from a queue (such as Apache Kafka) to a storage layer (such as Apache Kudu (incubating)). The goal of Envelope is to reduce the amount of plumbing code required to develop these pipelines -- sometimes without requiring any code at all.
+The target use cases for Envelope are pipelines that need to move, and perhaps transform using SQL along the way, data from a queue (such as Apache Kafka) to a storage layer (such as Apache Kudu). The goal of Envelope is to reduce the amount of plumbing code required to develop these pipelines -- sometimes without requiring any code at all.
 
 Running an Envelope pipeline is as simple as submitting the Envelope application to Spark along with the configuration that defines the pipeline being implemented. Configuration is provided as a simple properties file. Where Envelope does not already provide the functionality to develop a specific pipeline there are pluggable points in the data flow that user-provided code can be inserted.
 
