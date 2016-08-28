@@ -12,7 +12,7 @@
   <properties>
     <spark.version>1.5.0-cdh5.5.0</spark.version>
     <kafka.version>0.9.0-kafka-2.0.0</kafka.version>
-    <kudu.version>0.8.0</kudu.version>
+    <kudu.version>0.10.0</kudu.version>
     <junit.version>4.10</junit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -50,7 +50,7 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.kududb</groupId>
+      <groupId>org.apache.kudu</groupId>
       <artifactId>kudu-client</artifactId>
       <version>${kudu.version}</version>
       <scope>compile</scope>

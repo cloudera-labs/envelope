@@ -2,9 +2,9 @@ package com.cloudera.labs.envelope.store;
 
 import java.util.Properties;
 
-import org.kududb.client.KuduClient;
-import org.kududb.client.KuduSession;
-import org.kududb.client.SessionConfiguration.FlushMode;
+import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
 /**
  * A storage system implementation for Apache Kudu (incubating).
