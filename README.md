@@ -16,7 +16,7 @@ Running an Envelope pipeline is as simple as submitting the Envelope application
 
 ##### Requirements
 
-Envelope requires a CDH5.5+ cluster. Kafka 0.9 and Kudu 0.8 are required if connecting to those systems.
+Envelope requires a CDH5.5+ cluster. Kafka 0.9 and Kudu 0.10 are required if connecting to those systems.
 
 ##### Compiling Envelope
 
