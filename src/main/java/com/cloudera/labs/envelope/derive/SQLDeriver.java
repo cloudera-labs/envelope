@@ -3,40 +3,46 @@ package com.cloudera.labs.envelope.derive;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.SQLContext;
 
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
+import com.typesafe.config.Config;
 
 /**
- * A deriver implementaton for Spark SQL.
+ * An input implementaton for Spark SQL.
  */
 public class SQLDeriver extends Deriver {
     
-    public SQLDeriver(Properties props) {
-        super(props);
+    public static final String QUERY_LITERAL_CONFIG_NAME = "query.literal";
+    public static final String QUERY_FILE_CONFIG_NAME = "query.file";
+    
+    public SQLDeriver(Config config) {
+        super(config);
     }
     
     @Override
-    public DataFrame derive(DataFrame stream, Map<String, DataFrame> lookups) throws Exception {
+    public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {
         String query;
         
-        if (props.containsKey("query.literal")) {
-            query = props.getProperty("query.literal");
+        if (config.hasPath(QUERY_LITERAL_CONFIG_NAME)) {
+            query = config.getString(QUERY_LITERAL_CONFIG_NAME);
         }
-        else if (props.containsKey("query.file")) {
-            query = hdfsFileAsString(props.getProperty("query.file"));
+        else if (config.hasPath(QUERY_FILE_CONFIG_NAME)) {
+            query = hdfsFileAsString(config.getString(QUERY_FILE_CONFIG_NAME));
         }
         else {
-            throw new RuntimeException("SQL deriver query not provided. Use 'query.literal' or 'query.file'.");
+            throw new RuntimeException("SQL deriver query not provided. Use '" + QUERY_LITERAL_CONFIG_NAME + "' or '" + QUERY_FILE_CONFIG_NAME + "'.");
         }
         
-        DataFrame derived = stream.sqlContext().sql(query);
+        SQLContext sqlc = Contexts.getSQLContext();
+        DataFrame derived = sqlc.sql(query);
         
         return derived;
     }

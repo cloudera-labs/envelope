@@ -4,51 +4,84 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
 public class FIXGenerator {
+    
+    private static Logger LOG = LoggerFactory.getLogger(FIXGenerator.class);
     
     public static void main(final String[] args) throws Exception {
         final Properties props = new Properties();
         props.put("bootstrap.servers", args[0]);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-
-        @SuppressWarnings("resource")
-        KafkaProducer<String, String> producer = new KafkaProducer<>(props);
         
-        Set<Order> openOrders = Sets.newHashSet();
-        Set<Order> completedOrders = Sets.newHashSet();
+        int threads = 1;
+        if (args.length == 3) {
+            threads = Integer.parseInt(args[2]);
+        }
         
-        while(true) {
-            while (openOrders.size() < 100) {
-                Order newOrder = new Order();
-                String newOrderSingleFIX = newOrder.newOrderSingleFIX();
-                producer.send(new ProducerRecord<String, String>(args[1], newOrderSingleFIX));
-                openOrders.add(newOrder);
-            }
-            
-            for (Order order : openOrders) {
-                if (!order.isComplete()) {
-                    if (order.hasFurtherExecuted()) {
-                        String executionReportFIX = order.nextExecutionReportFIX();
-                        producer.send(new ProducerRecord<String, String>(args[1], executionReportFIX));
+        ExecutorService threadPool = Executors.newFixedThreadPool(threads);
+        
+        for (int t = 0; t < threads; t++) {
+            threadPool.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    @SuppressWarnings("resource")
+                    KafkaProducer<String, String> producer = new KafkaProducer<>(props);
+                    
+                    Set<Order> openOrders = Sets.newHashSet();
+                    Set<Order> completedOrders = Sets.newHashSet();
+                    long lastReportedSecond = System.currentTimeMillis() / 1000;
+                    long recordsProducedSinceLastReport = 0;
+                    int secondsPerReport = 10;
+                    
+                    while(true) {
+                        while (openOrders.size() < 5000) {
+                            Order newOrder = new Order();
+                            String newOrderSingleFIX = newOrder.newOrderSingleFIX();
+                            producer.send(new ProducerRecord<String, String>(args[1], newOrderSingleFIX));
+                            recordsProducedSinceLastReport++;
+                            openOrders.add(newOrder);
+                        }
+                        
+                        for (Order order : openOrders) {
+                            if (!order.isComplete()) {
+                                if (order.hasFurtherExecuted()) {
+                                    String executionReportFIX = order.nextExecutionReportFIX();
+                                    producer.send(new ProducerRecord<String, String>(args[1], executionReportFIX));
+                                    recordsProducedSinceLastReport++;
+                                }
+                            }
+                            else {
+                                completedOrders.add(order);
+                            }
+                        }
+                        
+                        for (Order completedOrder : completedOrders) {
+                            openOrders.remove(completedOrder);
+                        }
+                        completedOrders.clear();
+                        
+                        long currentSecond = System.currentTimeMillis() / 1000;
+                        if (currentSecond >= lastReportedSecond + 10) {
+                            long rate = recordsProducedSinceLastReport / secondsPerReport;
+                            LOG.info("Generation rate: " + rate + " records/sec");
+                            lastReportedSecond = currentSecond;
+                            recordsProducedSinceLastReport = 0;
+                        }
                     }
                 }
-                else {
-                    completedOrders.add(order);
-                }
-            }
-            
-            for (Order completedOrder : completedOrders) {
-                openOrders.remove(completedOrder);
-            }
-            completedOrders.clear();
-            
-            Thread.sleep(1);
+            });
         }
     }
     
@@ -104,7 +137,7 @@ public class FIXGenerator {
         
         public boolean isComplete() { return leavesqty == 0; }
         
-        public boolean hasFurtherExecuted() { return new Random().nextInt(1000) == 0; }
+        public boolean hasFurtherExecuted() { return new Random().nextInt(100) == 0; }
         
         public String nextExecutionReportFIX() {
             /*
