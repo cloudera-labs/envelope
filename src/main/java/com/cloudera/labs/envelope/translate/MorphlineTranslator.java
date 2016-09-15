@@ -9,12 +9,14 @@ import java.util.Properties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+
 import org.kitesdk.morphline.api.Command;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.MorphlineContext;
 import org.kitesdk.morphline.api.MorphlineRuntimeException;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Compiler;
+import org.kitesdk.morphline.base.FaultTolerance;
 import org.kitesdk.morphline.base.Fields;
 import org.kitesdk.morphline.base.Notifications;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ public class MorphlineTranslator extends Translator implements Closeable {
   private Charset messageEncoding;
   private Schema schema;
   private Command morphline;
+  private MorphlineContext morphlineContext;
   private GenericRecordCollector collector;
 
   MorphlineTranslator(Properties props) {
@@ -73,8 +76,11 @@ public class MorphlineTranslator extends Translator implements Closeable {
       throw new MorphlineCompilationException("Missing parameter: translator.morphline.file", null);
     }
 
-    //TODO Set up metrics, etc. for MorphlineContext, i.e. FaultTolerance?
-    MorphlineContext morphlineContext = new MorphlineContext.Builder().build();
+    String isProduction = props.getProperty("translator.morphline.production.mode", "true");
+
+    this.morphlineContext = new MorphlineContext.Builder()
+        .setExceptionHandler(new FaultTolerance(Boolean.valueOf(isProduction), false))
+        .build();
 
     this.collector = new GenericRecordCollector();
 
@@ -85,7 +91,7 @@ public class MorphlineTranslator extends Translator implements Closeable {
           morphlineContext,
           this.collector);
     } catch (Exception e) {
-      throw new MorphlineCompilationException("Error compiling morphline", null, e);
+      throw new MorphlineCompilationException("Morphline compilation error", null, e);
     }
 
     // Ensure shutdown notification to Morphline commands
@@ -107,6 +113,8 @@ public class MorphlineTranslator extends Translator implements Closeable {
 
   @Override
   public GenericRecord translate(byte[] key, byte[] message) throws Exception {
+    GenericRecord output = null;
+
     Record record = new Record();
 
     record.put(Fields.ATTACHMENT_BODY, message);
@@ -126,22 +134,21 @@ public class MorphlineTranslator extends Translator implements Closeable {
 
       if (!success) {
         throw new MorphlineRuntimeException("Morphline failed to process record: " + record);
-        //return new GenericData.Record(this.schema);
+      }
+
+      if (collector.getGenericRecord() != null) {
+        output = collector.getGenericRecord();
+      } else {
+        throw new MorphlineRuntimeException("Morphline did not produce attachment");
       }
 
     } catch (RuntimeException e) {
       Notifications.notifyRollbackTransaction(morphline);
-      // TODO Consider tactics for Morphline ExceptionHandlers
-      //morphlineContext.getExceptionHandler().handleException(e, null);
-      LOG.warn("Morphline execution exception", e);
+      this.morphlineContext.getExceptionHandler().handleException(e, record);
+      LOG.warn("Morphline creating empty GenericRecord");
     }
 
-    if (collector.getGenericRecord() != null) {
-      return collector.getGenericRecord();
-    } else {
-      LOG.error("Morphline did not return a record; creating empty GenericRecord");
-      return new GenericData.Record(this.schema);
-    }
+    return (output != null) ? output : new GenericData.Record(this.schema);
   }
 
   @Override
