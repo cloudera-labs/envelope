@@ -155,6 +155,20 @@ public class MorphlineTranslatorTest {
     assertEquals("Invalid field value", 123, record.get("bar"));
   }
 
+  @Test
+  public void translateIncorrectAttachmentTypeReturned() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
+    props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
+    props.setProperty("translator.morphline.identifier", "incorrect-attachment");
+
+    Translator translator = new MorphlineTranslator(props);
+    GenericRecord record = translator.translate("key", "message");
+
+    assertNull("Invalid field value", record.get("foo"));
+    assertNull("Invalid field value", record.get("bar"));
+  }
+
   @Test (expected = MorphlineCompilationException.class)
   public void invalidKeyEncoding() throws Exception {
     Properties props = new Properties();

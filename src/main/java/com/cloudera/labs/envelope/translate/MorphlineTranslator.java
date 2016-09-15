@@ -125,21 +125,21 @@ public class MorphlineTranslator extends Translator implements Closeable {
       Notifications.notifyCommitTransaction(morphline);
 
       if (!success) {
-        LOG.warn("Morphline failed to process record: {}", record);
-        return new GenericData.Record(this.schema);
+        throw new MorphlineRuntimeException("Morphline failed to process record: " + record);
+        //return new GenericData.Record(this.schema);
       }
 
     } catch (RuntimeException e) {
       Notifications.notifyRollbackTransaction(morphline);
       // TODO Consider tactics for Morphline ExceptionHandlers
       //morphlineContext.getExceptionHandler().handleException(e, null);
-      LOG.error("Error executing morphline", e);
+      LOG.warn("Morphline execution exception", e);
     }
 
     if (collector.getGenericRecord() != null) {
       return collector.getGenericRecord();
     } else {
-      LOG.warn("Morphline did not return a record; creating empty GenericRecord");
+      LOG.error("Morphline did not return a record; creating empty GenericRecord");
       return new GenericData.Record(this.schema);
     }
   }
@@ -180,18 +180,15 @@ public class MorphlineTranslator extends Translator implements Closeable {
 
     @Override
     public boolean process(Record record) {
-      Object attachment;
-
       int size = record.get(Fields.ATTACHMENT_BODY).size();
+
       if (size == 0) {
-        LOG.warn("Morphline record did not return any attachments; creating empty GenericRecord");
-        attachment = new GenericData.Record(schema);
-      } else {
-        if (size > 1) {
-          LOG.warn("Morphline record returned {} attachments; selecting first value only", size);
-        }
-        attachment = record.getFirstValue(Fields.ATTACHMENT_BODY);
+        throw new MorphlineRuntimeException("Morphline record did not return any attachments; Record: " + record);
+      } else if (size > 1) {
+        LOG.warn("Morphline record returned {} attachments; selecting first value only", size);
       }
+
+      Object attachment = record.getFirstValue(Fields.ATTACHMENT_BODY);
 
       try {
         LOG.debug("Morphline results: {}", attachment);
