@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "MorphlineTranslatorTest",
+  "fields": [
+    {
+      "name": "foo",
+      "type": "string"
+    },
+    {
+      "name": "bar",
+      "type": "int"
+    }
+  ]
+}

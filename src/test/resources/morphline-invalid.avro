@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "InvalidAvroSchema",
+  "fields": [
+    {
+      "name": "foo",
+      "type": "string"
+    },
+    {
+      "name": "bar",
+      "type": "int"
+    }
+  ]
