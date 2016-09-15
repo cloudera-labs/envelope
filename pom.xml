@@ -10,9 +10,10 @@
   <name>envelope</name>
   
   <properties>
-    <spark.version>1.5.0-cdh5.5.0</spark.version>
-    <kafka.version>0.9.0-kafka-2.0.0</kafka.version>
+    <spark.version>1.6.0-cdh5.8.0</spark.version>
+    <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
     <kudu.version>0.10.0</kudu.version>
+    <kite-sdk.version>1.0.0-cdh5.8.0</kite-sdk.version>
     <junit.version>4.10</junit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -59,6 +60,24 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_2.10</artifactId>
       <version>${kafka.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-core</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-avro</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.5</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
