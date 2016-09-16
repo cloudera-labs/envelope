@@ -9,7 +9,6 @@ import java.util.Properties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-
 import org.kitesdk.morphline.api.Command;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.MorphlineContext;
@@ -41,7 +40,7 @@ public class MorphlineTranslator extends Translator implements Closeable {
   private MorphlineContext morphlineContext;
   private GenericRecordCollector collector;
 
-  MorphlineTranslator(Properties props) {
+  public MorphlineTranslator(Properties props) {
     super(props);
 
     LOG.debug("Preparing morphline");
@@ -106,9 +105,26 @@ public class MorphlineTranslator extends Translator implements Closeable {
     return this.schema;
   }
 
+  // TODO Unit test
+  @Override
+  public GenericRecord translate(String message) throws Exception {
+    return translate(null, message.getBytes(this.messageEncoding));
+  }
+
+  // TODO Unit test
   @Override
   public GenericRecord translate(String key, String message) throws Exception {
-    return translate(key.getBytes(this.keyEncoding), message.getBytes(this.messageEncoding));
+    if (key == null) {
+      return translate(null, message.getBytes(this.messageEncoding));
+    } else {
+      return translate(key.getBytes(this.keyEncoding), message.getBytes(this.messageEncoding));
+    }
+  }
+
+  // TODO Unit test
+  @Override
+  public GenericRecord translate(byte[] message) throws Exception {
+    return translate(null, message);
   }
 
   @Override
