@@ -10,7 +10,7 @@ import org.apache.avro.generic.GenericRecord;
  */
 public abstract class Translator {
 
-  private static Translator translator;
+  private static Translator cached;
 
   /**
    * The properties of the translator.
@@ -77,23 +77,40 @@ public abstract class Translator {
    */
   public static Translator translatorFor(Properties props) throws Exception {
 
-    if (translator == null) {
+    if (cached == null) {
       String translatorName = props.getProperty("translator");
 
-      if (translatorName.equals("kvp")) {
-        translator = new KVPTranslator(props);
-      } else if (translatorName.equals("delimited")) {
-        translator = new DelimitedTranslator(props);
-      } else if (translatorName.equals("avro")) {
-        translator = new AvroTranslator(props);
+      Translator translator;
+
+      switch (translatorName) {
+        case "kvp":
+          translator = new KVPTranslator(props);
+          break;
+        case "delimited":
+          translator = new DelimitedTranslator(props);
+          break;
+        case "avro":
+          translator = new AvroTranslator(props);
+          break;
+        default:
+          Class<?> clazz = Class.forName(translatorName);
+          Constructor<?> constructor = clazz.getConstructor(Properties.class);
+          translator = (Translator) constructor.newInstance(props);
+          break;
+      }
+
+      if (Boolean.valueOf(props.getProperty("translator.cached"))) {
+        cached = translator;
       } else {
-        Class<?> clazz = Class.forName(translatorName);
-        Constructor<?> constructor = clazz.getConstructor(Properties.class);
-        translator = (Translator) constructor.newInstance(props);
+        return translator;
       }
     }
 
-    return translator;
+    return cached;
+  }
+
+  public static void clearCache() {
+    cached = null;
   }
 
 }
