@@ -1,0 +1,106 @@
+{
+  "type": "record",
+  "name": "BluecoatExample",
+  "fields": [
+    {
+      "name": "action",
+      "type": "string"
+    },
+    {
+      "name": "aproto",
+      "type": "string"
+    },
+    {
+      "name": "browser",
+      "type": "string"
+    },
+    {
+      "name": "category",
+      "type": "string"
+    },
+    {
+      "name": "code",
+      "type": "int"
+    },
+    {
+      "name": "dst_host",
+      "type": "string"
+    },
+    {
+      "name": "dst_ip4",
+      "type": "string"
+    },
+    {
+      "name": "dvc_ip4",
+      "type": "string"
+    },
+    {
+      "name": "filter_result",
+      "type": "string"
+    },
+    {
+      "name": "filter_rule",
+      "type": "string"
+    },
+    {
+      "name": "in_bytes",
+      "type": "int"
+    },
+    {
+      "name": "method",
+      "type": "string"
+    },
+    {
+      "name": "out_bytes",
+      "type": "int"
+    },
+    {
+      "name": "qry",
+      "type": "string"
+    },
+    {
+      "name": "request_uri",
+      "type": "string"
+    },
+    {
+      "name": "shierarchy",
+      "type": "string"
+    },
+    {
+      "name": "src_ip4",
+      "type": "string"
+    },
+    {
+      "name": "stop",
+      "type": "string"
+    },
+    {
+      "name": "timetaken",
+      "type": "int"
+    },
+    {
+      "name": "type",
+      "type": "string"
+    },
+    {
+      "name": "user_name",
+      "type": "string"
+    },
+    {
+      "name": "xicaperrorcode",
+      "type": "string"
+    },
+    {
+      "name": "xicaperrordetails",
+      "type": "string"
+    },
+    {
+      "name": "xvirusdetails",
+      "type": "string"
+    },
+    {
+      "name": "xvirusid",
+      "type": "string"
+    }
+  ]
+}
