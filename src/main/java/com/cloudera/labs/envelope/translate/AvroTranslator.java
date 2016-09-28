@@ -14,32 +14,41 @@ import com.cloudera.labs.envelope.utils.RecordUtils;
 /**
  * A translator implementation for binary Apache Avro generic record messages.
  */
-public class AvroTranslator extends Translator {
-    
-    private List<String> fieldNames;
-    private List<String> fieldTypes;
-    private Schema schema;
-    
-    public AvroTranslator(Properties props) {
-        super(props);
-        
-        fieldNames = PropertiesUtils.propertyAsList(props, "translator.avro.field.names");
-        fieldTypes = PropertiesUtils.propertyAsList(props, "translator.avro.field.types");
-        schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
-    }
-    
-    @Override
-    public GenericRecord translate(byte[] key, byte[] message) throws Exception {
-        GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(getSchema());
-        Decoder decoder = DecoderFactory.get().binaryDecoder(message, null);
-        GenericRecord record = reader.read(null, decoder);
-        
-        return record;
-    }
-    
-    @Override
-    public Schema getSchema() {
-        return schema;
-    }
-    
+public class AvroTranslator extends Translator<byte[], byte[]> {
+
+  private Schema schema;
+
+  public AvroTranslator(Properties props) {
+    super(props);
+
+    List<String> fieldNames = PropertiesUtils.propertyAsList(props, "translator.avro.field.names");
+    List<String> fieldTypes = PropertiesUtils.propertyAsList(props, "translator.avro.field.types");
+    schema = RecordUtils.schemaFor(fieldNames, fieldTypes);
+  }
+
+  @Override
+  public GenericRecord translate(byte[] message) throws Exception {
+    return translate(null, message);
+  }
+
+  /**
+   * TODO Had some errors reading when the source schema was even slightly different than the specified read one
+   *
+   * @param key
+   * @param message
+   * @return
+   * @throws Exception
+   */
+  @Override
+  public GenericRecord translate(byte[] key, byte[] message) throws Exception {
+    GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(getSchema());
+    Decoder decoder = DecoderFactory.get().binaryDecoder(message, null);
+    return reader.read(null, decoder);
+  }
+
+  @Override
+  public Schema getSchema() {
+    return schema;
+  }
+
 }

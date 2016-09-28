@@ -4,7 +4,9 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.junit.Test;
@@ -95,6 +97,29 @@ public class MorphlineTranslatorTest {
 
     record = translator.translate("key2".getBytes(Charset.forName("UTF-16")),
         "foobar".getBytes(Charset.forName("UTF-16")));
+    assertEquals("Invalid field value", "foobar", record.get("foo"));
+    assertEquals("Invalid field value", 123, record.get("bar"));
+  }
+
+  @Test
+  public void translateAvro() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
+    props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
+    props.setProperty("translator.morphline.identifier", "typed-avro");
+
+    Translator translator = new MorphlineTranslator(props);
+
+    Schema schema = SchemaBuilder.record("test").fields().name("foo").type().stringType().noDefault().endRecord();
+    GenericRecord input = new GenericRecordBuilder(schema).set("foo", "blaz").build();
+
+    GenericRecord record = translator.translate("key1", input);
+    assertEquals("Invalid field value", "blaz", record.get("foo"));
+    assertEquals("Invalid field value", 123, record.get("bar"));
+
+    input = new GenericRecordBuilder(schema).set("foo", "foobar").build();
+
+    record = translator.translate("key2", input);
     assertEquals("Invalid field value", "foobar", record.get("foo"));
     assertEquals("Invalid field value", 123, record.get("bar"));
   }

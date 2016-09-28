@@ -1,9 +1,13 @@
 package com.cloudera.labs.envelope.source;
 
+import com.cloudera.labs.envelope.translate.Translator;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
+import kafka.serializer.DefaultDecoder;
+import kafka.serializer.StringDecoder;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -16,13 +20,6 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
-
-import com.cloudera.labs.envelope.translate.Translator;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import kafka.serializer.DefaultDecoder;
-import kafka.serializer.StringDecoder;
 import scala.Tuple2;
 
 /**
@@ -57,7 +54,7 @@ public class KafkaQueueSource extends QueueSource {
                     jssc, String.class, String.class, StringDecoder.class, StringDecoder.class, kafkaParams, topicsSet);
             
             dStream = stringDStream.map(new Function<Tuple2<String, String>, GenericRecord>() {
-                Translator translator;
+                Translator<String, String> translator;
                 
                 @Override
                 public GenericRecord call(Tuple2<String, String> kafkaKeyAndMessage) throws Exception {
@@ -77,7 +74,7 @@ public class KafkaQueueSource extends QueueSource {
                     jssc, byte[].class, byte[].class, DefaultDecoder.class, DefaultDecoder.class, kafkaParams, topicsSet);
             
             dStream = byteArrayDStream.map(new Function<Tuple2<byte[], byte[]>, GenericRecord>() {
-                Translator translator;
+                Translator<byte[], byte[]> translator;
                 
                 @Override
                 public GenericRecord call(Tuple2<byte[], byte[]> kafkaKeyAndMessage) throws Exception {

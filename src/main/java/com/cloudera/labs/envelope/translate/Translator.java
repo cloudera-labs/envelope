@@ -8,7 +8,7 @@ import org.apache.avro.generic.GenericRecord;
 /**
  * Abstract class for translators to extend.
  */
-public abstract class Translator {
+public abstract class Translator<K, V> {
 
   private static Translator cached;
 
@@ -28,9 +28,7 @@ public abstract class Translator {
    * @param message The arriving string message.
    * @return The translated Apache Avro record.
    */
-  public GenericRecord translate(String key, String message) throws Exception {
-    throw new RuntimeException("Translator does not accept string-encoded messages.");
-  }
+  public abstract GenericRecord translate(K key, V message) throws Exception;
 
   /**
    * Translate the arriving message to a typed record.
@@ -38,29 +36,7 @@ public abstract class Translator {
    * @param message The arriving string message.
    * @return The translated Avro record.
    */
-  public GenericRecord translate(String message) throws Exception {
-    return translate(null, message);
-  }
-
-  /**
-   * Translate the arriving keyed binary message to a typed record.
-   *
-   * @param key     The binary key of the arriving message.
-   * @param message The arriving binary message.
-   * @return The translated Avro record.
-   */
-  public GenericRecord translate(byte[] key, byte[] message) throws Exception {
-    throw new RuntimeException("Translator does not accept byte-array-encoded messages.");
-  }
-
-  /**
-   * Translate the arriving binary message to a typed record.
-   *
-   * @param message The arriving binary message.
-   * @return The translated Avro record.
-   * @throws Exception
-   */
-  public GenericRecord translate(byte[] message) throws Exception {
+  public GenericRecord translate(V message) throws Exception {
     return translate(null, message);
   }
 
@@ -91,6 +67,9 @@ public abstract class Translator {
           break;
         case "avro":
           translator = new AvroTranslator(props);
+          break;
+        case "morphline":
+          translator = new MorphlineTranslator<>(props);
           break;
         default:
           Class<?> clazz = Class.forName(translatorName);

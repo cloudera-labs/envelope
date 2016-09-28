@@ -2,6 +2,7 @@ package com.cloudera.labs.envelope.translate;
 
 import java.util.Properties;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import org.junit.Before;
@@ -40,10 +41,22 @@ public class TranslatorTest {
 
 }
 
-class FauxTranslator extends Translator {
+class FauxTranslator extends Translator<Object, Object> {
 
   public FauxTranslator(Properties properties) {
     super(properties);
+  }
+
+  /**
+   * Translate the arriving keyed string message to a typed record.
+   *
+   * @param key     The string key of the arriving message.
+   * @param message The arriving string message.
+   * @return The translated Apache Avro record.
+   */
+  @Override
+  public GenericRecord translate(Object key, Object message) throws Exception {
+    return null;
   }
 
   /**
