@@ -24,7 +24,7 @@ public class AvroTranslatorTest {
     props.setProperty("translator.avro.field.names", "foo");
     props.setProperty("translator.avro.field.types", "string");
 
-    Translator typedTranslator = Translator.translatorFor(props);
+    Translator<byte[], byte[]> translator = Translator.translatorFor(byte[].class, byte[].class, props);
 
     Schema schema = SchemaBuilder.record("t").fields().name("foo").type().optional().stringType().endRecord();
     GenericRecord input = new GenericRecordBuilder(schema).set("foo", "YES?!").build();
@@ -37,8 +37,43 @@ public class AvroTranslatorTest {
 
     byte[] inputBytes = outputStream.toByteArray();
 
-    GenericRecord output = typedTranslator.translate(inputBytes);
+    GenericRecord output = translator.translate(inputBytes);
     assertEquals("YES?!", output.get("foo").toString());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void translateInvalidKeyClass() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("translator", "avro");
+    props.setProperty("translator.avro.field.names", "foo");
+    props.setProperty("translator.avro.field.types", "string");
+
+    Translator<String, byte[]> translator = Translator.translatorFor(String.class, byte[].class, props);
+
+    Schema schema = SchemaBuilder.record("t").fields().name("foo").type().optional().stringType().endRecord();
+    GenericRecord input = new GenericRecordBuilder(schema).set("foo", "YES?!").build();
+
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    GenericDatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+    Encoder encoder = EncoderFactory.get().binaryEncoder(outputStream, null);
+    datumWriter.write(input, encoder);
+    encoder.flush();
+
+    byte[] inputBytes = outputStream.toByteArray();
+
+    translator.translate(inputBytes);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void translateInvalidMessageClass() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("translator", "avro");
+    props.setProperty("translator.avro.field.names", "foo");
+    props.setProperty("translator.avro.field.types", "string");
+
+    Translator<byte[], String> translator = Translator.translatorFor(byte[].class, String.class, props);
+
+    translator.translate("foo");
   }
 
 }

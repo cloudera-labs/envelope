@@ -37,7 +37,6 @@ public class KafkaQueueSource extends QueueSource {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public JavaDStream<GenericRecord> dStreamFor(JavaStreamingContext jssc, final Properties props) throws Exception {
     Map<String, String> kafkaParams = Maps.newHashMap();
 
@@ -63,7 +62,7 @@ public class KafkaQueueSource extends QueueSource {
           String kafkaMessage = kafkaKeyAndMessage._2;
 
           if (translator == null) {
-            translator = Translator.translatorFor(props);
+            translator = Translator.translatorFor(String.class, String.class, props);
           }
 
           return translator.translate(kafkaKey, kafkaMessage);
@@ -82,7 +81,7 @@ public class KafkaQueueSource extends QueueSource {
           byte[] kafkaMessage = kafkaKeyAndMessage._2;
 
           if (translator == null) {
-            translator = Translator.translatorFor(props);
+            translator = Translator.translatorFor(byte[].class, byte[].class, props);
           }
 
           return translator.translate(kafkaKey, kafkaMessage);
@@ -112,7 +111,15 @@ public class KafkaQueueSource extends QueueSource {
 
   @Override
   public Schema getSchema() throws Exception {
-    return Translator.translatorFor(props).getSchema();
+    String encoding = props.getProperty("source.kafka.encoding");
+    switch (encoding) {
+      case "string":
+        return Translator.translatorFor(String.class, String.class, props).getSchema();
+      case "bytearray":
+        return Translator.translatorFor(byte[].class, byte[].class, props).getSchema();
+      default:
+        return null;
+    }
   }
 
   private void initializeProducer() {

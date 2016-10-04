@@ -34,7 +34,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<Void, Void> translator = new MorphlineTranslator<>(Void.class, Void.class, props);
 
     assertEquals("Schemas not equal", schema, translator.getSchema());
 
@@ -48,13 +48,13 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "default");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<Void, String> translator = new MorphlineTranslator<>(Void.class, String.class, props);
 
-    GenericRecord record = translator.translate("key1", "blaz");
+    GenericRecord record = translator.translate(null, "blaz");
     assertEquals("Invalid field value", "blaz", record.get("foo"));
     assertEquals("Invalid field value", 123, record.get("bar"));
 
-    record = translator.translate("key2", "foobar");
+    record = translator.translate(null, "foobar");
     assertEquals("Invalid field value", "foobar", record.get("foo"));
     assertEquals("Invalid field value", 123, record.get("bar"));
   }
@@ -66,7 +66,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "default");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<byte[], byte[]> translator = new MorphlineTranslator<>(byte[].class, byte[].class, props);
 
     GenericRecord record = translator.translate("key1".getBytes(Charset.forName("UTF-8")),
         "blaz".getBytes(Charset.forName("UTF-8")));
@@ -88,7 +88,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.encoding.key", "UTF-16");
     props.setProperty("translator.morphline.encoding.message", "UTF-16");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<byte[], byte[]> translator = new MorphlineTranslator<>(byte[].class, byte[].class, props);
 
     GenericRecord record = translator.translate("key1".getBytes(Charset.forName("UTF-16")),
         "blaz".getBytes(Charset.forName("UTF-16")));
@@ -108,18 +108,18 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "typed-avro");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<Void, GenericRecord> translator = new MorphlineTranslator<>(Void.class, GenericRecord.class, props);
 
     Schema schema = SchemaBuilder.record("test").fields().name("foo").type().stringType().noDefault().endRecord();
     GenericRecord input = new GenericRecordBuilder(schema).set("foo", "blaz").build();
 
-    GenericRecord record = translator.translate("key1", input);
+    GenericRecord record = translator.translate(null, input);
     assertEquals("Invalid field value", "blaz", record.get("foo"));
     assertEquals("Invalid field value", 123, record.get("bar"));
 
     input = new GenericRecordBuilder(schema).set("foo", "foobar").build();
 
-    record = translator.translate("key2", input);
+    record = translator.translate(null, input);
     assertEquals("Invalid field value", "foobar", record.get("foo"));
     assertEquals("Invalid field value", 123, record.get("bar"));
   }
@@ -131,7 +131,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "failed-process");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<String, String> translator = new MorphlineTranslator<>(String.class, String.class, props);
     GenericRecord record = translator.translate("key", "message");
 
     assertNull("Invalid field value", record.get("foo"));
@@ -145,7 +145,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "no-return");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<String, String> translator = new MorphlineTranslator<>(String.class, String.class, props);
     GenericRecord record = translator.translate("key", "message");
 
     assertNull("Invalid field value", record.get("foo"));
@@ -159,7 +159,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "no-attachment");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<String, String> translator = new MorphlineTranslator<>(String.class, String.class, props);
     GenericRecord record = translator.translate("key", "message");
 
     assertNull("Invalid field value", record.get("foo"));
@@ -173,7 +173,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "multiple-attachments");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<String, String> translator = new MorphlineTranslator<>(String.class, String.class, props);
     GenericRecord record = translator.translate("key", "message");
 
     assertEquals("Invalid field value", "additional", record.get("foo"));
@@ -187,7 +187,7 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "incorrect-attachment");
 
-    Translator translator = new MorphlineTranslator(props);
+    Translator<String, String> translator = new MorphlineTranslator<>(String.class, String.class, props);
     GenericRecord record = translator.translate("key", "message");
 
     assertNull("Invalid field value", record.get("foo"));
@@ -198,41 +198,41 @@ public class MorphlineTranslatorTest {
   public void invalidKeyEncoding() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator.morphline.encoding.key", "INVALID_CHARSET");
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void invalidMessageEncoding() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator.morphline.encoding.message", "INVALID_CHARSET");
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);;
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void missingSchemaFile() throws Exception {
     Properties props = new Properties();
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void notFoundSchemaFile() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator.morphline.schema.file", "nope.avro");
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void invalidSchemaFile() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator.morphline.schema.file", getResourcePath(INVALID_SCHEMA_FILE));
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void missingMorphlineFile() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
@@ -240,7 +240,7 @@ public class MorphlineTranslatorTest {
     Properties props = new Properties();
     props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
     props.setProperty("translator.morphline.file", "  ");
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
@@ -248,7 +248,7 @@ public class MorphlineTranslatorTest {
     Properties props = new Properties();
     props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
     props.setProperty("translator.morphline.file", getResourcePath(INVALID_MORPHLINE_FILE));
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 
   @Test (expected = MorphlineCompilationException.class)
@@ -257,6 +257,6 @@ public class MorphlineTranslatorTest {
     props.setProperty("translator.morphline.schema.file", getResourcePath(SCHEMA_FILE));
     props.setProperty("translator.morphline.file", getResourcePath(MORPHLINE_FILE));
     props.setProperty("translator.morphline.identifier", "invalid-command");
-    new MorphlineTranslator(props);
+    new MorphlineTranslator<>(String.class, String.class, props);
   }
 }

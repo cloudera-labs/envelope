@@ -1,6 +1,7 @@
 package com.cloudera.labs.envelope.source;
 
-import com.cloudera.labs.envelope.translate.StdoutTranslator;
+import com.cloudera.labs.envelope.translate.VoidGenericRecordTranslator;
+import com.cloudera.labs.envelope.translate.VoidStringTranslator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -14,6 +15,7 @@ import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,23 +34,25 @@ public class HdfsBulkSourceTest {
 
     Properties props = new Properties();
 
-    props.setProperty("translator", StdoutTranslator.class.getName());
-
+    props.setProperty("translator", VoidStringTranslator.class.getName());
     props.setProperty("source", "hdfs");
     props.setProperty("source.hdfs.path", file.getAbsolutePath());
     props.setProperty("source.hdfs.type", "text");
+
 
     SparkConf conf = new SparkConf();
     conf.setAppName("rddFor: HDFS text")
         .setMaster("local[*]");
     JavaSparkContext jsc = new JavaSparkContext(conf);
 
-    BulkSource source = BulkSource.bulkSourceFor(props);
-    JavaRDD<GenericRecord> output = source.rddFor(jsc, props);
+    try {
+      BulkSource source = BulkSource.bulkSourceFor(props);
+      JavaRDD<GenericRecord> output = source.rddFor(jsc, props);
 
-    output.take(3);
-
-    jsc.close();
+      assertEquals("Invalid GenericRecord count", 2, output.count());
+    } finally {
+      jsc.close();
+    }
   }
 
   @Test
@@ -57,7 +61,7 @@ public class HdfsBulkSourceTest {
 
     Properties props = new Properties();
 
-    props.setProperty("translator", StdoutTranslator.class.getName());
+    props.setProperty("translator", VoidGenericRecordTranslator.class.getName());
 
     props.setProperty("source", "hdfs");
     props.setProperty("source.hdfs.path", file.getAbsolutePath());
@@ -68,12 +72,15 @@ public class HdfsBulkSourceTest {
         .setMaster("local[*]");
     JavaSparkContext jsc = new JavaSparkContext(conf);
 
-    BulkSource source = BulkSource.bulkSourceFor(props);
-    JavaRDD<GenericRecord> output = source.rddFor(jsc, props);
+    try {
+      BulkSource source = BulkSource.bulkSourceFor(props);
+      JavaRDD<GenericRecord> output = source.rddFor(jsc, props);
 
-    output.take(3);
+      assertEquals("Invalid GenericRecord count", 2, output.count());
+    } finally {
+      jsc.close();
+    }
 
-    jsc.close();
   }
 
 

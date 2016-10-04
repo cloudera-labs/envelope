@@ -39,8 +39,8 @@ public class MorphlineTranslator<K, V> extends Translator<K, V> implements Close
   private MorphlineContext morphlineContext;
   private GenericRecordCollector collector;
 
-  public MorphlineTranslator(Properties props) {
-    super(props);
+  public MorphlineTranslator(Class<K> keyClass, Class<V> messageClass, Properties props) {
+    super(keyClass, messageClass, props);
 
     LOG.debug("Preparing Morphline");
 

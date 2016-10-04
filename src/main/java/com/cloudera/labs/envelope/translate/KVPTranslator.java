@@ -23,7 +23,7 @@ public class KVPTranslator extends Translator<String, String> {
   private Schema schema;
 
   public KVPTranslator(Properties props) {
-    super(props);
+    super(String.class, String.class, props);
 
     kvpDelimiter = resolveDelimiter(props.getProperty("translator.kvp.delimiter.kvp"));
     fieldDelimiter = resolveDelimiter(props.getProperty("translator.kvp.delimiter.field"));

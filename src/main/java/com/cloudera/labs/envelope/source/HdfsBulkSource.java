@@ -26,7 +26,6 @@ public class HdfsBulkSource extends BulkSource {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public JavaRDD<GenericRecord> rddFor(JavaSparkContext jsc, final Properties props) {
 
     String path = props.getProperty("source.hdfs.path");
@@ -57,7 +56,7 @@ public class HdfsBulkSource extends BulkSource {
           @Override
           public GenericRecord call(String line) throws Exception {
             if (translator == null) {
-              translator = Translator.translatorFor(props);
+              translator = Translator.translatorFor(Void.class, String.class, props);
             }
 
             return translator.translate(line);
@@ -85,7 +84,7 @@ public class HdfsBulkSource extends BulkSource {
           @Override
           public GenericRecord call(Tuple2<AvroKey, Void> wrapper) throws Exception {
             if (translator == null) {
-              translator = Translator.translatorFor(props);
+              translator = Translator.translatorFor(Void.class, GenericRecord.class, props);
             }
 
             return translator.translate((GenericRecord) wrapper._1().datum());

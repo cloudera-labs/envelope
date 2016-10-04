@@ -10,7 +10,7 @@ import org.apache.avro.generic.GenericRecord;
 public class StdoutTranslator extends Translator<Object, Object> {
 
   public StdoutTranslator(Properties props) {
-    super(props);
+    super(Object.class, Object.class, props);
   }
 
   @Override

@@ -23,9 +23,9 @@ public class TranslatorTest {
     Properties props = new Properties();
     props.setProperty("translator", FauxTranslator.class.getName());
 
-    Translator first = Translator.translatorFor(props);
+    Translator<Object, Object> first = Translator.translatorFor(Object.class, Object.class, props);
 
-    assertNotSame("Translator reused", Translator.translatorFor(props), first);
+    assertNotSame("Translator reused", Translator.translatorFor(Object.class, Object.class, props), first);
   }
 
   @Test
@@ -34,9 +34,9 @@ public class TranslatorTest {
     props.setProperty("translator", FauxTranslator.class.getName());
     props.setProperty("translator.cached", "true");
 
-    Translator first = Translator.translatorFor(props);
+    Translator<Object, Object> first = Translator.translatorFor(Object.class, Object.class, props);
 
-    assertSame("Translator not reused", Translator.translatorFor(props), first);
+    assertSame("Translator not reused", Translator.translatorFor(Object.class, Object.class, props), first);
   }
 
 }
@@ -44,7 +44,7 @@ public class TranslatorTest {
 class FauxTranslator extends Translator<Object, Object> {
 
   public FauxTranslator(Properties properties) {
-    super(properties);
+    super(Object.class, Object.class, properties);
   }
 
   /**

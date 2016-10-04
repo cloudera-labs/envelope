@@ -10,15 +10,19 @@ import org.apache.avro.generic.GenericRecord;
  */
 public abstract class Translator<K, V> {
 
-  private static Translator cached;
+  private static Translator<?, ?> cached;
 
   /**
    * The properties of the translator.
    */
-  protected Properties props;
+  protected final Properties props;
+  protected final Class<K> keyClass;
+  protected final Class<V> messageClass;
 
-  public Translator(Properties props) {
+  public Translator(Class<K> keyClass, Class<V> messageClass, Properties props) {
     this.props = props;
+    this.keyClass = keyClass;
+    this.messageClass = messageClass;
   }
 
   /**
@@ -50,13 +54,15 @@ public abstract class Translator<K, V> {
    *
    * @param props The properties for the application.
    * @return The translator.
+   * @throws IllegalArgumentException If keyClass or messageClass are invalid for the instantiated Translator
    */
-  public static Translator translatorFor(Properties props) throws Exception {
+  @SuppressWarnings("unchecked") // Expressly checked for runtime classes alignment
+  public static <K, V> Translator<K, V> translatorFor(Class<K> keyClass, Class<V> messageClass, Properties props) throws Exception {
 
     if (cached == null) {
       String translatorName = props.getProperty("translator");
 
-      Translator translator;
+      Translator<?, ?> translator;
 
       switch (translatorName) {
         case "kvp":
@@ -69,7 +75,7 @@ public abstract class Translator<K, V> {
           translator = new AvroTranslator(props);
           break;
         case "morphline":
-          translator = new MorphlineTranslator<>(props);
+          translator = new MorphlineTranslator<>(keyClass, messageClass, props);
           break;
         default:
           Class<?> clazz = Class.forName(translatorName);
@@ -78,14 +84,21 @@ public abstract class Translator<K, V> {
           break;
       }
 
+      if (keyClass != translator.keyClass || messageClass != translator.messageClass) {
+        throw new IllegalArgumentException("Invalid key/message Class for Translator");
+      }
+
       if (Boolean.valueOf(props.getProperty("translator.cached"))) {
         cached = translator;
-      } else {
-        return translator;
       }
+
+      return (Translator<K, V>) translator;
     }
 
-    return cached;
+    if (keyClass != cached.keyClass || messageClass != cached.messageClass) {
+      throw new IllegalArgumentException("Invalid key/message Class for Translator");
+    }
+    return (Translator<K, V>) cached;
   }
 
   public static void clearCache() {

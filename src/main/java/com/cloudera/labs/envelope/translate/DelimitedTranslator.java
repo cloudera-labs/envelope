@@ -22,7 +22,7 @@ public class DelimitedTranslator extends Translator<String, String> {
   private Schema schema;
 
   public DelimitedTranslator(Properties props) {
-    super(props);
+    super(String.class, String.class, props);
 
     delimiter = resolveDelimiter(props.getProperty("translator.delimited.delimiter"));
     fieldNames = PropertiesUtils.propertyAsList(props, "translator.delimited.field.names");
