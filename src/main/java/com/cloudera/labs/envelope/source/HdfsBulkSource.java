@@ -26,6 +26,7 @@ public class HdfsBulkSource extends BulkSource {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public JavaRDD<GenericRecord> rddFor(JavaSparkContext jsc, final Properties props) {
 
     String path = props.getProperty("source.hdfs.path");
