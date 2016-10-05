@@ -5,7 +5,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -13,15 +12,11 @@ import org.junit.Test;
  */
 public class TranslatorTest {
 
-  @Before
-  public void setUp() {
-    Translator.clearCache();
-  }
-
   @Test
   public void translatorForNotCached() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", FauxTranslator.class.getName());
+    props.setProperty("translator.cache", "false");
 
     Translator<Object, Object> first = Translator.translatorFor(Object.class, Object.class, props);
 
@@ -32,7 +27,6 @@ public class TranslatorTest {
   public void translatorForCached() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", FauxTranslator.class.getName());
-    props.setProperty("translator.cached", "true");
 
     Translator<Object, Object> first = Translator.translatorFor(Object.class, Object.class, props);
 

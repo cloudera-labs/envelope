@@ -1,16 +1,22 @@
 package com.cloudera.labs.envelope.translate;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract class for translators to extend.
  */
 public abstract class Translator<K, V> {
 
-  private static Translator<?, ?> cached;
+  private static final Logger LOG = LoggerFactory.getLogger(Translator.class);
+
+  private static final ThreadLocal<Map<String, Translator>> translators = new ThreadLocal<>();
 
   /**
    * The properties of the translator.
@@ -59,11 +65,16 @@ public abstract class Translator<K, V> {
   @SuppressWarnings("unchecked") // Expressly checked for runtime classes alignment
   public static <K, V> Translator<K, V> translatorFor(Class<K> keyClass, Class<V> messageClass, Properties props) throws Exception {
 
-    if (cached == null) {
-      String translatorName = props.getProperty("translator");
+    if (translators.get() == null) {
+      translators.set(new HashMap<String, Translator>());
+    }
 
-      Translator<?, ?> translator;
+    String translatorName = props.getProperty("translator");
+    String cacheBoolean = props.getProperty("translator.cache", "true");
 
+    Translator<?, ?> translator = translators.get().get(translatorName);
+
+    if (translator == null || !Boolean.valueOf(cacheBoolean)) {
       switch (translatorName) {
         case "kvp":
           translator = new KVPTranslator(props);
@@ -88,21 +99,23 @@ public abstract class Translator<K, V> {
         throw new IllegalArgumentException("Invalid key/message Class for Translator");
       }
 
-      if (Boolean.valueOf(props.getProperty("translator.cached"))) {
-        cached = translator;
+      if (Boolean.valueOf(cacheBoolean)) {
+        translators.get().put(translatorName, translator);
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Caching new Translator for thread:{} class:{}", Thread.currentThread().getName(),
+              translator.getClass());
+        }
       }
 
       return (Translator<K, V>) translator;
     }
 
-    if (keyClass != cached.keyClass || messageClass != cached.messageClass) {
+    if (keyClass != translator.keyClass || messageClass != translator.messageClass) {
       throw new IllegalArgumentException("Invalid key/message Class for Translator");
     }
-    return (Translator<K, V>) cached;
-  }
 
-  public static void clearCache() {
-    cached = null;
+    return (Translator<K, V>) translator;
   }
 
 }

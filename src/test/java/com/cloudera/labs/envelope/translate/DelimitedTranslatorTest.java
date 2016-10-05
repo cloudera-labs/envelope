@@ -17,6 +17,7 @@ public class DelimitedTranslatorTest {
   public void translate() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo");
     props.setProperty("translator.delimited.field.types", "string");
@@ -31,6 +32,7 @@ public class DelimitedTranslatorTest {
   public void translateMulti() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo,bar");
     props.setProperty("translator.delimited.field.types", "string,int");
@@ -46,6 +48,7 @@ public class DelimitedTranslatorTest {
   public void translateIncorrectFieldCount() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo");
     props.setProperty("translator.delimited.field.types", "string");
@@ -59,6 +62,7 @@ public class DelimitedTranslatorTest {
   public void translateIncorrectFieldType() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo");
     props.setProperty("translator.delimited.field.types", "int");
@@ -72,6 +76,7 @@ public class DelimitedTranslatorTest {
   public void translateInvalidKeyClass() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo");
     props.setProperty("translator.delimited.field.types", "string");
@@ -85,6 +90,7 @@ public class DelimitedTranslatorTest {
   public void translateInvalidMessageClass() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "delimited");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.delimited.delimiter", ":");
     props.setProperty("translator.delimited.field.names", "foo");
     props.setProperty("translator.delimited.field.types", "string");

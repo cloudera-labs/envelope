@@ -14,6 +14,7 @@ public class KVPTranslatorTest {
   public void translate() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "kvp");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.kvp.delimiter.kvp", ":");
     props.setProperty("translator.kvp.delimiter.field", "=");
     props.setProperty("translator.kvp.field.names", "foo");
@@ -29,6 +30,7 @@ public class KVPTranslatorTest {
   public void translateMulti() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "kvp");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.kvp.delimiter.kvp", ":");
     props.setProperty("translator.kvp.delimiter.field", "=");
     props.setProperty("translator.kvp.field.names", "foo,blaz");
@@ -45,6 +47,7 @@ public class KVPTranslatorTest {
   public void translateInvalidKeyClass() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "kvp");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.kvp.delimiter.kvp", ":");
     props.setProperty("translator.kvp.delimiter.field", "=");
     props.setProperty("translator.kvp.field.names", "foo");
@@ -59,6 +62,7 @@ public class KVPTranslatorTest {
   public void translateInvalidMessageClass() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", "kvp");
+    props.setProperty("translator.cache", "false");
     props.setProperty("translator.kvp.delimiter.kvp", ":");
     props.setProperty("translator.kvp.delimiter.field", "=");
     props.setProperty("translator.kvp.field.names", "foo");
