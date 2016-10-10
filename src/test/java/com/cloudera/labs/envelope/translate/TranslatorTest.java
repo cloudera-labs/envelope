@@ -27,6 +27,7 @@ public class TranslatorTest {
   public void translatorForCached() throws Exception {
     Properties props = new Properties();
     props.setProperty("translator", FauxTranslator.class.getName());
+    //props.setProperty("translator.cache", "true");
 
     Translator<Object, Object> first = Translator.translatorFor(Object.class, Object.class, props);
 
