@@ -45,7 +45,12 @@ public class KafkaQueueSource extends QueueSource {
         
         final String brokers = props.getProperty("source.kafka.brokers");
         kafkaParams.put("metadata.broker.list", brokers);
-        
+
+        final String offset = props.getProperty("source.kafka.offset.reset");
+        if(offset!=null) {
+            kafkaParams.put("auto.offset.reset", offset);
+        }
+
         final String topics = props.getProperty("source.kafka.topics");
         Set<String> topicsSet = Sets.newHashSet(topics.split(","));
         
