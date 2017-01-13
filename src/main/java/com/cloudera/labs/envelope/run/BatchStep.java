@@ -5,9 +5,11 @@ import java.util.Set;
 
 import org.apache.spark.sql.DataFrame;
 
+import com.cloudera.labs.envelope.derive.PassthroughDeriver;
 import com.cloudera.labs.envelope.input.batch.BatchInput;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 public class BatchStep extends DataStep {
 
@@ -27,7 +29,9 @@ public class BatchStep extends DataStep {
             data = deriver.derive(dependencies);
         }
         else {
-            throw new RuntimeException("Batch steps must have either an input or a deriver");
+            deriver = new PassthroughDeriver(ConfigFactory.empty());
+            Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
+            data = deriver.derive(dependencies);
         }
         
         setData(data);
