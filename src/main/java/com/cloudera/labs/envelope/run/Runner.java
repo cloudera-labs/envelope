@@ -160,12 +160,9 @@ public class Runner {
                         throw new RuntimeException("Invalid step input sub-class for: " + stepName);
                     }
                 }
-                else if (stepConfig.hasPath("deriver")) {
+                else {
                     LOG.info("Adding batch step: " + stepName);
                     step = new BatchStep(stepName, stepConfig);
-                }
-                else {
-                    throw new RuntimeException("Data steps must have either an input or a deriver");
                 }
                 
                 LOG.info("With configuration: " + stepConfig);
