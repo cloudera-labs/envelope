@@ -32,7 +32,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
-public class KuduOutput extends RandomReadWriteOutput {
+public class KuduOutput extends RandomOutput {
     
     public static final String CONNECTION_CONFIG_NAME = "connection";
     public static final String TABLE_CONFIG_NAME = "table.name"; 

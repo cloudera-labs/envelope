@@ -21,7 +21,7 @@ import com.typesafe.config.Config;
  * A planner implementation for storing all versions of the values of a key (its history) using
  * Type II SCD modeling.
  */
-public class EventTimeHistoryPlanner extends RandomReadWritePlanner {
+public class EventTimeHistoryPlanner extends RandomPlanner {
     
     public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
     public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";

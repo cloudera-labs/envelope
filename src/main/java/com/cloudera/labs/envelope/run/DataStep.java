@@ -21,15 +21,13 @@ import org.apache.spark.storage.StorageLevel;
 import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.bulk.BulkWriteOutput;
-import com.cloudera.labs.envelope.output.random.RandomReadWriteOutput;
-import com.cloudera.labs.envelope.output.random.RandomWriteOutput;
+import com.cloudera.labs.envelope.output.bulk.BulkOutput;
+import com.cloudera.labs.envelope.output.random.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.plan.Planner;
-import com.cloudera.labs.envelope.plan.bulk.BulkWritePlanner;
-import com.cloudera.labs.envelope.plan.random.RandomReadWritePlanner;
-import com.cloudera.labs.envelope.plan.random.RandomWritePlanner;
+import com.cloudera.labs.envelope.plan.bulk.BulkPlanner;
+import com.cloudera.labs.envelope.plan.random.RandomPlanner;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -148,33 +146,23 @@ public abstract class DataStep extends Step {
     }
     
     private void writeOutput() throws Exception {
-        Config outputConfig = config.getConfig("output");
         Config plannerConfig = config.getConfig("planner");
         Planner planner = Planner.plannerFor(plannerConfig);
         validatePlannerStorageCompatibility(planner, output);
         
-        if (output instanceof RandomWriteOutput) {            
-            if (planner instanceof RandomWritePlanner) {
-                JavaRDD<PlannedRow> planned = planMutationsByRow(data, plannerConfig);
-                
-                applyMutations(planned, outputConfig);
-            }
-            else if (planner instanceof RandomReadWritePlanner) {
-                RandomReadWritePlanner randomReadWritePlanner = (RandomReadWritePlanner)planner;
-                List<String> keyFieldNames = randomReadWritePlanner.getKeyFieldNames();
-                JavaRDD<PlannedRow> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
-                
-                applyMutations(planned, outputConfig);
-            }
-            else {
-                throw new RuntimeException("Unexpected planner class: " + planner.getClass().getName());
-            }
+        if (output instanceof RandomOutput) {            
+            RandomPlanner randomPlanner = (RandomPlanner)planner;
+            List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
+            Config outputConfig = config.getConfig("output");
+            JavaRDD<PlannedRow> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
+            
+            applyMutations(planned, outputConfig);
         }
-        else if (output instanceof BulkWriteOutput) {
-            BulkWritePlanner bulkPlanner = (BulkWritePlanner)planner;
+        else if (output instanceof BulkOutput) {
+            BulkPlanner bulkPlanner = (BulkPlanner)planner;
             List<Tuple2<MutationType, DataFrame>> planned = bulkPlanner.planMutationsForSet(data);
             
-            BulkWriteOutput bulkOutput = (BulkWriteOutput)output;            
+            BulkOutput bulkOutput = (BulkOutput)output;            
             bulkOutput.applyMutations(planned);
         }
         else {
@@ -183,7 +171,8 @@ public abstract class DataStep extends Step {
     }
     
     private void validatePlannerStorageCompatibility(Planner planner, Output output) {
-        if ((planner instanceof RandomReadWritePlanner) && !(output instanceof RandomReadWriteOutput)) {
+        if (((planner instanceof RandomPlanner) && !(output instanceof RandomOutput)) ||
+            ((planner instanceof BulkPlanner) && !(output instanceof BulkOutput))){
             throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
         }
         
@@ -194,33 +183,6 @@ public abstract class DataStep extends Step {
             if (!outputMTs.contains(planMT)) {
                 throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
             }
-        }
-    }
-    
-    private JavaRDD<PlannedRow> planMutationsByRow(DataFrame arriving, Config plannerConfig) {
-        JavaRDD<PlannedRow> planned = arriving.javaRDD().flatMap(new PlanForRowFunction(plannerConfig));
-        
-        return planned;
-    }
-    
-    @SuppressWarnings("serial")
-    private static class PlanForRowFunction implements FlatMapFunction<Row, PlannedRow> {
-        private Config config;
-        private RandomWritePlanner planner;
-        
-        public PlanForRowFunction(Config config) {
-            this.config = config;
-        }
-        
-        @Override
-        public Iterable<PlannedRow> call(Row arrived) throws Exception {
-            if (planner == null) {
-                planner = (RandomWritePlanner)Planner.plannerFor(config);
-            }
-            
-            Iterable<PlannedRow> plan = planner.planMutationsForRow(arrived);
-            
-            return plan;
         }
     }
     
@@ -262,7 +224,7 @@ public abstract class DataStep extends Step {
     private static class JoinExistingForKeysFunction
     implements PairFlatMapFunction<Iterator<Tuple2<Row, Iterable<Row>>>, Row, Tuple2<Iterable<Row>, Iterable<Row>>> {
         private Config outputConfig;
-        private RandomReadWriteOutput output;
+        private RandomOutput output;
         private List<String> keyFieldNames;
         
         public JoinExistingForKeysFunction(Config outputConfig, List<String> keyFieldNames) {
@@ -279,7 +241,7 @@ public abstract class DataStep extends Step {
             }
             
             if (output == null) {
-                output = (RandomReadWriteOutput)Output.outputFor(outputConfig);
+                output = (RandomOutput)Output.outputFor(outputConfig);
             }
             
             List<Tuple2<Row, Iterable<Row>>> arrivingForKeys = Lists.newArrayList(arrivingForKeysIterator);
@@ -353,7 +315,7 @@ public abstract class DataStep extends Step {
     private static class PlanForKeyFunction
     implements FlatMapFunction<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>, PlannedRow> {
         private Config config;
-        private RandomReadWritePlanner planner;
+        private RandomPlanner planner;
         
         public PlanForKeyFunction(Config config) {
             this.config = config;
@@ -363,7 +325,7 @@ public abstract class DataStep extends Step {
         public Iterable<PlannedRow>
         call(Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>> keyedRecords) throws Exception {
             if (planner == null) {
-                planner = (RandomReadWritePlanner)Planner.plannerFor(config);
+                planner = (RandomPlanner)Planner.plannerFor(config);
             }
             
             Row key = keyedRecords._1();
@@ -383,7 +345,7 @@ public abstract class DataStep extends Step {
     @SuppressWarnings("serial")
     private static class ApplyMutationsForPartitionFunction implements VoidFunction<Iterator<PlannedRow>> {
         private Config config;
-        private RandomWriteOutput output;
+        private RandomOutput output;
         
         public ApplyMutationsForPartitionFunction(Config config) {
             this.config = config;
@@ -392,7 +354,7 @@ public abstract class DataStep extends Step {
         @Override
         public void call(Iterator<PlannedRow> t) throws Exception {
             if (output == null) {
-                output = (RandomWriteOutput)Output.outputFor(config);
+                output = (RandomOutput)Output.outputFor(config);
             }
             
             output.applyMutations(Lists.newArrayList(t));

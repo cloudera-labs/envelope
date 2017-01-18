@@ -20,7 +20,7 @@ import com.typesafe.config.Config;
  * A planner implementation for updating existing and inserting new (upsert). This maintains the
  * most recent version of the values of a key, which is equivalent to Type I SCD modeling.
  */
-public class EventTimeUpsertPlanner extends RandomReadWritePlanner {
+public class EventTimeUpsertPlanner extends RandomPlanner {
     
     public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
     public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";

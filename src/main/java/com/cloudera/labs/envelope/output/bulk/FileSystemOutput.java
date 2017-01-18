@@ -13,7 +13,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class FileSystemOutput extends BulkWriteOutput {
+public class FileSystemOutput extends BulkOutput {
     
     public final static String FORMAT_CONFIG_NAME = "format";
     public final static String PATH_CONFIG_NAME = "path";

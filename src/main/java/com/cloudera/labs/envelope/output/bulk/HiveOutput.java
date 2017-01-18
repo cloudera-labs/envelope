@@ -13,7 +13,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class HiveOutput extends BulkWriteOutput {
+public class HiveOutput extends BulkOutput {
     
     public final static String TABLE_CONFIG_NAME = "table";
     public final static String PARTITION_BY_CONFIG_NAME = "partition.by";

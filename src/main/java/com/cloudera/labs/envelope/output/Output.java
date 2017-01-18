@@ -5,9 +5,9 @@ import java.util.Set;
 
 import com.cloudera.labs.envelope.output.bulk.FileSystemOutput;
 import com.cloudera.labs.envelope.output.bulk.HiveOutput;
-import com.cloudera.labs.envelope.output.random.KafkaOutput;
+import com.cloudera.labs.envelope.output.bulk.KafkaOutput;
+import com.cloudera.labs.envelope.output.bulk.LogOutput;
 import com.cloudera.labs.envelope.output.random.KuduOutput;
-import com.cloudera.labs.envelope.output.random.LogOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.typesafe.config.Config;
 

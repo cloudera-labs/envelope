@@ -13,6 +13,7 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,6 +33,11 @@ public class TestNestDeriver {
         conf.setAppName("TestNestDeriver");
         JavaSparkContext jsc = new JavaSparkContext(conf);
         sqlc = new SQLContext(jsc);
+    }
+    
+    @AfterClass
+    public static void afterClass() {
+        sqlc.sparkContext().stop();
     }
     
     @Test

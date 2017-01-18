@@ -10,9 +10,9 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public abstract class BulkWritePlanner extends Planner {
+public abstract class BulkPlanner extends Planner {
 
-    public BulkWritePlanner(Config config) {
+    public BulkPlanner(Config config) {
         super(config);
     }
     
