@@ -12,15 +12,15 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class InsertIntoPlanner extends BulkWritePlanner {
+public class OverwritePlanner extends BulkPlanner {
 
-    public InsertIntoPlanner(Config config) {
+    public OverwritePlanner(Config config) {
         super(config);
     }
 
     @Override
     public List<Tuple2<MutationType, DataFrame>> planMutationsForSet(DataFrame arriving) {
-        Tuple2<MutationType, DataFrame> mutation = new Tuple2<>(MutationType.INSERT, arriving);
+        Tuple2<MutationType, DataFrame> mutation = new Tuple2<>(MutationType.OVERWRITE, arriving);
         
         List<Tuple2<MutationType, DataFrame>> mutations = new ArrayList<>();
         mutations.add(mutation);
@@ -30,7 +30,7 @@ public class InsertIntoPlanner extends BulkWritePlanner {
 
     @Override
     public Set<MutationType> getEmittedMutationTypes() {
-        return Sets.newHashSet(MutationType.INSERT);
+        return Sets.newHashSet(MutationType.OVERWRITE);
     }
 
 }

@@ -15,7 +15,7 @@ import org.junit.Test;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.plan.random.EventTimeUpsertPlanner;
-import com.cloudera.labs.envelope.plan.random.RandomReadWritePlanner;
+import com.cloudera.labs.envelope.plan.random.RandomPlanner;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,7 +31,7 @@ public class TestEventTimeUpsertPlanner {
     StructType recordSchema;
     Map<String, Object> configMap;
     Config config;
-    RandomReadWritePlanner p;
+    RandomPlanner p;
     
     @Before
     public void before() { 

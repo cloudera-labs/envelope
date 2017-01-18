@@ -3,12 +3,11 @@ package com.cloudera.labs.envelope.plan;
 import java.lang.reflect.Constructor;
 import java.util.Set;
 
-import com.cloudera.labs.envelope.plan.bulk.InsertIntoPlanner;
-import com.cloudera.labs.envelope.plan.bulk.InsertOverwritePlanner;
-import com.cloudera.labs.envelope.plan.random.AppendPlanner;
+import com.cloudera.labs.envelope.plan.bulk.AppendPlanner;
+import com.cloudera.labs.envelope.plan.bulk.OverwritePlanner;
+import com.cloudera.labs.envelope.plan.bulk.SystemTimeUpsertPlanner;
 import com.cloudera.labs.envelope.plan.random.EventTimeHistoryPlanner;
 import com.cloudera.labs.envelope.plan.random.EventTimeUpsertPlanner;
-import com.cloudera.labs.envelope.plan.random.SystemTimeUpsertPlanner;
 import com.typesafe.config.Config;
 
 public abstract class Planner {
@@ -39,17 +38,14 @@ public abstract class Planner {
             case "upsert":
                 planner = new SystemTimeUpsertPlanner(plannerConfig);
                 break;
+            case "overwrite":
+                planner = new OverwritePlanner(plannerConfig);
+                break;
             case "eventtimeupsert":
                 planner = new EventTimeUpsertPlanner(plannerConfig);
                 break;
             case "history":
                 planner = new EventTimeHistoryPlanner(plannerConfig);
-                break;
-            case "insertinto":
-                planner = new InsertIntoPlanner(plannerConfig);
-                break;
-            case "insertoverwrite":
-                planner = new InsertOverwritePlanner(plannerConfig);
                 break;
             default:
                 Class<?> clazz = Class.forName(plannerType);

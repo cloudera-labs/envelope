@@ -10,9 +10,9 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public abstract class BulkWriteOutput extends Output {
+public abstract class BulkOutput extends Output {
 
-    public BulkWriteOutput(Config config) {
+    public BulkOutput(Config config) {
         super(config);
     }
     
