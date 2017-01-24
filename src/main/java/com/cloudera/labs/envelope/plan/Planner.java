@@ -6,6 +6,7 @@ import java.util.Set;
 import com.cloudera.labs.envelope.plan.bulk.AppendPlanner;
 import com.cloudera.labs.envelope.plan.bulk.OverwritePlanner;
 import com.cloudera.labs.envelope.plan.bulk.SystemTimeUpsertPlanner;
+import com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner;
 import com.cloudera.labs.envelope.plan.random.EventTimeHistoryPlanner;
 import com.cloudera.labs.envelope.plan.random.EventTimeUpsertPlanner;
 import com.typesafe.config.Config;
@@ -46,6 +47,9 @@ public abstract class Planner {
                 break;
             case "history":
                 planner = new EventTimeHistoryPlanner(plannerConfig);
+                break;
+            case "bitemporal":
+                planner = new BitemporalHistoryPlanner(plannerConfig);
                 break;
             default:
                 Class<?> clazz = Class.forName(plannerType);
