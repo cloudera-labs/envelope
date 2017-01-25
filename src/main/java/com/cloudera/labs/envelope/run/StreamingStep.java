@@ -5,7 +5,7 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
-import com.cloudera.labs.envelope.input.stream.StreamInput;
+import com.cloudera.labs.envelope.input.StreamInput;
 import com.typesafe.config.Config;
 
 public class StreamingStep extends DataStep {

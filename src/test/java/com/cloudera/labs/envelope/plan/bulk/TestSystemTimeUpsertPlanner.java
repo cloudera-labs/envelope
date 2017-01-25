@@ -16,7 +16,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.plan.SystemTimeUpsertPlanner;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -52,7 +54,8 @@ public class TestSystemTimeUpsertPlanner {
     @Test
     public void testPlansUpserts() {
         Config config = ConfigFactory.empty();
-        BulkPlanner planner = new SystemTimeUpsertPlanner(config);
+        BulkPlanner planner = new SystemTimeUpsertPlanner();
+        planner.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = planner.planMutationsForSet(dataFrame);
         
@@ -64,7 +67,8 @@ public class TestSystemTimeUpsertPlanner {
     @Test
     public void testNoLastUpdated() {
         Config config = ConfigFactory.empty();
-        BulkPlanner planner = new SystemTimeUpsertPlanner(config);
+        BulkPlanner planner = new SystemTimeUpsertPlanner();
+        planner.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = planner.planMutationsForSet(dataFrame);
         
@@ -84,7 +88,8 @@ public class TestSystemTimeUpsertPlanner {
         configMap.put(SystemTimeUpsertPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
         Config config = ConfigFactory.parseMap(configMap);
         
-        BulkPlanner planner = new SystemTimeUpsertPlanner(config);
+        BulkPlanner planner = new SystemTimeUpsertPlanner();
+        planner.configure(config);
            
         List<Tuple2<MutationType, DataFrame>> planned = planner.planMutationsForSet(dataFrame);
         

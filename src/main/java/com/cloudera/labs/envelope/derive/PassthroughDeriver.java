@@ -7,11 +7,10 @@ import org.apache.spark.sql.DataFrame;
 
 import com.typesafe.config.Config;
 
-public class PassthroughDeriver extends Deriver {
-
-    public PassthroughDeriver(Config config) {
-        super(config);
-    }
+public class PassthroughDeriver implements Deriver {
+    
+    @Override
+    public void configure(Config config) {}
 
     @Override
     public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {

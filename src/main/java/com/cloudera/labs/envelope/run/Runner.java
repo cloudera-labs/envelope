@@ -16,9 +16,10 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.batch.BatchInput;
-import com.cloudera.labs.envelope.input.stream.StreamInput;
+import com.cloudera.labs.envelope.input.InputFactory;
+import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -146,7 +147,7 @@ public class Runner {
             if (!stepConfig.hasPath("type") || stepConfig.getString("type").equals("data")) {
                 if (stepConfig.hasPath("input")) {
                     Config stepInputConfig = stepConfig.getConfig("input");
-                    Input stepInput = Input.inputFor(stepInputConfig);
+                    Input stepInput = InputFactory.create(stepInputConfig);
                     
                     if (stepInput instanceof BatchInput) {
                         LOG.info("Adding batch step: " + stepName);

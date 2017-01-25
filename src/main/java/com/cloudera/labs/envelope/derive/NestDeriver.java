@@ -18,15 +18,18 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class NestDeriver extends Deriver {
+public class NestDeriver implements Deriver {
     
     public static final String NEST_INTO_CONFIG_NAME = "nest.into";
     public static final String NEST_FROM_CONFIG_NAME = "nest.from";
     public static final String KEY_FIELD_NAMES_CONFIG_NAME = "key.field.names";
     public static final String NESTED_FIELD_NAME_CONFIG_NAME = "nested.field.name";
 
-    public NestDeriver(Config config) {
-        super(config);
+    private Config config;
+    
+    @Override
+    public void configure(Config config) {
+        this.config = config;
         
         for (String configName : Lists.newArrayList(NESTED_FIELD_NAME_CONFIG_NAME, NEST_FROM_CONFIG_NAME,
                 KEY_FIELD_NAMES_CONFIG_NAME, NESTED_FIELD_NAME_CONFIG_NAME))

@@ -75,7 +75,8 @@ public class TestNestDeriver {
         configMap.put(NestDeriver.NESTED_FIELD_NAME_CONFIG_NAME, "orders");
         Config config = ConfigFactory.parseMap(configMap);
         
-        Deriver deriver = new NestDeriver(config);
+        Deriver deriver = new NestDeriver();
+        deriver.configure(config);
         
         DataFrame nested = deriver.derive(dependencies);
         
@@ -129,7 +130,8 @@ public class TestNestDeriver {
         configMap.put(NestDeriver.NESTED_FIELD_NAME_CONFIG_NAME, "orders");
         Config config = ConfigFactory.parseMap(configMap);
         
-        Deriver deriver = new NestDeriver(config);
+        Deriver deriver = new NestDeriver();
+        deriver.configure(config);
         
         DataFrame nested = deriver.derive(dependencies);
         

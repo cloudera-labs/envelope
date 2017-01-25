@@ -10,8 +10,9 @@ import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.SQLContext;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.typesafe.config.ConfigFactory;
+import com.cloudera.labs.envelope.plan.OverwritePlanner;
 
 import scala.Tuple2;
 
@@ -27,7 +28,7 @@ public class TestOverwritePlanner {
         
         DataFrame testData = sqlc.sql("SELECT 'test'");
         
-        BulkPlanner planner = new OverwritePlanner(ConfigFactory.empty());
+        BulkPlanner planner = new OverwritePlanner();
         List<Tuple2<MutationType, DataFrame>> plan = planner.planMutationsForSet(testData);
         
         assertEquals(plan.size(), 1);

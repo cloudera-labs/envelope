@@ -12,10 +12,10 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.EventTimeUpsertPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
-import com.cloudera.labs.envelope.plan.random.EventTimeUpsertPlanner;
-import com.cloudera.labs.envelope.plan.random.RandomPlanner;
+import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -54,7 +54,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testNotExisting() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
         Row key = new RowWithSchema(keySchema, "a");
@@ -67,7 +68,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testEarlierExistingWithNewValues() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -81,7 +83,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testEarlierExistingWithSameValues() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
         arriving.add(new RowWithSchema(recordSchema, "a", "world", 100L));
@@ -94,7 +97,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testLaterExisting() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         existing.add(new RowWithSchema(recordSchema, "a", "world", 150L));
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -107,7 +111,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testSameTimeExistingWithNewValues() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         existing.add(new RowWithSchema(recordSchema, "a", "world", 100L));
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -121,7 +126,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testSameTimeExistingWithSameValues() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(recordSchema, "a", "world", 100L));
         arriving.add(new RowWithSchema(recordSchema, "a", "world", 100L));
@@ -134,7 +140,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testOnlyUsesLatestArrivingRecordForAKey() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
         arriving.add(new RowWithSchema(recordSchema, "a", "125", 125L));
@@ -154,7 +161,8 @@ public class TestEventTimeUpsertPlanner {
     public void testLastUpdated() {
         configMap.put(EventTimeUpsertPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
         config = ConfigFactory.parseMap(configMap);
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
         Row key = new RowWithSchema(keySchema, "a");
@@ -168,7 +176,8 @@ public class TestEventTimeUpsertPlanner {
     
     @Test
     public void testNoLastUpdated() {
-        p = new EventTimeUpsertPlanner(config);
+        p = new EventTimeUpsertPlanner();
+        p.configure(config);
 
         arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
         Row key = new RowWithSchema(keySchema, "a");

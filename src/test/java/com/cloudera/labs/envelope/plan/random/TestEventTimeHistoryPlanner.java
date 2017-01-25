@@ -11,10 +11,10 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.EventTimeHistoryPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
-import com.cloudera.labs.envelope.plan.random.EventTimeHistoryPlanner;
-import com.cloudera.labs.envelope.plan.random.RandomPlanner;
+import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -67,7 +67,8 @@ public class TestEventTimeHistoryPlanner {
 
     @Test
     public void testOneArrivingNoneExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
         Row key = new RowWithSchema(keySchema, "a");
@@ -83,7 +84,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingNoneExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -104,7 +106,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingLaterThanExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -125,7 +128,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -138,7 +142,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithDifferentValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 100L));
@@ -156,7 +161,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingEarlierThanExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 50L));
@@ -174,7 +180,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingLaterThanAllExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -197,7 +204,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithSameValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -212,7 +220,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithDifferentValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -232,7 +241,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingBetweenTwoExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -255,7 +265,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingEarlierThanAllExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -274,7 +285,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereAllArrivingLaterThanExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -305,7 +317,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithSameValuesAndRestArrivingLaterThanExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -332,7 +345,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithDifferentValuesAndRestArrivingLaterThanExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 100L));
@@ -360,7 +374,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithSameValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -377,7 +392,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithDifferentValues() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
         existing.add(new RowWithSchema(existingSchema, "a", "hello!", 200L, 200L, 299L, EventTimeHistoryPlanner.CURRENT_FLAG_NO, ""));
@@ -409,7 +425,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testNoneArrivingNoneExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         Row key = new RowWithSchema(keySchema, "a");
         
@@ -420,7 +437,8 @@ public class TestEventTimeHistoryPlanner {
     
     @Test
     public void testNoneArrivingOneExisting() {
-        p = new EventTimeHistoryPlanner(config);
+        p = new EventTimeHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
         Row key = new RowWithSchema(keySchema, "a");

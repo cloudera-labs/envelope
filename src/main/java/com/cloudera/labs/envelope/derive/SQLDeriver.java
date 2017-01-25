@@ -18,13 +18,16 @@ import com.typesafe.config.Config;
 /**
  * An input implementaton for Spark SQL.
  */
-public class SQLDeriver extends Deriver {
+public class SQLDeriver implements Deriver {
     
     public static final String QUERY_LITERAL_CONFIG_NAME = "query.literal";
     public static final String QUERY_FILE_CONFIG_NAME = "query.file";
     
-    public SQLDeriver(Config config) {
-        super(config);
+    private Config config;
+    
+    @Override
+    public void configure(Config config) {
+        this.config = config;
     }
     
     @Override

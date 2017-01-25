@@ -1,16 +1,16 @@
 package com.cloudera.labs.envelope.plan.random;
 
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.CURRENT_FLAG_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.CURRENT_FLAG_NO;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.CURRENT_FLAG_YES;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.FAR_FUTURE_MILLIS;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.KEY_FIELD_NAMES_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.TIMESTAMP_FIELD_NAME_CONFIG_NAME;
-import static com.cloudera.labs.envelope.plan.random.BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_NO;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_YES;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.FAR_FUTURE_MILLIS;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.KEY_FIELD_NAMES_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.TIMESTAMP_FIELD_NAME_CONFIG_NAME;
+import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -23,8 +23,10 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
+import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -82,7 +84,8 @@ public class TestBitemporalHistoryPlanner {
 
     @Test
     public void testOneArrivingNoneExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
         Row key = new RowWithSchema(keySchema, "a");
@@ -103,7 +106,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingNoneExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -137,7 +141,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingLaterThanExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -179,7 +184,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -192,7 +198,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithDifferentValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 100L));
@@ -224,7 +231,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingOneExistingWhereArrivingEarlierThanExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 50L));
@@ -248,7 +256,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingLaterThanAllExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -294,7 +303,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithSameValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -311,7 +321,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithDifferentValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -347,7 +358,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingBetweenTwoExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -393,7 +405,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testOneArrivingMultipleExistingWhereArrivingEarlierThanAllExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -420,7 +433,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereAllArrivingLaterThanExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
@@ -484,7 +498,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithSameValuesAndRestArrivingLaterThanExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -538,7 +553,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithDifferentValuesAndRestArrivingLaterThanExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 100L));
@@ -592,7 +608,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithSameValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -611,7 +628,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithDifferentValues() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, 2L, CURRENT_FLAG_NO));
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, 3L, FAR_FUTURE_MILLIS, CURRENT_FLAG_NO));
@@ -686,7 +704,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testNoneArrivingNoneExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         Row key = new RowWithSchema(keySchema, "a");
         
@@ -697,7 +716,8 @@ public class TestBitemporalHistoryPlanner {
     
     @Test
     public void testNoneArrivingOneExisting() {
-        p = new BitemporalHistoryPlanner(config);
+        p = new BitemporalHistoryPlanner();
+        p.configure(config);
         
         existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES));
         Row key = new RowWithSchema(keySchema, "a");

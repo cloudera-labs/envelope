@@ -6,10 +6,9 @@ import java.util.Set;
 import org.apache.spark.sql.DataFrame;
 
 import com.cloudera.labs.envelope.derive.PassthroughDeriver;
-import com.cloudera.labs.envelope.input.batch.BatchInput;
+import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 public class BatchStep extends DataStep {
 
@@ -29,7 +28,7 @@ public class BatchStep extends DataStep {
             data = deriver.derive(dependencies);
         }
         else {
-            deriver = new PassthroughDeriver(ConfigFactory.empty());
+            deriver = new PassthroughDeriver();
             Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
             data = deriver.derive(dependencies);
         }

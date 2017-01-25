@@ -17,6 +17,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.AppendPlanner;
+import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -53,7 +55,8 @@ public class TestAppendPlanner {
     @Test
     public void testPlansInserts() {
         Config config = ConfigFactory.empty();
-        BulkPlanner ap = new AppendPlanner(config);
+        BulkPlanner ap = new AppendPlanner();
+        ap.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
         
@@ -69,7 +72,8 @@ public class TestAppendPlanner {
         configMap.put(AppendPlanner.KEY_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("key"));
         Config config = ConfigFactory.parseMap(configMap);
         
-        BulkPlanner ap = new AppendPlanner(config);
+        BulkPlanner ap = new AppendPlanner();
+        ap.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
         
@@ -92,7 +96,8 @@ public class TestAppendPlanner {
         configMap.put(AppendPlanner.KEY_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("key"));
         Config config = ConfigFactory.parseMap(configMap);
         
-        BulkPlanner ap = new AppendPlanner(config);
+        BulkPlanner ap = new AppendPlanner();
+        ap.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
         
@@ -114,7 +119,8 @@ public class TestAppendPlanner {
         configMap.put(AppendPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
         Config config = ConfigFactory.parseMap(configMap);
         
-        BulkPlanner ap = new AppendPlanner(config);
+        BulkPlanner ap = new AppendPlanner();
+        ap.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
         
@@ -133,7 +139,8 @@ public class TestAppendPlanner {
     @Test(expected=IllegalArgumentException.class)
     public void testNoLastUpdated() {
         Config config = ConfigFactory.empty();
-        BulkPlanner ap = new AppendPlanner(config);
+        BulkPlanner ap = new AppendPlanner();
+        ap.configure(config);
         
         List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
         

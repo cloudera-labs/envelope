@@ -19,15 +19,19 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import com.cloudera.labs.envelope.derive.Deriver;
+import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.input.Input;
+import com.cloudera.labs.envelope.input.InputFactory;
+import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.bulk.BulkOutput;
-import com.cloudera.labs.envelope.output.random.RandomOutput;
+import com.cloudera.labs.envelope.output.OutputFactory;
+import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.plan.Planner;
-import com.cloudera.labs.envelope.plan.bulk.BulkPlanner;
-import com.cloudera.labs.envelope.plan.random.RandomPlanner;
+import com.cloudera.labs.envelope.plan.PlannerFactory;
+import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -55,15 +59,15 @@ public abstract class DataStep extends Step {
         
         if (hasInput()) {
             Config inputConfig = config.getConfig("input");
-            input = Input.inputFor(inputConfig);
+            input = InputFactory.create(inputConfig);
         }
         if (hasDeriver()) {
             Config deriverConfig = config.getConfig("deriver");
-            deriver = Deriver.deriverFor(deriverConfig);
+            deriver = DeriverFactory.create(deriverConfig);
         }
         if (hasOutput()) {
             Config outputConfig = config.getConfig("output");
-            output = Output.outputFor(outputConfig);
+            output = OutputFactory.create(outputConfig);
         }
     }
     
@@ -147,10 +151,10 @@ public abstract class DataStep extends Step {
     
     private void writeOutput() throws Exception {
         Config plannerConfig = config.getConfig("planner");
-        Planner planner = Planner.plannerFor(plannerConfig);
-        validatePlannerStorageCompatibility(planner, output);
+        Planner planner = PlannerFactory.create(plannerConfig);
+        validatePlannerOutputCompatibility(planner, output);
         
-        if (output instanceof RandomOutput) {            
+        if (planner instanceof RandomPlanner) {            
             RandomPlanner randomPlanner = (RandomPlanner)planner;
             List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
             Config outputConfig = config.getConfig("output");
@@ -158,32 +162,54 @@ public abstract class DataStep extends Step {
             
             applyMutations(planned, outputConfig);
         }
-        else if (output instanceof BulkOutput) {
+        else if (planner instanceof BulkPlanner) {
             BulkPlanner bulkPlanner = (BulkPlanner)planner;
             List<Tuple2<MutationType, DataFrame>> planned = bulkPlanner.planMutationsForSet(data);
             
             BulkOutput bulkOutput = (BulkOutput)output;            
-            bulkOutput.applyMutations(planned);
+            bulkOutput.applyBulkMutations(planned);
         }
         else {
             throw new RuntimeException("Unexpected output class: " + output.getClass().getName());
         }
     }
     
-    private void validatePlannerStorageCompatibility(Planner planner, Output output) {
-        if (((planner instanceof RandomPlanner) && !(output instanceof RandomOutput)) ||
-            ((planner instanceof BulkPlanner) && !(output instanceof BulkOutput))){
-            throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
-        }
-        
-        Set<MutationType> outputMTs = output.getSupportedMutationTypes();
+    private void validatePlannerOutputCompatibility(Planner planner, Output output) {
         Set<MutationType> plannerMTs = planner.getEmittedMutationTypes();
         
-        for (MutationType planMT : plannerMTs) {
-            if (!outputMTs.contains(planMT)) {
-                throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
+        if (planner instanceof RandomPlanner) {
+            if (!(output instanceof RandomOutput)) {
+                handleIncompatiblePlannerOutput(planner, output);
+            }
+            
+            Set<MutationType> outputMTs = ((RandomOutput)output).getSupportedRandomMutationTypes();
+            
+            for (MutationType planMT : plannerMTs) {
+                if (!outputMTs.contains(planMT)) {
+                    handleIncompatiblePlannerOutput(planner, output);
+                }
             }
         }
+        else if (planner instanceof BulkPlanner) {
+            if (!(output instanceof BulkOutput)) {
+                handleIncompatiblePlannerOutput(planner, output);
+            }
+            
+            Set<MutationType> outputMTs = ((BulkOutput)output).getSupportedBulkMutationTypes();
+            
+            for (MutationType planMT : plannerMTs) {
+                if (!outputMTs.contains(planMT)) {
+                    handleIncompatiblePlannerOutput(planner, output);
+                }
+            }
+        }
+        else {
+            throw new RuntimeException("Unexpected planner class: " + planner.getClass().getName());
+        }
+    }
+    
+    private void handleIncompatiblePlannerOutput(Planner planner, Output output) {
+        throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
     }
     
     private JavaRDD<PlannedRow> planMutationsByKey(DataFrame arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
@@ -241,7 +267,7 @@ public abstract class DataStep extends Step {
             }
             
             if (output == null) {
-                output = (RandomOutput)Output.outputFor(outputConfig);
+                output = (RandomOutput)OutputFactory.create(outputConfig);
             }
             
             List<Tuple2<Row, Iterable<Row>>> arrivingForKeys = Lists.newArrayList(arrivingForKeysIterator);
@@ -325,7 +351,7 @@ public abstract class DataStep extends Step {
         public Iterable<PlannedRow>
         call(Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>> keyedRecords) throws Exception {
             if (planner == null) {
-                planner = (RandomPlanner)Planner.plannerFor(config);
+                planner = (RandomPlanner)PlannerFactory.create(config);
             }
             
             Row key = keyedRecords._1();
@@ -354,10 +380,10 @@ public abstract class DataStep extends Step {
         @Override
         public void call(Iterator<PlannedRow> t) throws Exception {
             if (output == null) {
-                output = (RandomOutput)Output.outputFor(config);
+                output = (RandomOutput)OutputFactory.create(config);
             }
             
-            output.applyMutations(Lists.newArrayList(t));
+            output.applyRandomMutations(Lists.newArrayList(t));
         }
     }
 
