@@ -26,6 +26,9 @@ public class TranslatorFactory {
         else if (translatorType.equals("avro")) {
             translator = new AvroTranslator();
         }
+        else if (translatorType.equals("morphline")) {
+          translator = new MorphlineTranslator<>();
+        }
         else {
             Class<?> clazz = Class.forName(translatorType);
             Constructor<?> constructor = clazz.getConstructor();

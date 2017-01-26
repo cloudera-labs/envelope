@@ -15,9 +15,11 @@
     <spark-avro.version>1.1.0-cdh5.7.0</spark-avro.version>
     <kafka.version>0.9.0-kafka-2.0.0</kafka.version>
     <kudu.version>1.1.0</kudu.version>
+    <kite-sdk.version>1.0.0-cdh5.7.0</kite-sdk.version>
     <guava.version>16.0.1</guava.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
     <junit.version>4.10</junit.version>
+    <jmockit.version>1.22</jmockit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
@@ -90,6 +92,12 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-core</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
@@ -99,11 +107,23 @@
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
       <version>${typesafe.config.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.2.4</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jmockit</groupId>
+      <artifactId>jmockit</artifactId>
+      <version>${jmockit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
