@@ -1,5 +1,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -43,7 +44,7 @@ public class KVPTranslator implements Translator<String> {
     }
     
     @Override
-    public Row translate(String key, String message) {
+    public Iterable<Row> translate(String key, String message) {
         kvpMap.clear();
         values.clear();
 
@@ -90,7 +91,7 @@ public class KVPTranslator implements Translator<String> {
         
         Row row = RowFactory.create(values.toArray());
         
-        return row;
+        return Collections.singleton(row);
     }
     
     @Override

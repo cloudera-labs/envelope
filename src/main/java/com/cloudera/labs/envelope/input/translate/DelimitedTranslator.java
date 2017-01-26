@@ -1,5 +1,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -35,7 +36,7 @@ public class DelimitedTranslator implements Translator<String> {
     }
     
     @Override
-    public Row translate(String key, String message) {
+    public Iterable<Row> translate(String key, String message) {
         String[] stringValues = message.split(Pattern.quote(delimiter));
         values.clear();
         
@@ -68,7 +69,7 @@ public class DelimitedTranslator implements Translator<String> {
         
         Row row = RowFactory.create(values.toArray());
         
-        return row;
+        return Collections.singleton(row);
     }
     
     @Override

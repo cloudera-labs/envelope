@@ -58,13 +58,13 @@ public class KafkaInput implements StreamInput {
             JavaPairDStream<String, String> stringDStream = KafkaUtils.createDirectStream(
                     jssc, String.class, String.class, StringDecoder.class, StringDecoder.class, kafkaParams, topicsSet);
             
-            dStream = stringDStream.map(new TranslateFunction<String>(translatorConfig));
+            dStream = stringDStream.flatMap(new TranslateFunction<String>(translatorConfig));
         }
         else if (encoding.equals("bytearray")) {
             JavaPairDStream<byte[], byte[]> byteArrayDStream = KafkaUtils.createDirectStream(
                     jssc, byte[].class, byte[].class, DefaultDecoder.class, DefaultDecoder.class, kafkaParams, topicsSet);
             
-            dStream = byteArrayDStream.map(new TranslateFunction<byte[]>(translatorConfig));
+            dStream = byteArrayDStream.flatMap(new TranslateFunction<byte[]>(translatorConfig));
         }
         else {
             throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");

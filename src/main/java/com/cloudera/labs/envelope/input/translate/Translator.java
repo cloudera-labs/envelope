@@ -9,7 +9,7 @@ public interface Translator<T> {
         
     void configure(Config config);
     
-    Row translate(T key, T message) throws Exception;
+    Iterable<Row> translate(T key, T message) throws Exception;
     
     StructType getSchema();
     

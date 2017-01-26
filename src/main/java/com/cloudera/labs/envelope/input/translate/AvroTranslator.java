@@ -1,5 +1,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -41,13 +42,13 @@ public class AvroTranslator implements Translator<byte[]> {
     }
     
     @Override
-    public Row translate(byte[] key, byte[] message) throws Exception {
+    public Iterable<Row> translate(byte[] key, byte[] message) throws Exception {
         GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(avroSchema);
         Decoder decoder = DecoderFactory.get().binaryDecoder(message, null);
         GenericRecord record = reader.read(null, decoder);
         Row row = rowForRecord(record);
         
-        return row;
+        return Collections.singleton(row);
     }
     
     @Override
