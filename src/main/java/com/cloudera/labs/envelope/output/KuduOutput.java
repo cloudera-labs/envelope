@@ -70,13 +70,13 @@ public class KuduOutput implements RandomOutput, BulkOutput {
             Thread.sleep(1);
         }
         
-        // Log Kudu operation errors instead of stopping the job.
+        // Fail fast on any error applying mutations
         if (session.countPendingErrors() > 0) {
-            RowError[] errors = session.getPendingErrors().getRowErrors();
+            RowError firstError = session.getPendingErrors().getRowErrors()[0];
+            String errorMessage = String.format("Kudu output error '{}' during operation '{}' at tablet server '{}'",
+                    firstError.getErrorStatus(), firstError.getOperation(), firstError.getTsUUID());
             
-            for (RowError error : errors) {
-                LOG.error("Error '{}' during operation '{}' at tablet server '{}'", error.getErrorStatus().toString(), error.getOperation(), error.getTsUUID());
-            }
+            throw new RuntimeException(errorMessage);
         }
     }
     
