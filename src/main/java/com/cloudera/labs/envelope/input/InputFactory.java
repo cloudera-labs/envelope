@@ -30,6 +30,9 @@ public class InputFactory {
             case "hive":
                 input = new HiveInput();
                 break;
+            case "jdbc":
+                input = new JdbcInput();
+                break;
             default:
                 Class<?> clazz = Class.forName(inputType);
                 Constructor<?> constructor = clazz.getConstructor();
