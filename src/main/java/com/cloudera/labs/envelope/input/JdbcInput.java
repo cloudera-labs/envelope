@@ -6,9 +6,6 @@ import org.apache.spark.sql.DataFrame;
 
 import java.util.Properties;
 
-/**
- * Created by nihed on 27/01/2017.
- */
 public class JdbcInput implements BatchInput{
 
     public static final String JDBC_CONFIG_URL = "url";

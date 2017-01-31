@@ -27,7 +27,7 @@ import java.sql.*;
 public class TestJdbcInput {
 
 
-    public static final String JDBC_PROPERTIES = "/jdbcTest/jdbc.properties";
+    public static final String JDBC_PROPERTIES_PATH = "/jdbcTest/jdbc-table-user.properties";
     public static Server server;
     public static SparkContext sparkContext;
 
@@ -37,7 +37,7 @@ public class TestJdbcInput {
         server = Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "9092").start();
         Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
         Statement stmt = connection.createStatement();
-        stmt.executeUpdate("create table user (firstname varchar(30), lastname varchar(30))");
+        stmt.executeUpdate("create table if not exists user (firstname varchar(30), lastname varchar(30))");
         stmt.executeUpdate("insert into user values ('f1','p1')");
         stmt.executeUpdate("insert into user values ('f2','p1')");
         stmt.executeUpdate("insert into user values ('f3','p1')");
@@ -69,7 +69,7 @@ public class TestJdbcInput {
 
         };
         JdbcInput jdbcInput = new JdbcInput();
-        jdbcInput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES).getPath()));
+        jdbcInput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_PATH).getPath()));
         DataFrame read = jdbcInput.read();
         assertNotNull(read);
         assertEquals(3, read.count());

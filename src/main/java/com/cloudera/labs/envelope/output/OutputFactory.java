@@ -33,6 +33,9 @@ public class OutputFactory {
             case "filesystem":
                 output = new FileSystemOutput();
                 break;
+            case "jdbc":
+                output = new JdbcOutput();
+                break;
             default:
                 Class<?> clazz = Class.forName(outputType);
                 Constructor<?> constructor = clazz.getConstructor();
