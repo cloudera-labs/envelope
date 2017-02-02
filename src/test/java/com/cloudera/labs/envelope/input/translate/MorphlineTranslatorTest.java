@@ -1,5 +1,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import java.io.File;
@@ -30,7 +31,7 @@ import org.kitesdk.morphline.base.Compiler;
 @RunWith(JMockit.class)
 public class MorphlineTranslatorTest {
 
-  private static final String MORPHLINE_FILE = "/morphline-translator.conf";
+  private static final String MORPHLINE_FILE = "/morphline.conf";
 
   private @Mocked Config config;
 
@@ -51,6 +52,7 @@ public class MorphlineTranslatorTest {
   public void teardown() {
     stringMorphline = null;
     byteMorphline = null;
+    config = null;
   }
 
   @Test (expected = MorphlineCompilationException.class)
@@ -115,6 +117,7 @@ public class MorphlineTranslatorTest {
     }};
 
     stringMorphline.configure(config);
+    stringMorphline.translate("The Key", "The Message");
   }
 
   @Test (expected = RuntimeException.class)
@@ -287,6 +290,7 @@ public class MorphlineTranslatorTest {
     Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
   }
 
+  // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
   @Test (expected = MorphlineRuntimeException.class)
   public void noRecordReturned() throws Exception {
     new Expectations() {{
@@ -302,6 +306,7 @@ public class MorphlineTranslatorTest {
     stringMorphline.translate("The Key", "The Message");
   }
 
+  // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
   // Invalid command
   @Test (expected = MorphlineCompilationException.class)
   public void invalidCommand() throws Exception {
@@ -318,6 +323,7 @@ public class MorphlineTranslatorTest {
     stringMorphline.translate("The Key", "The Message");
   }
 
+  // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
   // Failed process
   @Test (expected = MorphlineRuntimeException.class)
   public void failedProcess() throws Exception {
@@ -424,7 +430,7 @@ public class MorphlineTranslatorTest {
 
   @Test
   public void multipleRecords(
-      final @Mocked MorphlineTranslator.RecordCollector collector
+      final @Mocked MorphlineUtils.Collector collector
   ) throws Exception {
 
     final Record record1 = new Record();
