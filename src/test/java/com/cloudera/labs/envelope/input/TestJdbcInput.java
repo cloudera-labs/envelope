@@ -27,7 +27,7 @@ import java.sql.*;
 public class TestJdbcInput {
 
 
-    public static final String JDBC_PROPERTIES_PATH = "/jdbcTest/jdbc-table-user.properties";
+    public static final String JDBC_PROPERTIES_PATH = "/JdbcTest/jdbc-table-user.properties";
     public static Server server;
     public static SparkContext sparkContext;
 

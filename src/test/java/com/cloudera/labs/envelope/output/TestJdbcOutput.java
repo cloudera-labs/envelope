@@ -26,10 +26,10 @@ import static org.junit.Assert.assertEquals;
 public class TestJdbcOutput {
 
 
-    public static final String JDBC_PROPERTIES_TABLE_USER_PATH = "/jdbcTest/jdbc-table-user.properties";
-    public static final String JDBC_PROPERTIES_TABLE_USER2_PATH = "/jdbcTest/jdbc-table-user2.properties";
+    public static final String JDBC_PROPERTIES_TABLE_USER_PATH = "/JdbcTest/jdbc-table-user.properties";
+    public static final String JDBC_PROPERTIES_TABLE_USER2_PATH = "/JdbcTest/jdbc-table-user2.properties";
 
-    public static final String SAMPLE_DATA_PATH = "/jdbcTest/sample.json";
+    public static final String SAMPLE_DATA_PATH = "/JdbcTest/sample.json";
     public static final String JDBC_URL = "jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1";
     public static final String JDBC_USERNAME = "sa";
     public static final String JDBC_PASSWORD = "";
