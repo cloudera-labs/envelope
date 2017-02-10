@@ -12,8 +12,8 @@ public class StreamingStep extends DataStep {
     
     public static final String REPARTITION_PROPERTY = "input.repartition";
     public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
-    public static final String WINDOW_ENABLED_PROPERTY = "application.window.enabled";
-    public static final String WINDOW_MILLISECONDS_PROPERTY = "application.window.milliseconds";
+    public static final String WINDOW_ENABLED_PROPERTY = "window.enabled";
+    public static final String WINDOW_MILLISECONDS_PROPERTY = "window.milliseconds";
 
     public StreamingStep(String name, Config config) throws Exception {
         super(name, config);
