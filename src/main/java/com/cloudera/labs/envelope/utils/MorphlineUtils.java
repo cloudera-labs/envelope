@@ -130,6 +130,7 @@ public class MorphlineUtils {
     }
   }
 
+  @SuppressWarnings("serial")
   public static FlatMapFunction<Row, Row> morphlineMapper(final String morphlineFile, final String morphlineId,
                                                           final StructType outputSchema) {
     return new FlatMapFunction<Row, Row>() {
@@ -183,7 +184,7 @@ public class MorphlineUtils {
     LOG.debug("Converting Record to Row: {}", record);
 
     List<Object> values = Lists.newArrayList();
-    ListMultimap activeFields = record.getFields();
+    ListMultimap<String, Object> activeFields = record.getFields();
 
     for (StructField field : schema.fields()) {
       String fieldName = field.name();

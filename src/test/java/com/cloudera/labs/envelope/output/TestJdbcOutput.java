@@ -65,7 +65,7 @@ public class TestJdbcOutput {
     @Test
     public void checkDB_OK() throws SQLException {
         Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
-        Statement stmt = connection.createStatement();
+        connection.createStatement();
     }
 
 

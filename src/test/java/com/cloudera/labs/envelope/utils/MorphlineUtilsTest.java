@@ -185,7 +185,7 @@ public class MorphlineUtilsTest {
     }};
 
     FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
-    Iterable<Row> results = function.call(row);
+    function.call(row);
   }
 
   @Test

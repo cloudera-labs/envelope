@@ -27,7 +27,6 @@ public class MorphlineDeriver implements Deriver {
   public static final String FIELD_NAMES = "field.names";
   public static final String FIELD_TYPES = "field.types";
 
-  private Config config;
   private StructType schema;
   private String morphlineFile;
   private String morphlineId;
@@ -35,8 +34,6 @@ public class MorphlineDeriver implements Deriver {
   @Override
   public void configure(Config config) {
     LOG.trace("Configuring Morphline Deriver");
-
-    this.config = config;
 
     // Set up the Morphline configuration, the file must be located on the local file system
     this.morphlineFile = config.getString(MORPHLINE);

@@ -20,15 +20,12 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
 public class RowUtils {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RowUtils.class);
   private static final DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC();
   private static final DateTimeFormatter timestampFormat = ISODateTimeFormat.dateTime().withZoneUTC();
 
@@ -175,7 +172,7 @@ public class RowUtils {
         ArrayList<Object> arrayList = new ArrayList<>();
 
         if (item instanceof List) {
-          for (Object value : (List) item) {
+          for (Object value : (List<?>) item) {
 
             if (null != value) {
               try {
@@ -226,7 +223,7 @@ public class RowUtils {
         HashMap<Object, Object> hashMap = new HashMap<>();
 
         if (item instanceof Map) {
-          Map map = (Map) item;
+          Map<?, ?> map = (Map<?, ?>) item;
 
           for (Object k : map.keySet()) {
             Object key, value;
@@ -296,6 +293,7 @@ public class RowUtils {
           // Keys must be Strings and match the names of the fields
           // Values must convert to field DataTypes
 
+          @SuppressWarnings("unchecked")
           Map<Object, Object> input = (Map<Object, Object>) item;
 
           for (StructField f : ((StructType) type).fields()) {
@@ -326,6 +324,7 @@ public class RowUtils {
           // An exact count, in-order list of values for the StructType
           // Values must convert to the field DataTypes
 
+          @SuppressWarnings("unchecked")
           List<Object> input = (List<Object>) item;
           StructField[] fields = ((StructType) type).fields();
 

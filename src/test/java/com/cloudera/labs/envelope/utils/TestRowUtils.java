@@ -568,8 +568,8 @@ public class TestRowUtils {
   public void testToRowValueArray() {
     DataType field = DataTypes.createArrayType(DataTypes.IntegerType);
 
-    List expectedInts = Lists.newArrayList(1, 2, 3);
-    List expectedNulls = Lists.newArrayList(1, null, 3);
+    List<?> expectedInts = Lists.newArrayList(1, 2, 3);
+    List<?> expectedNulls = Lists.newArrayList(1, null, 3);
 
     try {
       RowUtils.toRowValue(12.34, field);
@@ -580,7 +580,7 @@ public class TestRowUtils {
 
     // Lists
     assertEquals("Invalid List of Ints", expectedInts, RowUtils.toRowValue(Lists.newArrayList(1, 2, 3), field));
-    assertEquals("Invalid List of Mixed", expectedInts, RowUtils.toRowValue(Lists.newArrayList("1", 2, 3L), field));
+    assertEquals("Invalid List of Mixed", expectedInts, RowUtils.toRowValue(Lists.<Object>newArrayList("1", 2, 3L), field));
     assertEquals("Invalid List of Explicit Nulls", expectedNulls, RowUtils.toRowValue(Lists.newArrayList(1, null, 3), field));
 
     try {
@@ -630,7 +630,7 @@ public class TestRowUtils {
     assertEquals("Invalid List of Arrays", expectedArrays, RowUtils.toRowValue(testArrayInts, nested));
 
     // Valid inner conversion
-    List<?> testMixed = Lists.newArrayList("1", 2, 3L);
+    List<?> testMixed = Lists.<Object>newArrayList("1", 2, 3L);
     List<List<?>> testArrayMixed = Lists.newArrayList();
     testArrayMixed.add(testMixed);
     assertEquals("Invalid List of Mixed", expectedArrays, RowUtils.toRowValue(testArrayInts, nested));
@@ -926,18 +926,18 @@ public class TestRowUtils {
         DataTypes.createStructField("field2", DataTypes.IntegerType, false)
     ));
 
-    List expectedValues = Lists.newArrayList(9L, 2);
-    List expectedNulls = Lists.newArrayList(null, 2);
+    List<?> expectedValues = Lists.<Object>newArrayList(9L, 2);
+    List<?> expectedNulls = Lists.newArrayList(null, 2);
 
     //
     // Lists
     //
 
     // Straight values
-    assertEquals("Invalid list of values", expectedValues, RowUtils.toRowValue(Lists.newArrayList(9L, 2), field));
+    assertEquals("Invalid list of values", expectedValues, RowUtils.toRowValue(Lists.<Object>newArrayList(9L, 2), field));
 
     // Conversion values
-    assertEquals("Invalid list of values", expectedValues, RowUtils.toRowValue(Lists.newArrayList("9", 2L), field));
+    assertEquals("Invalid list of values", expectedValues, RowUtils.toRowValue(Lists.<Object>newArrayList("9", 2L), field));
 
     // Invalid length (lt)
     try {
@@ -949,7 +949,7 @@ public class TestRowUtils {
 
     // Invalid length (gt)
     try {
-      RowUtils.toRowValue(Lists.newArrayList(9L, 2, 3), field);
+      RowUtils.toRowValue(Lists.<Object>newArrayList(9L, 2, 3), field);
       fail("Expected a RuntimeException for invalid length ");
     } catch (RuntimeException e) {
       assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid size of input List"));
@@ -1114,7 +1114,7 @@ public class TestRowUtils {
             true)
     ));
 
-    List expectedInnerValues = Lists.newArrayList(9L, 2);
+    List<?> expectedInnerValues = Lists.<Object>newArrayList(9L, 2);
     List<Object> expectedValues = new ArrayList<>();
     expectedValues.add(expectedInnerValues);
 
@@ -1122,7 +1122,7 @@ public class TestRowUtils {
     innerMap.put("field1", 9L);
     innerMap.put("field2", 2);
 
-    List innerList = Lists.newArrayList(9L, 2);
+    List<?> innerList = Lists.<Object>newArrayList(9L, 2);
 
     Row innerRow = RowFactory.create(9L, 2);
 

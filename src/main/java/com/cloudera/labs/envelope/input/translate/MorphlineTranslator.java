@@ -32,7 +32,6 @@ public class MorphlineTranslator<T> implements Translator<T> {
   private static final String TRANSLATOR_KEY = "_attachment_key";
   private static final String TRANSLATOR_KEY_CHARSET = "_attachment_key_charset";
 
-  private Config config;
   private String keyEncoding;
   private String messageEncoding;
   private String morphlineFile;
@@ -43,8 +42,6 @@ public class MorphlineTranslator<T> implements Translator<T> {
   @Override
   public void configure(Config config) {
     LOG.trace("Configuring Morphline Translator");
-
-    this.config = config;
 
     // Define the encoding values, if necessary
     this.keyEncoding = config.getString(ENCODING_KEY);
