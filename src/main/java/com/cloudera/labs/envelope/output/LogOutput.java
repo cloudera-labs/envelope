@@ -26,6 +26,7 @@ public class LogOutput implements BulkOutput {
     
     private static Logger LOG = LoggerFactory.getLogger(LogOutput.class);
 
+
     @Override
     public void configure(Config config) {
         this.config = config;
@@ -39,46 +40,7 @@ public class LogOutput implements BulkOutput {
             DataFrame mutationDF = mutation._2();
             
             if (mutationType.equals(MutationType.INSERT)) {
-                mutationDF.javaRDD().foreach(new VoidFunction<Row>() {
-                    private Joiner joiner;
-                    
-                    @Override
-                    public void call(Row mutation) throws Exception {
-                        if (joiner == null) {
-                            String delimiter = getDelimiter();
-                            joiner = Joiner.on(delimiter);
-                        }
-                        
-                        String logLevel = getLogLevel();
-                        
-                        List<Object> values = Lists.newArrayList();
-                        
-                        for (int fieldIndex = 0; fieldIndex < mutation.size(); fieldIndex++) {
-                            values.add(mutation.get(fieldIndex));
-                        }
-                        String log = joiner.join(values);
-                        
-                        switch (logLevel) {
-                            case "TRACE":
-                                LOG.trace(log);
-                                break;
-                            case "DEBUG":
-                                LOG.debug(log);
-                                break;
-                            case "INFO":
-                                LOG.info(log);
-                                break;
-                            case "WARN":
-                                LOG.warn(log);
-                                break;
-                            case "ERROR":
-                                LOG.error(log);
-                                break;
-                            default:
-                                throw new RuntimeException("Invalid log level: " + logLevel);
-                        }
-                    }
-                });
+                mutationDF.javaRDD().foreach(new SendRowToLogFunction(getDelimiter(), getLogLevel()));
             }
         }
     }
@@ -98,6 +60,53 @@ public class LogOutput implements BulkOutput {
         if (!config.hasPath(LOG_LEVEL_CONFIG_NAME)) return "INFO";
         
         return config.getString(LOG_LEVEL_CONFIG_NAME).toUpperCase();
+    }
+
+
+    private static class SendRowToLogFunction implements VoidFunction<Row> {
+        private Joiner joiner;
+        private String delimiter;
+        private String logLevel;
+
+
+        public SendRowToLogFunction(String delimiter, String logLevel) {
+            this.delimiter = delimiter;
+            this.logLevel = logLevel;
+        }
+
+        @Override
+        public void call(Row mutation) throws Exception {
+            if (joiner == null) {
+                joiner = Joiner.on(delimiter);
+            }
+
+            List<Object> values = Lists.newArrayList();
+
+            for (int fieldIndex = 0; fieldIndex < mutation.size(); fieldIndex++) {
+                values.add(mutation.get(fieldIndex));
+            }
+            String log = joiner.join(values);
+
+            switch (logLevel) {
+                case "TRACE":
+                    LOG.trace(log);
+                    break;
+                case "DEBUG":
+                    LOG.debug(log);
+                    break;
+                case "INFO":
+                    LOG.info(log);
+                    break;
+                case "WARN":
+                    LOG.warn(log);
+                    break;
+                case "ERROR":
+                    LOG.error(log);
+                    break;
+                default:
+                    throw new RuntimeException("Invalid log level: " + logLevel);
+            }
+        }
     }
 
 }

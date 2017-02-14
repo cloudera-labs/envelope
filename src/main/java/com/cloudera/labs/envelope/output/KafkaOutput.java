@@ -27,7 +27,8 @@ public class KafkaOutput implements BulkOutput {
     public static final String FIELD_DELIMITER_CONFIG_NAME = "field.delimiter";
     
     private Config config;
-    
+
+
     @Override
     public void configure(Config config) {
         this.config = config;
@@ -41,48 +42,17 @@ public class KafkaOutput implements BulkOutput {
             DataFrame mutationDF = mutation._2();
             
             if (mutationType.equals(MutationType.INSERT)) {
-                mutationDF.javaRDD().foreach(new VoidFunction<Row>() {
-                    private KafkaProducer<String, String> producer;
-                    private String topic;
-                    private Joiner joiner;
-                    
-                    @Override
-                    public void call(Row mutation) throws Exception {
-                        if (producer == null) {
-                            initialize();
-                        }
-                        
-                        List<Object> values = Lists.newArrayList();
-                        
-                        for (int fieldIndex = 0; fieldIndex < mutation.size(); fieldIndex++) {
-                            values.add(mutation.get(fieldIndex));
-                        }
-                        
-                        String message = joiner.join(values);
-                        
-                        producer.send(new ProducerRecord<String, String>(topic, message));
-                    }
-                    
-                    private void initialize() {
-                        String brokers = config.getString(BROKERS_CONFIG_NAME);
-                        
-                        Properties producerProps = new Properties();
-                        producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-                        producerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-                        producerProps.put("bootstrap.servers", brokers);
-                        
-                        Serializer<String> serializer = new StringSerializer();
-                        producer = new KafkaProducer<String, String>(producerProps, serializer, serializer);
-                        
-                        topic = config.getString(TOPIC_CONFIG_NAME);
-                        String delimiter = getDelimiter();
-                        joiner = Joiner.on(delimiter);
-                    }
-                });
+                mutationDF.javaRDD().foreach(
+                    new SendRowToKafkaFunction(
+                        config.getString(TOPIC_CONFIG_NAME),
+                        config.getString(BROKERS_CONFIG_NAME),
+                        getDelimiter()
+                    )
+                );
             }
         }
     }
-    
+
     @Override
     public Set<MutationType> getSupportedBulkMutationTypes() {
         return Sets.newHashSet(MutationType.INSERT);
@@ -107,5 +77,49 @@ public class KafkaOutput implements BulkOutput {
             return delimiter;
         }
     }
-    
+
+
+    private static class SendRowToKafkaFunction implements VoidFunction<Row> {
+        private KafkaProducer<String, String> producer;
+        private String topic;
+        private String brokers;
+        private String delimiter;
+        private Joiner joiner;
+
+        public SendRowToKafkaFunction(String topic, String brokers, String delimiter) {
+            this.topic = topic;
+            this.brokers = brokers;
+            this.delimiter = delimiter;
+        }
+
+        private void initialize() {
+            Properties producerProps = new Properties();
+            producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+            producerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+            producerProps.put("bootstrap.servers", brokers);
+
+            Serializer<String> serializer = new StringSerializer();
+            producer = new KafkaProducer<String, String>(producerProps, serializer, serializer);
+
+            joiner = Joiner.on(delimiter);
+        }
+
+        @Override
+        public void call(Row mutation) throws Exception {
+            if (producer == null) {
+                initialize();
+            }
+
+            List<Object> values = Lists.newArrayList();
+
+            for (int fieldIndex = 0; fieldIndex < mutation.size(); fieldIndex++) {
+                values.add(mutation.get(fieldIndex));
+            }
+
+            String message = joiner.join(values);
+
+            producer.send(new ProducerRecord<String, String>(topic, message));
+        }
+    }
+
 }
