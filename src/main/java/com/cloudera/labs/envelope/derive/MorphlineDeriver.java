@@ -21,7 +21,7 @@ public class MorphlineDeriver implements Deriver {
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineDeriver.class);
 
-  public static final String MORPHLINE = "morphline";
+  public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
   public static final String PRODUCTION_MODE = "production.mode";
   public static final String FIELD_NAMES = "field.names";

@@ -22,7 +22,7 @@ public class MorphlineTranslator<T> implements Translator<T> {
   // This most likely should use Config.withFallback() on a per instance basis.
   public static final String ENCODING_KEY = "encoding.key";
   public static final String ENCODING_MSG = "encoding.message";
-  public static final String MORPHLINE = "morphline";
+  public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
   public static final String PRODUCTION_MODE = "production.mode";
   public static final String FIELD_NAMES = "field.names";
