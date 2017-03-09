@@ -1,5 +1,7 @@
 package com.cloudera.labs.envelope.spark;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SQLContext;
@@ -8,12 +10,16 @@ import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
+import java.util.Map;
 
 public enum Contexts {
 
     INSTANCE;
+
+    private static final Logger LOG = LoggerFactory.getLogger(Contexts.class);
     
     public static final String APPLICATION_NAME_PROPERTY = "application.name";
     public static final String BATCH_MILLISECONDS_PROPERTY = "application.batch.milliseconds";
@@ -22,7 +28,7 @@ public enum Contexts {
     public static final String NUM_EXECUTORS_PROPERTY = "application.executors";
     public static final String NUM_EXECUTOR_CORES_PROPERTY = "application.executor.cores";
     public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
-    public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf.";
+    public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
     
     private Config config;
     
@@ -119,7 +125,7 @@ public enum Contexts {
         INSTANCE.hc = new HiveContext(getJavaSparkContext());
     }
     
-    private static synchronized SparkConf getSparkConfiguration(Config config) {
+    static synchronized SparkConf getSparkConfiguration(Config config) {
         SparkConf sparkConf = new SparkConf();
         
         // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
@@ -156,12 +162,22 @@ public enum Contexts {
         
         // Allow the user to provide any Spark configuration and we will just pass it on. These can
         // also override any of the configurations above.
-        for (String propertyName : config.root().keySet()) {
-            if (propertyName.startsWith(SPARK_CONF_PROPERTY_PREFIX)) {
-                String sparkConfigName = propertyName.substring(SPARK_CONF_PROPERTY_PREFIX.length());
-                String sparkConfigValue = config.getString(propertyName);
-                
-                sparkConf.set(sparkConfigName, sparkConfigValue);
+        if (config.hasPath(SPARK_CONF_PROPERTY_PREFIX)) {
+            Config sparkConfigs = config.getConfig(SPARK_CONF_PROPERTY_PREFIX);
+            for (Map.Entry<String, ConfigValue> entry : sparkConfigs.entrySet()) {
+                String param = entry.getKey();
+                String value = null;
+                switch (entry.getValue().valueType()) {
+                    case STRING:
+                        value = (String) entry.getValue().unwrapped();
+                        break;
+                    default:
+                        LOG.warn("Only string parameters currently " +
+                            "supported, enclose {} in quotes", param);
+                }
+                if (value != null) {
+                    sparkConf.set(param, value);
+                }
             }
         }
         
