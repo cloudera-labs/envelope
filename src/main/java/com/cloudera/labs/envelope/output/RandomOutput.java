@@ -9,11 +9,11 @@ import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
 
 public interface RandomOutput extends Output {
-    
-    Set<MutationType> getSupportedRandomMutationTypes();
-    
-    void applyRandomMutations(List<PlannedRow> planned) throws Exception;
-    
-    Iterable<Row> getExistingForFilters(Iterable<Row> filters) throws Exception;
-    
+
+  Set<MutationType> getSupportedRandomMutationTypes();
+
+  void applyRandomMutations(List<PlannedRow> planned) throws Exception;
+
+  Iterable<Row> getExistingForFilters(Iterable<Row> filters) throws Exception;
+
 }

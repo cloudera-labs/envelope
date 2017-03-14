@@ -4,6 +4,6 @@ import org.apache.spark.sql.DataFrame;
 
 public interface BatchInput extends Input {
 
-    DataFrame read() throws Exception;
+  DataFrame read() throws Exception;
 
 }

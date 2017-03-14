@@ -12,30 +12,30 @@ import com.typesafe.config.Config;
 
 public class BatchStep extends DataStep {
 
-    public BatchStep(String name, Config config) throws Exception {
-        super(name, config);
+  public BatchStep(String name, Config config) throws Exception {
+    super(name, config);
+  }
+
+  public void runStep(Set<Step> dependencySteps) throws Exception {
+    Contexts.getJavaSparkContext().sc().setJobDescription("Step: " + getName());
+
+    DataFrame data;
+    if (hasInput()) {
+      data = ((BatchInput)input).read();
     }
-    
-    public void runStep(Set<Step> dependencySteps) throws Exception {
-        Contexts.getJavaSparkContext().sc().setJobDescription("Step: " + getName());
-        
-        DataFrame data;
-        if (hasInput()) {
-            data = ((BatchInput)input).read();
-        }
-        else if (hasDeriver()) {
-            Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
-            data = deriver.derive(dependencies);
-        }
-        else {
-            deriver = new PassthroughDeriver();
-            Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
-            data = deriver.derive(dependencies);
-        }
-        
-        setData(data);
-        
-        setFinished(true);
+    else if (hasDeriver()) {
+      Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
+      data = deriver.derive(dependencies);
     }
+    else {
+      deriver = new PassthroughDeriver();
+      Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
+      data = deriver.derive(dependencies);
+    }
+
+    setData(data);
+
+    setFinished(true);
+  }
 
 }

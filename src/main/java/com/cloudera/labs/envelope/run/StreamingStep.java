@@ -9,58 +9,58 @@ import com.cloudera.labs.envelope.input.StreamInput;
 import com.typesafe.config.Config;
 
 public class StreamingStep extends DataStep {
-    
-    public static final String REPARTITION_PROPERTY = "input.repartition";
-    public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
-    public static final String WINDOW_ENABLED_PROPERTY = "window.enabled";
-    public static final String WINDOW_MILLISECONDS_PROPERTY = "window.milliseconds";
 
-    public StreamingStep(String name, Config config) throws Exception {
-        super(name, config);
+  public static final String REPARTITION_PROPERTY = "input.repartition";
+  public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
+  public static final String WINDOW_ENABLED_PROPERTY = "window.enabled";
+  public static final String WINDOW_MILLISECONDS_PROPERTY = "window.milliseconds";
+
+  public StreamingStep(String name, Config config) throws Exception {
+    super(name, config);
+  }
+
+  public JavaDStream<Row> getStream() throws Exception {
+    JavaDStream<Row> stream = ((StreamInput)input).getDStream();
+
+    if (doesExpandToWindow(config)) {
+      stream = expandToWindow(stream, config);
     }
 
-    public JavaDStream<Row> getStream() throws Exception {
-        JavaDStream<Row> stream = ((StreamInput)input).getDStream();
-        
-        if (doesExpandToWindow(config)) {
-            stream = expandToWindow(stream, config);
-        }
-        
-        if (doesRepartition(config)) {
-            stream = repartition(stream, config);
-        }
-        
-        return stream;
+    if (doesRepartition(config)) {
+      stream = repartition(stream, config);
     }
-    
-    public StructType getSchema() throws Exception {
-        StructType schema = ((StreamInput)input).getSchema();
-        
-        return schema;
-    }
-    
-    private static boolean doesRepartition(Config config) {
-        if (!config.hasPath(REPARTITION_PROPERTY)) return false;
-        
-        return config.getBoolean(REPARTITION_PROPERTY);
-    }
-    
-    private static <T> JavaDStream<T> repartition(JavaDStream<T> stream, Config config) {
-        int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
-        
-        return stream.repartition(numPartitions);
-    }
-    
-    private static boolean doesExpandToWindow(Config config) {
-        if (!config.hasPath(WINDOW_ENABLED_PROPERTY)) return false;
-        
-        return config.getBoolean(WINDOW_ENABLED_PROPERTY);
-    }
-    
-    private static <T> JavaDStream<T> expandToWindow(JavaDStream<T> stream, Config config) {        
-        int windowDuration = config.getInt(WINDOW_MILLISECONDS_PROPERTY);
-        
-        return stream.window(new Duration(windowDuration));
-    }
-    
+
+    return stream;
+  }
+
+  public StructType getSchema() throws Exception {
+    StructType schema = ((StreamInput)input).getSchema();
+
+    return schema;
+  }
+
+  private static boolean doesRepartition(Config config) {
+    if (!config.hasPath(REPARTITION_PROPERTY)) return false;
+
+    return config.getBoolean(REPARTITION_PROPERTY);
+  }
+
+  private static <T> JavaDStream<T> repartition(JavaDStream<T> stream, Config config) {
+    int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
+
+    return stream.repartition(numPartitions);
+  }
+
+  private static boolean doesExpandToWindow(Config config) {
+    if (!config.hasPath(WINDOW_ENABLED_PROPERTY)) return false;
+
+    return config.getBoolean(WINDOW_ENABLED_PROPERTY);
+  }
+
+  private static <T> JavaDStream<T> expandToWindow(JavaDStream<T> stream, Config config) {    
+    int windowDuration = config.getInt(WINDOW_MILLISECONDS_PROPERTY);
+
+    return stream.window(new Duration(windowDuration));
+  }
+
 }

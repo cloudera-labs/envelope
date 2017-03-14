@@ -6,11 +6,11 @@ import org.apache.spark.sql.types.StructType;
 import com.typesafe.config.Config;
 
 public interface Translator<T> { 
-        
-    void configure(Config config);
-    
-    Iterable<Row> translate(T key, T message) throws Exception;
-    
-    StructType getSchema();
-    
+
+  void configure(Config config);
+
+  Iterable<Row> translate(T key, T message) throws Exception;
+
+  StructType getSchema();
+
 }

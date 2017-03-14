@@ -19,115 +19,115 @@ import com.typesafe.config.Config;
  * most recent version of the values of a key, which is equivalent to Type I SCD modeling.
  */
 public class EventTimeUpsertPlanner implements RandomPlanner {
-    
-    public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
-    public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
-    public static final String TIMESTAMP_FIELD_NAME_CONFIG_NAME = "field.timestamp";
-    public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "field.values";
 
-    private Config config;
-    
-    @Override
-    public void configure(Config config) {
-        this.config = config;
+  public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
+  public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
+  public static final String TIMESTAMP_FIELD_NAME_CONFIG_NAME = "field.timestamp";
+  public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "field.values";
+
+  private Config config;
+
+  @Override
+  public void configure(Config config) {
+    this.config = config;
+  }
+
+  @Override
+  public List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey)
+  {
+    if (key.schema() == null) {
+      throw new RuntimeException("Key sent to event time upsert planner does not contain a schema");
     }
 
-    @Override
-    public List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey)
+    String timestampFieldName = getTimestampFieldName();
+    List<String> valueFieldNames = getValueFieldNames();
+
+    Comparator<Row> tc = new TimestampComparator(timestampFieldName);
+
+    List<PlannedRow> planned = Lists.newArrayList();
+
+    if (arrivingForKey.size() > 1) {
+      Collections.sort(arrivingForKey, Collections.reverseOrder(tc));
+    }
+    Row arrived = arrivingForKey.get(0);
+
+    if (arrived.schema() == null) {
+      throw new RuntimeException("Arriving row sent to event time upsert planner does not contain a schema");
+    }
+
+    Row existing = null;
+    if (existingForKey.size() > 0) {
+      existing = existingForKey.get(0);
+
+      if (arrived.schema() == null) {
+        throw new RuntimeException("Existing row sent to event time upsert planner does not contain a schema");
+      }
+    }
+
+    if (existing == null) {
+      if (hasLastUpdatedField()) {
+        arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
+      }
+
+      planned.add(new PlannedRow(arrived, MutationType.INSERT));
+    }
+    else if (RowUtils.before(arrived, existing, timestampFieldName)) {
+      // We do nothing because the arriving record is older than the existing record
+    }
+    else if ((RowUtils.simultaneous(arrived, existing, timestampFieldName) ||
+          RowUtils.after(arrived, existing, timestampFieldName)) &&
+          RowUtils.different(arrived, existing, valueFieldNames))
     {
-        if (key.schema() == null) {
-            throw new RuntimeException("Key sent to event time upsert planner does not contain a schema");
-        }
-        
-        String timestampFieldName = getTimestampFieldName();
-        List<String> valueFieldNames = getValueFieldNames();
-        
-        Comparator<Row> tc = new TimestampComparator(timestampFieldName);
-        
-        List<PlannedRow> planned = Lists.newArrayList();
-        
-        if (arrivingForKey.size() > 1) {
-            Collections.sort(arrivingForKey, Collections.reverseOrder(tc));
-        }
-        Row arrived = arrivingForKey.get(0);
-        
-        if (arrived.schema() == null) {
-            throw new RuntimeException("Arriving row sent to event time upsert planner does not contain a schema");
-        }
-        
-        Row existing = null;
-        if (existingForKey.size() > 0) {
-            existing = existingForKey.get(0);
-            
-            if (arrived.schema() == null) {
-                throw new RuntimeException("Existing row sent to event time upsert planner does not contain a schema");
-            }
-        }
-        
-        if (existing == null) {
-            if (hasLastUpdatedField()) {
-                arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
-            }
-            
-            planned.add(new PlannedRow(arrived, MutationType.INSERT));
-        }
-        else if (RowUtils.before(arrived, existing, timestampFieldName)) {
-            // We do nothing because the arriving record is older than the existing record
-        }
-        else if ((RowUtils.simultaneous(arrived, existing, timestampFieldName) ||
-                  RowUtils.after(arrived, existing, timestampFieldName)) &&
-                  RowUtils.different(arrived, existing, valueFieldNames))
-        {
-            if (hasLastUpdatedField()) {
-                arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
-            }
-            planned.add(new PlannedRow(arrived, MutationType.UPDATE));
-        }
-        
-        return planned;
+      if (hasLastUpdatedField()) {
+        arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
+      }
+      planned.add(new PlannedRow(arrived, MutationType.UPDATE));
+    }
+
+    return planned;
+  }
+
+  @Override
+  public Set<MutationType> getEmittedMutationTypes() {
+    return Sets.newHashSet(MutationType.INSERT, MutationType.UPDATE);
+  }
+
+  @Override
+  public List<String> getKeyFieldNames() {
+    return config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
+  }
+
+  private boolean hasLastUpdatedField() {
+    return config.hasPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String getLastUpdatedFieldName() {
+    return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private List<String> getValueFieldNames() {
+    return config.getStringList(VALUE_FIELD_NAMES_CONFIG_NAME);
+  }
+
+  private String getTimestampFieldName() {
+    return config.getString(TIMESTAMP_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String currentTimestampString() {
+    return new Date(System.currentTimeMillis()).toString();
+  }
+
+  private class TimestampComparator implements Comparator<Row> {
+    private String timestampFieldName;
+
+    public TimestampComparator(String timestampFieldName) {
+      this.timestampFieldName = timestampFieldName;
     }
 
     @Override
-    public Set<MutationType> getEmittedMutationTypes() {
-        return Sets.newHashSet(MutationType.INSERT, MutationType.UPDATE);
+    public int compare(Row r1, Row r2) {
+      return RowUtils.compareTimestamp(r1, r2, timestampFieldName);
     }
-
-    @Override
-    public List<String> getKeyFieldNames() {
-        return config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
-    }
-
-    private boolean hasLastUpdatedField() {
-        return config.hasPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
-    }
-
-    private String getLastUpdatedFieldName() {
-        return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
-    }
-
-    private List<String> getValueFieldNames() {
-        return config.getStringList(VALUE_FIELD_NAMES_CONFIG_NAME);
-    }
-
-    private String getTimestampFieldName() {
-        return config.getString(TIMESTAMP_FIELD_NAME_CONFIG_NAME);
-    }
-    
-    private String currentTimestampString() {
-        return new Date(System.currentTimeMillis()).toString();
-    }
-    
-    private class TimestampComparator implements Comparator<Row> {
-        private String timestampFieldName;
-        
-        public TimestampComparator(String timestampFieldName) {
-            this.timestampFieldName = timestampFieldName;
-        }
-        
-        @Override
-        public int compare(Row r1, Row r2) {
-            return RowUtils.compareTimestamp(r1, r2, timestampFieldName);
-        }
-    }
+  }
 
 }

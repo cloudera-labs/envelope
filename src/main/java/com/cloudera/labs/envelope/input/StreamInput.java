@@ -6,8 +6,8 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 
 public interface StreamInput extends Input {
 
-    JavaDStream<Row> getDStream() throws Exception;
-    
-    StructType getSchema() throws Exception;
-    
+  JavaDStream<Row> getDStream() throws Exception;
+
+  StructType getSchema() throws Exception;
+
 }

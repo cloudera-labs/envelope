@@ -11,36 +11,36 @@ import static org.junit.Assert.assertTrue;
 
 public class ContextsTest {
 
-    private static final String RESOURCES_PATH = "/spark";
+  private static final String RESOURCES_PATH = "/spark";
 
-    @Test
-    public void testSparkPassthroughGood() {
-        Config config = ConfigUtils.configFromPath(
-            this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-good.conf").getPath());
+  @Test
+  public void testSparkPassthroughGood() {
+    Config config = ConfigUtils.configFromPath(
+      this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-good.conf").getPath());
 
-        SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
 
-        assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
-        assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
+    assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
+    assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
 
-        assertTrue(sparkConf.contains("spark.master"));
-        assertEquals("local[1]", sparkConf.get("spark.master"));
-    }
+    assertTrue(sparkConf.contains("spark.master"));
+    assertEquals("local[1]", sparkConf.get("spark.master"));
+  }
 
-    @Test
-    public void testSparkPassthroughWithInvalid() {
-        Config config = ConfigUtils.configFromPath(
-            this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-with-invalid.conf").getPath());
+  @Test
+  public void testSparkPassthroughWithInvalid() {
+    Config config = ConfigUtils.configFromPath(
+      this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-with-invalid.conf").getPath());
 
-        SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
 
-        assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
-        assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
+    assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
+    assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
 
-        assertTrue(sparkConf.contains("spark.master"));
-        assertEquals("local[1]", sparkConf.get("spark.master"));
+    assertTrue(sparkConf.contains("spark.master"));
+    assertEquals("local[1]", sparkConf.get("spark.master"));
 
-        assertFalse(sparkConf.contains("spark.invalid.conf"));
-    }
+    assertFalse(sparkConf.contains("spark.invalid.conf"));
+  }
 
 }

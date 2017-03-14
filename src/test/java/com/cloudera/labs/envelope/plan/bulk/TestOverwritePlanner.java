@@ -17,25 +17,25 @@ import com.cloudera.labs.envelope.plan.OverwritePlanner;
 import scala.Tuple2;
 
 public class TestOverwritePlanner {
-    
-    @Test
-    public void testPlanner() {
-        SparkConf conf = new SparkConf();
-        conf.setMaster("local[1]");
-        conf.setAppName("TestInsertOverwritePlanner.testPlanner");
-        JavaSparkContext jsc = new JavaSparkContext(conf);
-        SQLContext sqlc = new SQLContext(jsc);
-        
-        DataFrame testData = sqlc.sql("SELECT 'test'");
-        
-        BulkPlanner planner = new OverwritePlanner();
-        List<Tuple2<MutationType, DataFrame>> plan = planner.planMutationsForSet(testData);
-        
-        assertEquals(plan.size(), 1);
-        assertEquals(plan.get(0)._1(), MutationType.OVERWRITE);
-        assertEquals(plan.get(0)._2(), testData);
-        
-        jsc.close();
-    }
-    
+
+  @Test
+  public void testPlanner() {
+    SparkConf conf = new SparkConf();
+    conf.setMaster("local[1]");
+    conf.setAppName("TestInsertOverwritePlanner.testPlanner");
+    JavaSparkContext jsc = new JavaSparkContext(conf);
+    SQLContext sqlc = new SQLContext(jsc);
+
+    DataFrame testData = sqlc.sql("SELECT 'test'");
+
+    BulkPlanner planner = new OverwritePlanner();
+    List<Tuple2<MutationType, DataFrame>> plan = planner.planMutationsForSet(testData);
+
+    assertEquals(plan.size(), 1);
+    assertEquals(plan.get(0)._1(), MutationType.OVERWRITE);
+    assertEquals(plan.get(0)._2(), testData);
+
+    jsc.close();
+  }
+
 }
