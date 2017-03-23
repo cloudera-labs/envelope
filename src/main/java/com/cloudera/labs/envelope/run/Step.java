@@ -2,8 +2,7 @@ package com.cloudera.labs.envelope.run;
 
 import java.util.Set;
 
-import org.apache.kudu.client.shaded.com.google.common.collect.Sets;
-
+import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
 public abstract class Step {
