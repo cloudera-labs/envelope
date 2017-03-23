@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
@@ -42,6 +43,8 @@ public class KafkaInput implements StreamInput {
   public static final String TOPICS_CONFIG_NAME = "topics";
   public static final String ENCODING_CONFIG_NAME = "encoding";
   public static final String PARAMETER_CONFIG_PREFIX = "parameter.";
+  public static final String WINDOW_ENABLED_CONFIG_NAME = "window.enabled";
+  public static final String WINDOW_MILLISECONDS_CONFIG_NAME = "window.milliseconds";
 
   private Config config;
 
@@ -83,6 +86,12 @@ public class KafkaInput implements StreamInput {
     }
     else {
       throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
+    }
+
+    if (config.hasPath(WINDOW_ENABLED_CONFIG_NAME) && config.getBoolean(WINDOW_ENABLED_CONFIG_NAME)) {
+      int windowDuration = config.getInt(WINDOW_MILLISECONDS_CONFIG_NAME);
+
+      dStream = dStream.window(new Duration(windowDuration));
     }
 
     return dStream;
