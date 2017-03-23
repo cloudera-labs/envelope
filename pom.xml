@@ -7,7 +7,29 @@
   <version>0.3.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   
-  <name>envelope</name>
+  <name>Envelope</name>
+  <inceptionYear>2016</inceptionYear>
+  <description>Envelope is an Apache Spark application framework for implementing streaming and batch data pipelines on
+    a CDH cluster.</description>
+  <url>https://github.com/cloudera-labs/envelope</url>
+  <organization>
+    <name>Cloudera, Inc.</name>
+    <url>http://www.cloudera.com</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>cloudera</id>
+      <organization>Cloudera</organization>
+      <organizationUrl>http://www.cloudera.com</organizationUrl>
+    </developer>
+  </developers>
   
   <properties>
     <scala.version>2.10</scala.version>
@@ -164,6 +186,85 @@
                 </transformer>
               </transformers>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.12</version>
+        <executions>
+          <execution>
+            <id>timestamp-property</id>
+            <goals>
+              <goal>timestamp-property</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <name>currentYear</name>
+              <pattern>yyyy</pattern>
+              <locale>en_US</locale>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>3.0</version>
+        <configuration>
+          <header>src/etc/APACHE-2.txt</header>
+          <properties>
+            <copyrightYear>${project.inceptionYear}-${currentYear}</copyrightYear>
+            <copyrightOrganization>${project.organization.name}</copyrightOrganization>
+          </properties>
+          <excludes>
+            <exclude>**/*.conf</exclude>
+            <exclude>**/*.properties</exclude>
+            <exclude>**/*.xml</exclude>
+            <exclude>**/*.sql</exclude>
+            <exclude>**/*.txt</exclude>
+            <exclude>**/*.log</exclude>
+            <exclude>**/*.json</exclude>
+            <exclude>**/*.grok</exclude>
+            <exclude>**/*.md</exclude>
+            <exclude>**/*.adoc</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>format</id>
+            <goals>
+              <goal>format</goal>
+            </goals>
+            <phase>process-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>0.12</version>
+        <configuration>
+          <excludes>
+            <exclude>**/*.conf</exclude>
+            <exclude>**/*.properties</exclude>
+            <exclude>**/*.xml</exclude>
+            <exclude>**/*.sql</exclude>
+            <exclude>**/*.txt</exclude>
+            <exclude>**/*.log</exclude>
+            <exclude>**/*.json</exclude>
+            <exclude>**/*.grok</exclude>
+            <exclude>**/*.md</exclude>
+            <exclude>**/*.adoc</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
           </execution>
         </executions>
       </plugin>
