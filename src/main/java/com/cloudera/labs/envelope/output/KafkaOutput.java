@@ -40,16 +40,18 @@ public class KafkaOutput implements BulkOutput {
   public static final String BROKERS_CONFIG_NAME = "brokers";
   public static final String TOPIC_CONFIG_NAME = "topic";
   public static final String FIELD_DELIMITER_CONFIG_NAME = "field.delimiter";
-
-  private Config config;
-
+  
+  private String brokers;
+  private String topic;
+  private String delimiter;
 
   @Override
-  public void configure(Config config) {
-    this.config = config;
+  public void configure(Config config) {    
+    this.brokers = config.getString(BROKERS_CONFIG_NAME);
+    this.topic = config.getString(TOPIC_CONFIG_NAME);
+    this.delimiter = getDelimiter(config);
   }
 
-  @SuppressWarnings("serial")
   @Override
   public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) {
     for (Tuple2<MutationType, DataFrame> mutation : planned) {
@@ -57,13 +59,7 @@ public class KafkaOutput implements BulkOutput {
       DataFrame mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
-        mutationDF.javaRDD().foreach(
-          new SendRowToKafkaFunction(
-            config.getString(TOPIC_CONFIG_NAME),
-            config.getString(BROKERS_CONFIG_NAME),
-            getDelimiter()
-          )
-        );
+        mutationDF.javaRDD().foreach(new SendRowToKafkaFunction(topic, brokers, delimiter));
       }
     }
   }
@@ -73,7 +69,7 @@ public class KafkaOutput implements BulkOutput {
     return Sets.newHashSet(MutationType.INSERT);
   }
 
-  private String getDelimiter() {
+  private String getDelimiter(Config config) {
     if (!config.hasPath(FIELD_DELIMITER_CONFIG_NAME)) return ",";
 
     String delimiter = config.getString(FIELD_DELIMITER_CONFIG_NAME);
@@ -93,7 +89,7 @@ public class KafkaOutput implements BulkOutput {
     }
   }
 
-
+  @SuppressWarnings("serial")
   private static class SendRowToKafkaFunction implements VoidFunction<Row> {
     private KafkaProducer<String, String> producer;
     private String topic;
