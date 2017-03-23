@@ -91,9 +91,6 @@ public enum Contexts {
   private static void initializeStreamingJob() {
     final SparkConf sparkConf = getSparkConfiguration(INSTANCE.config);
 
-    String applicationName = INSTANCE.config.getString(APPLICATION_NAME_PROPERTY);
-    sparkConf.setAppName(applicationName);
-
     int batchMilliseconds = INSTANCE.config.getInt(BATCH_MILLISECONDS_PROPERTY);
     final Duration batchDuration = Durations.milliseconds(batchMilliseconds);
 
@@ -126,9 +123,6 @@ public enum Contexts {
   private static void initializeBatchJob() {
     SparkConf sparkConf = getSparkConfiguration(INSTANCE.config);
 
-    String applicationName = INSTANCE.config.getString(APPLICATION_NAME_PROPERTY);
-    sparkConf.setAppName(applicationName);
-
     INSTANCE.jsc = new JavaSparkContext(sparkConf);
   }
 
@@ -142,6 +136,11 @@ public enum Contexts {
 
   static synchronized SparkConf getSparkConfiguration(Config config) {
     SparkConf sparkConf = new SparkConf();
+    
+    if (config.hasPath(APPLICATION_NAME_PROPERTY)) {
+      String applicationName = config.getString(APPLICATION_NAME_PROPERTY);
+      sparkConf.setAppName(applicationName);
+    }
 
     // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
     // of the resource requests are too long.

@@ -15,16 +15,20 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.typesafe.config.Config;
-import org.apache.spark.SparkConf;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class ContextsTest {
+import java.util.Properties;
+
+import org.apache.spark.SparkConf;
+import org.junit.Test;
+
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
+public class TestContexts {
 
   private static final String RESOURCES_PATH = "/spark";
 
@@ -56,6 +60,26 @@ public class ContextsTest {
     assertEquals("local[1]", sparkConf.get("spark.master"));
 
     assertFalse(sparkConf.contains("spark.invalid.conf"));
+  }
+  
+  @Test
+  public void testApplicationNameProvided() {
+    Properties props = new Properties();
+    props.setProperty("application.name", "test");
+    Config config = ConfigFactory.parseProperties(props);
+    
+    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    
+    assertEquals(sparkConf.get("spark.app.name"), "test");
+  }
+  
+  @Test
+  public void testApplicationNameNotProvided() {
+    Config config = ConfigFactory.empty();
+    
+    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    
+    assertTrue(!sparkConf.contains("spark.app.name"));
   }
 
 }
