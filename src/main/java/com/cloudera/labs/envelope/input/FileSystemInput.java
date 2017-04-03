@@ -15,12 +15,14 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import org.apache.spark.sql.DataFrame;
-
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
+import org.apache.spark.sql.DataFrame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileSystemInput implements BatchInput {
+  private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
 
   public static final String FORMAT_CONFIG_NAME = "format";
   public static final String PATH_CONFIG_NAME = "path";
@@ -48,12 +50,15 @@ public class FileSystemInput implements BatchInput {
 
     switch (format) {
       case "parquet":
+        LOG.debug("Reading Parquet: {}", path);
         fs = Contexts.getSQLContext().read().parquet(path);
         break;
       case "avro":
+        LOG.debug("Reading Avro: {}", path);
         fs = Contexts.getSQLContext().read().format("com.databricks.spark.avro").load(path);
         break;
       case "json":
+        LOG.debug("Reading JSON: {}", path);
         fs = Contexts.getSQLContext().read().json(path);
         break;
       default:
