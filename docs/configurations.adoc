@@ -1,0 +1,482 @@
+= Configuration specification
+
+This page specifies the configurations available in Envelope 0.3.
+
+:toc:
+
+== Example configuration
+
+As illustration, a typical Envelope batch application that reads HDFS Avro files, extracts a subset of data, and writes
+the results to S3 in Parquet might have the following configuration.
+
+----
+application {
+  name = Envelope configuration example
+  executors = 3
+  executor.memory = 4G
+}
+steps {
+  exampleInput {
+    input {
+      type = filesystem
+      path = "hdfs://..."
+      format = avro
+    }
+  }
+  exampleStep {
+    dependencies = [exampleInput]
+    deriver {
+      type = sql
+      query.literal = "SELECT foo FROM exampleInput WHERE bar = 'blag'"
+    }
+    planner {
+      type = append
+    }
+    output {
+      type = filesystem
+      path = "s3a://..."
+      format = parquet
+    }
+  }
+}
+----
+
+== Application
+
+Application-level configurations have the `application.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|name
+|The application name in YARN.
+
+|executors
+|The number of executors to be requested for the application. If not specified then Spark dynamic allocation will be used.
+
+|executor.cores
+|The number of cores per executor. Default is 1.
+
+|executor.memory
+|The amount of memory per executor. Default is 1G.
+
+|batch.milliseconds
+|The length of the micro-batch in milliseconds. Default is 1000. Ignored if the application does not have a streaming input.
+
+|checkpoint.enabled
+|Whether to use Spark checkpointing. Default is false. Ignored if the application does not have a streaming input.
+
+|checkpoint.path
+|The path for the Spark checkpoint. Ignored if checkpoint.enabled is not true.
+
+|spark.conf.*
+|Used to pass configurations directly to Spark. The `spark.conf.` prefix is removed and the configuration is set in the SparkConf object used to create the Spark context.
+
+|===
+
+== Steps
+
+Step configurations have the `steps.[stepname].` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|dependencies
+|The list of step names that Envelope will submit before submitting this step.
+
+|cache
+|If `true` then Envelope will cache the step's DataFrame at the `MEMORY_ONLY` storage level. Default `false`.
+
+|hint.small
+|If `true` then Envelope will mark the step's DataFrame as small enough to be used in broadcast joins. Default `false`.
+
+|===
+
+== Inputs
+
+Input configurations have the `steps.[stepname].input.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The input type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`. To use a custom input, specify the fully qualified name of the `Input` implementation class.
+
+|repartition
+|For streaming inputs only, if `true` then Envelope will repartition the input. Default `false`.
+
+|repartition.partitions
+|For streaming inputs only, the number of partitions to repartition the arriving input by.
+
+||
+|`_filesystem_`|
+
+|path
+|The Hadoop filesystem path to read as the input. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
+
+|format
+|The file format of the files of the input directory. Envelope supports formats `parquet`, `avro`, and `json`.
+
+||
+|`_hive_`|
+
+|table
+|The Hive metastore table name (including database prefix, if required) to read as the input.
+
+||
+|`_jdbc_`|
+
+|url
+|The JDBC URL for the remote database.
+
+|tablename
+|The name of the table of the remote database to be read as the input.
+
+|username
+|The username to use to connect to the remote database.
+
+|password
+|The password to use to connect to the remote database.
+
+||
+|`_kafka_`|
+
+|brokers
+|The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
+
+|topics
+|The list of Kafka topics to be consumed.
+
+|encoding
+|The encoding of the messages in the Kafka topics, either `string` or `bytearray`. This must match the required encoding of the Envelope translator.
+
+|window.enabled
+|If `true` then Envelope will enable Spark Streaming windowing on the input. Ignored if the step does not contain a streaming input. Default `false`.
+
+|window.milliseconds
+|The duration in milliseconds of the Spark Streaming window for the input.
+
+|parameter.*
+|Used to pass configurations directly to Kafka. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the Kafka direct stream.
+
+||
+|`_kudu_`|
+
+|connection
+|The hosts and ports of the masters of the Kudu cluster, in the form "host1:port1,host2:port2,...,hostn:portn".
+
+|table.name
+|The name of the Kudu table to be read as the input.
+
+|===
+
+== Translators
+
+Translator configurations have the `steps.[stepname].input.translator.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`. To use a custom translator, specify the fully qualified name of the `Translator` implementation class.
+
+||
+|`_avro_`|
+
+|field.names
+|The list of fields to read from the Avro record.
+
+|field.types
+|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+
+||
+|`_delimited_`|
+
+|delimiter
+|The delimiter that separates the fields of the message.
+
+|field.names
+|The list of fields to read from the Avro record.
+
+|field.types
+|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+
+||
+|`_kvp_`|
+
+|delimiter.kvp
+|The delimiter that separates the key-value pairs of the message.
+
+|delimiter.field
+|The delimiter that separates the the key and value of each key-value pair.
+
+|field.names
+|The list of key names that will be found in the messages.
+
+|field.types
+|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+
+||
+|`_morphline_`|
+
+|encoding.key
+|The character set of the incoming key and is stored in the Record field, `_attachment_key_charset`. This must match the encoding of the Envelope input. The key value is stored in the field, `_attachment_key`.
+
+|encoding.message
+|The character set of the incoming message and is stored in the Record field, `_attachment_charset`. This must match the encoding of the Envelope input. The message value is stored in the field, `_attachment`.
+
+|morphline.file
+|The filename of the Morphline configuration found in the local directory of the executor. See the `--files` option for `spark-submit`.
+
+|morphline.id
+|The optional identifier of the Morphline pipeline within the configuration file.
+
+|field.names
+|The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
+
+|field.types
+|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+
+|===
+
+== Derivers
+
+Deriver configurations have the `steps.[stepname].deriver.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
+
+||
+|`_morphline_`|
+
+|morphline.file
+|The filename of the Morphline configuration found in the local directory of the executor. See the `--files` option for `spark-submit`.
+
+|morphline.id
+|The optional identifier of the Morphline pipeline within the configuration file.
+
+|field.names
+|The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
+
+|field.types
+|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+
+||
+|`_nest_`|
+
+|nest.into
+|The name of the step whose records will be appended with the nesting of `nest.from`. Must be a dependency of the encapsulating step.
+
+|nest.from
+|The name of the step whose records will be nested into `nest.into`. Must be a dependency of the encapsulating step.
+
+|key.field.names
+|The list of field names that make up the common key of the two steps. This key will be used to determine which `nest.from` records will be nested into each `nest.into` record. There should only be one record in `nest.into` for each unique key of `nest.from`.
+
+|nested.field.name
+|The name to be given to the appended field that contains the nested records.
+
+||
+|`_passthrough_`
+|_This deriver has no custom configurations_.
+
+||
+|`_sql_`|
+
+|query.literal
+|The literal query to be submitted to Spark SQL. Previously submitted steps can be referenced as tables by their step name.
+
+|query.file
+|The path to the file containing the query to be submitted to Spark SQL.
+
+|===
+
+== Planners
+
+Planner configurations have the `steps.[stepname].planner.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The planner type to be used. Envelope provides `append`, `bitemporal`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name of the `Planner` implementation class.
+
+||
+|`_append_`|
+
+|fields.key
+|The list of field names that make up the natural key of the record. Only required if `uuid.key.enabled` is true.
+
+|field.last.updated
+|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+
+|uuid.key.enabled
+|If `true` then Envelope will overwrite the first key field with a UUID string.
+
+||
+|`_bitemporal_`|
+
+|fields.key
+|The list of field names that make up the natural key of the record.
+
+|fields.values
+|The list of field names that are used to determine if an arriving record is different to an existing record.
+
+|field.timestamp
+|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+
+|field.event.time.effective.from
+|The field name of the event-time effective-from timestamp attribute on the output.
+
+|field.event.time.effective.to
+|The field name of the event-time effective-to timestamp attribute on the output.
+
+|field.system.time.effective.from
+|The field name of the system-time effective-from timestamp attribute on the output.
+
+|field.system.time.effective.to
+|The field name of the system-time effective-to timestamp attribute on the output.
+
+|field.current.flag
+|The field name of the current flag attribute on the output.
+
+|carry.forward.when.null
+|If `true` then Envelope will overwrite null values of the arriving record with the corresponding values of the most recent existing record for the same key.
+
+||
+|`_eventtimeupsert_`|
+
+|fields.key
+|The list of field names that make up the natural key of the record.
+
+|field.last.updated
+|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+
+|field.timestamp
+|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+
+|field.values
+|The list of field names that are used to determine if an arriving record is different to an existing record.
+
+||
+|`_history_`|
+
+|fields.key
+|The list of field names that make up the natural key of the record.
+
+|fields.values
+|The list of field names that are used to determine if an arriving record is different to an existing record.
+
+|field.timestamp
+|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+
+|field.effective.from
+|The field name of the event-time effective-from timestamp attribute on the output.
+
+|field.effective.to
+|The field name of the event-time effective-to timestamp attribute on the output.
+
+|field.current.flag
+|The field name of the current flag attribute on the output.
+
+|field.last.updated
+|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+
+|carry.forward.when.null
+|If `true` then Envelope will overwrite null values of the arriving record with the corresponding values of the most recent existing record for the same key.
+
+||
+|`_overwrite_`|_This deriver has no custom configurations_.
+
+||
+|`_upsert_`|
+
+|field.last.updated
+|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+
+|===
+
+== Outputs
+
+Output configurations have the `steps.[stepname].output.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
+
+||
+|`_filesystem_`|
+
+|path
+|The Hadoop filesystem path to write as the output. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
+
+|format
+|The file format for the files of the output directory. Envelope supports formats `parquet`, `avro`.
+
+||
+|`_hive_`|
+
+|table
+|The name of the Hive table to write to.
+
+|partition.by
+|The list of Hive table partition names to dynamically partition the write by. Optional.
+
+||
+|`_jdbc_`|
+
+|url
+|The JDBC URL for the remote database.
+
+|tablename
+|The name of the table of the remote database to write as the output.
+
+|username
+|The username to use to connect to the remote database.
+
+|password
+|The password to use to connect to the remote database.
+
+||
+|`_kafka_`|
+
+|brokers
+|The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
+
+|topic
+|The Kafka topic to write to.
+
+|field.delimiter
+|The delimiter string to separate the field values with. Default is `,`.
+
+||
+|`_kudu_`|
+
+|connection
+|The hosts and ports of the masters of the Kudu cluster, in the form "host1:port1,host2:port2,...,hostn:portn".
+
+|table.name
+|The name of the Kudu table to write to.
+
+||
+|`_log_`|
+
+|delimiter
+|The delimiter string to separate the field values with. Default is `,`.
+
+|level
+|The log4j level for the written logs. Default is `INFO`.
+
+|===
