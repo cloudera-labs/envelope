@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 public class TestEventTimeHistoryPlanner {
 
@@ -461,5 +462,54 @@ public class TestEventTimeHistoryPlanner {
     List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 0);
+  }
+  
+  @Test
+  public void testCarryForwardWhenNull() {
+    p = new EventTimeHistoryPlanner();
+    config = config.withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
+    p.configure(config);
+    
+    existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "startdate"), 100L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "enddate"), 199L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_NO);
+    assertEquals(planned.get(1).getMutationType(), MutationType.INSERT);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "startdate"), 200L);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "enddate"), EventTimeHistoryPlanner.FAR_FUTURE_MILLIS);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_YES);
+  }
+  
+  @Test
+  public void testNoCarryForwardWhenNull() {
+    p = new EventTimeHistoryPlanner();
+    p.configure(config);
+    
+    existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "startdate"), 100L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "enddate"), 199L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_NO);
+    assertEquals(planned.get(1).getMutationType(), MutationType.INSERT);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "value"), null);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "startdate"), 200L);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "enddate"), EventTimeHistoryPlanner.FAR_FUTURE_MILLIS);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_YES);
   }
 }

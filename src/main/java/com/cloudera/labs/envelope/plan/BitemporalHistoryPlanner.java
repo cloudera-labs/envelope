@@ -192,7 +192,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           if (hasCurrentFlagField) {
             arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_NO);
           }
-          carryForwardWhenNull(arriving, plan.getRow());
+          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
@@ -223,7 +223,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           if (hasCurrentFlagField) {
             arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_YES);
           }
-          carryForwardWhenNull(arriving, plan.getRow());
+          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           if (hasCurrentFlagField) {
@@ -305,9 +305,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
 
   // When the arrived record value is null then we have the option to carry forward
   // the value from the previous record. This is useful for handling sparse records.
-  private void carryForwardWhenNull(Row into, Row from) {
+  private Row carryForwardWhenNull(Row into, Row from) {
     if (!config.hasPath(CARRY_FORWARD_CONFIG_NAME) || !config.getBoolean(CARRY_FORWARD_CONFIG_NAME)) {
-      return;
+      return into;
     }
 
     for (StructField field : into.schema().fields()) {
@@ -316,6 +316,8 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         into = set(into, fieldName, get(from, fieldName));
       }
     }
+    
+    return into;
   }
 
   private class PlanTimestampComparator implements Comparator<PlannedRow> {
