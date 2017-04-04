@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.labs.envelope.plan.random;
+package com.cloudera.labs.envelope.plan;
 
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_FIELD_NAME_CONFIG_NAME;
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_NO;

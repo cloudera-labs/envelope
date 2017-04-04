@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.labs.envelope.plan.bulk;
+package com.cloudera.labs.envelope.plan;
 
 import static org.junit.Assert.assertEquals;
 
