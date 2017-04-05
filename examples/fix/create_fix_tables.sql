@@ -3,15 +3,11 @@ CREATE TABLE fix_messagetypes
 (
     msgtype STRING
   , msgtypedesc STRING
+  , PRIMARY KEY (msgtype)
 )
-DISTRIBUTE BY HASH(msgtype) INTO 4 BUCKETS
-TBLPROPERTIES
-(
-    'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
-  , 'kudu.table_name' = 'fix_messagetypes'
-  , 'kudu.master_addresses' = 'vm1:7051'
-  , 'kudu.key_columns' = 'msgtype'
-);
+PARTITION BY HASH(msgtype) PARTITIONS 2
+STORED AS KUDU;
+
 INSERT INTO fix_messagetypes VALUES ('D', 'Order Single'), ('8', 'Execution Report');
 
 DROP TABLE IF EXISTS fix_newordersingle;
@@ -27,15 +23,10 @@ CREATE TABLE fix_newordersingle
   , ordtype INT
   , orderqty INT
   , checksum STRING
+  , PRIMARY KEY (clordid)
 )
-DISTRIBUTE BY HASH(clordid) INTO 4 BUCKETS
-TBLPROPERTIES
-(
-    'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
-  , 'kudu.table_name' = 'fix_newordersingle'
-  , 'kudu.master_addresses' = 'vm1:7051'
-  , 'kudu.key_columns' = 'clordid'
-);
+PARTITION BY HASH(clordid) PARTITIONS 4
+STORED AS KUDU;
 
 DROP TABLE IF EXISTS fix_execrpt;
 CREATE TABLE fix_execrpt
@@ -56,22 +47,16 @@ CREATE TABLE fix_execrpt
   , transacttime BIGINT
   , checksum STRING
   , lastupdated STRING
+  , PRIMARY KEY (execid)
 )
-DISTRIBUTE BY HASH(execid) INTO 4 BUCKETS
-TBLPROPERTIES
-(
-    'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
-  , 'kudu.table_name' = 'fix_execrpt'
-  , 'kudu.master_addresses' = 'vm1:7051'
-  , 'kudu.key_columns' = 'execid'
-);
+PARTITION BY HASH(execid) PARTITIONS 4
+STORED AS KUDU;
 
 DROP TABLE IF EXISTS fix_orderhistory;
 CREATE TABLE fix_orderhistory
 (
     clordid STRING
   , startdate BIGINT
-  , msgtype STRING
   , `symbol` STRING
   , transacttime BIGINT
   , orderqty INT
@@ -81,12 +66,7 @@ CREATE TABLE fix_orderhistory
   , enddate BIGINT
   , currentflag STRING
   , lastupdated STRING
+  , PRIMARY KEY (clordid, startdate)
 )
-DISTRIBUTE BY HASH(clordid, startdate) INTO 4 BUCKETS
-TBLPROPERTIES
-(
-    'storage_handler' = 'com.cloudera.kudu.hive.KuduStorageHandler'
-  , 'kudu.table_name' = 'fix_orderhistory'
-  , 'kudu.master_addresses' = 'vm1:7051'
-  , 'kudu.key_columns' = 'clordid,startdate'
-);
+PARTITION BY HASH(clordid, startdate) PARTITIONS 4
+STORED AS KUDU;
