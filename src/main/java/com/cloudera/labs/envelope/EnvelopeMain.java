@@ -26,6 +26,9 @@ public class EnvelopeMain {
 
   private static Logger LOG = LoggerFactory.getLogger(EnvelopeMain.class);
 
+  // Entry point to Envelope when submitting directly from spark-submit.
+  // Other Java/Scala programs could instead launch an Envelope pipeline by passing their
+  // own Config object to Runner#run.
   public static void main(String[] args) throws Exception {
     LOG.info("Envelope application started");
 

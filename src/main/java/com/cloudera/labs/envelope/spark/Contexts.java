@@ -30,6 +30,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+/**
+ * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts,
+ * and have them instantiated automatically if they have not already been created.
+ */
 public enum Contexts {
 
   INSTANCE;

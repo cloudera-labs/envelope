@@ -22,6 +22,9 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.typesafe.config.Config;
 
+/**
+ * A streaming step is a data step that provides a DataFrame per Spark Streaming micro-batch.
+ */
 public class StreamingStep extends DataStep {
 
   public static final String REPARTITION_PROPERTY = "input.repartition";

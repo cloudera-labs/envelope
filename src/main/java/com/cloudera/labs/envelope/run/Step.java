@@ -20,6 +20,9 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
+/**
+ * A step is a unit of work to be submitted in dependency order.
+ */
 public abstract class Step {
 
   protected String name;

@@ -21,10 +21,25 @@ import org.apache.spark.sql.DataFrame;
 
 import com.typesafe.config.Config;
 
+/**
+ * Derivers create new DataFrames derived from DataFrames already loaded into the Spark application.
+ * Custom derivers should directly implement this interface.
+ */
 public interface Deriver {
 
+  /**
+   * Configure the deriver.
+   * This is called once by Envelope, immediately after deriver instantiation.
+   * @param config The configuration of the deriver.
+   */
   void configure(Config config);
 
+  /**
+   * Derive a new DataFrame from the DataFrames of the dependency steps.
+   * @param dependencies The map of step names to step DataFrames.
+   * @return The derived DataFrame.
+   * @throws Exception
+   */
   DataFrame derive(Map<String, DataFrame> dependencies) throws Exception;
 
 }

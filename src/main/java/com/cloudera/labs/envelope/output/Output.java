@@ -17,8 +17,18 @@ package com.cloudera.labs.envelope.output;
 
 import com.typesafe.config.Config;
 
+/**
+ * Outputs write data out of the Spark application.
+ * Custom outputs should not directly implement this interface -- they should implement either
+ * BulkOutput, RandomOutput, or both.
+ */
 public interface Output {
 
+  /**
+   * Configure the output.
+   * This is called once by Envelope, immediately after output instantiation.
+   * @param config The configuration of the output.
+   */
   void configure(Config config);
 
 }

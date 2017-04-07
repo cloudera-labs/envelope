@@ -27,6 +27,10 @@ import org.apache.spark.sql.types.StructType;
 
 import scala.collection.Seq;
 
+/**
+ * Allows individual Spark SQL Rows to be created with a schema. This is achieved by
+ * simply wrapping a RowFactory-created Row and overriding the schema methods.
+ */
 @SuppressWarnings("serial")
 public class RowWithSchema implements Row {
 

@@ -19,10 +19,27 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
+/**
+ * Stream inputs read in a JavaDStream of Spark SQL Rows from an external stream source.
+ * Custom inputs that point to a streaming data source should implement StreamingInput.
+ */
 public interface StreamInput extends Input {
 
+  /**
+   * Read the external stream source.
+   * @return The Spark distributed stream of Spark SQL Rows.
+   * It is the responsibility of the StreamInput to translate its source into Row objects. The
+   * Translator interface can assist with this.
+   * @throws Exception
+   */
   JavaDStream<Row> getDStream() throws Exception;
 
+  /**
+   * Get the schema of the input rows. This is used by Envelope to turn the stream
+   * micro-batches into DataFrames.
+   * @return The Spark SQL schema of the input rows.
+   * @throws Exception
+   */
   StructType getSchema() throws Exception;
 
 }

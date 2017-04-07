@@ -54,6 +54,11 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
+/**
+ * A data step is a step that will contain a DataFrame that other steps can use.
+ * The DataFrame can be created either by an input or a deriver.
+ * The DataFrame can be optionally written to an output, as planned by the planner.
+ */
 public abstract class DataStep extends Step {
 
   public static final String CACHE_PROPERTY = "cache";
@@ -169,6 +174,7 @@ public abstract class DataStep extends Step {
     Planner planner = PlannerFactory.create(plannerConfig);
     validatePlannerOutputCompatibility(planner, output);
 
+    // Plan the mutations, and then apply them to the output, based on the type of planner used
     if (planner instanceof RandomPlanner) {      
       RandomPlanner randomPlanner = (RandomPlanner)planner;
       List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
@@ -227,6 +233,7 @@ public abstract class DataStep extends Step {
     throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
   }
 
+  // Group the arriving records by key, attach the existing records for each key, and plan
   private JavaRDD<PlannedRow> planMutationsByKey(DataFrame arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
     JavaPairRDD<Row, Iterable<Row>> arrivingByKey = 
         arriving.javaRDD().groupBy(new ExtractKeyFunction(keyFieldNames));
@@ -273,25 +280,34 @@ public abstract class DataStep extends Step {
       this.keyFieldNames = keyFieldNames;
     }
 
+    // Add the existing records for the keys to the arriving records
     @Override
     public Iterable<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>>
     call(Iterator<Tuple2<Row, Iterable<Row>>> arrivingForKeysIterator) throws Exception
     {
+      // If there are no arriving keys, return an empty list
       if (!arrivingForKeysIterator.hasNext()) {
         return Lists.newArrayList();
       }
 
+      // If we have not instantiated the output for this partition, instantiate it
       if (output == null) {
         output = (RandomOutput)OutputFactory.create(outputConfig);
       }
 
+      // Convert the iterator of keys to a list
       List<Tuple2<Row, Iterable<Row>>> arrivingForKeys = Lists.newArrayList(arrivingForKeysIterator);
 
+      // Extract the keys from the keyed arriving records
       Set<Row> arrivingKeys = extractKeys(arrivingForKeys);
 
+      // Get the existing records for those keys from the output
       Iterable<Row> existingWithoutKeys = output.getExistingForFilters(arrivingKeys);
+      
+      // Map the retrieved existing records to the keys they were looked up from
       Map<Row, Iterable<Row>> existingForKeys = mapExistingToKeys(existingWithoutKeys);
 
+      // Attach the existing records by key to the arriving records by key
       List<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>> arrivingAndExistingForKeys = 
           attachExistingToArrivingForKeys(existingForKeys, arrivingForKeys);
 
@@ -341,6 +357,7 @@ public abstract class DataStep extends Step {
           existing = Lists.newArrayList();
         }
 
+        // Oh my...
         Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>> arrivingAndExistingForKey = 
             new Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>(key, 
                 new Tuple2<Iterable<Row>, Iterable<Row>>(arriving, existing));

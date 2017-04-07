@@ -21,8 +21,17 @@ import org.apache.spark.sql.DataFrame;
 
 import scala.Tuple2;
 
+/**
+ * Bulk planners generate bulk mutations of a DataFrame at a time.
+ */
 public interface BulkPlanner extends Planner {
 
+  /**
+   * Plan the bulk mutations for the arriving DataFrame from the step.
+   * @param arriving The DataFrame from the step.
+   * @return A list of bulk mutations, where each mutation is composed of a tuple of a mutation
+   * type and a mutation DataFrame. The mutations will be applied in the same order as the list.
+   */
   List<Tuple2<MutationType, DataFrame>> planMutationsForSet(DataFrame arriving);
 
 }

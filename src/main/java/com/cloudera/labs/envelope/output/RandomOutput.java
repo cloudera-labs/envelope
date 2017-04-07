@@ -23,12 +23,32 @@ import org.apache.spark.sql.Row;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
 
+/**
+ * Random outputs write data out in individual mutations of a row at a time.
+ */
 public interface RandomOutput extends Output {
 
+  /**
+   * Get the set of mutation types that this output supports.
+   */
   Set<MutationType> getSupportedRandomMutationTypes();
 
+  /**
+   * Apply the random mutations to the external sink of the output.
+   * @param planned The list of random mutations, where each mutation is composed of an object of a
+   * mutation type and the mutation data as a Spark SQL Row. The output must apply the mutations in
+   * the same order as the list.
+   */
   void applyRandomMutations(List<PlannedRow> planned) throws Exception;
 
+  /**
+   * Get the existing records from the output that matches the given filters.
+   * @param filters An iterable collection of filters, where each filter is a Row that the existing
+   * records must exactly match all values on. This is typically used for key lookups, where
+   * the iterable collection is a batch of keys (each defined as a Row).
+   * @return The iterable collection of existing records that match the filters. There can be
+   * zero-to-one-to-many existing record rows per filter row.
+   */
   Iterable<Row> getExistingForFilters(Iterable<Row> filters) throws Exception;
 
 }

@@ -17,8 +17,17 @@ package com.cloudera.labs.envelope.input;
 
 import org.apache.spark.sql.DataFrame;
 
+/**
+ * Batch inputs read in a DataFrame from a static external source.
+ * Custom inputs that point to a static data source should implement BatchInput.
+ */
 public interface BatchInput extends Input {
 
+  /**
+   * Read the external source data into the Spark application.
+   * @return The DataFrame of the input.
+   * @throws Exception
+   */
   DataFrame read() throws Exception;
 
 }

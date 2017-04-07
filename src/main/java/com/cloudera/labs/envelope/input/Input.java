@@ -17,8 +17,18 @@ package com.cloudera.labs.envelope.input;
 
 import com.typesafe.config.Config;
 
+/**
+ * Inputs bring data into the Spark application, typically from an external source.
+ * Custom inputs should not implement Input directly -- they should implement either
+ * BatchInput or StreamInput.
+ */
 public interface Input {
 
+  /**
+   * Configure the input.
+   * This is called once by Envelope, immediately after input instantiation.
+   * @param config The configuration of the input.
+   */
   void configure(Config config);
 
 }

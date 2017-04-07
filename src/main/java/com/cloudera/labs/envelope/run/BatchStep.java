@@ -25,6 +25,9 @@ import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
 
+/**
+ * A batch step is a data step that contains a single DataFrame.
+ */
 public class BatchStep extends DataStep {
 
   public BatchStep(String name, Config config) throws Exception {

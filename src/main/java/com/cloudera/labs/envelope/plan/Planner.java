@@ -19,10 +19,21 @@ import java.util.Set;
 
 import com.typesafe.config.Config;
 
+/**
+ * Planners determine the mutations required to be applied to the output for the data of the step.
+ * Custom planners should not implement Planner directly -- they should implement BulkPlanner
+ * or RandomPlanner.
+ */
 public interface Planner {
 
+  /**
+   * Configure the planner.
+   */
   void configure(Config config);
 
+  /**
+   * Get the set of mutation types that the planner may emit.
+   */
   Set<MutationType> getEmittedMutationTypes();
 
 }

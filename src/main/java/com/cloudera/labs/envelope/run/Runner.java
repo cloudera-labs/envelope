@@ -39,11 +39,19 @@ import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
+/**
+ * Runner merely submits the pipeline steps to Spark in dependency order.
+ * Ultimately the DAG scheduling is being coordinated by Spark, not Envelope.
+ */
 @SuppressWarnings("serial")
 public class Runner {
 
   private static Logger LOG = LoggerFactory.getLogger(Runner.class);
 
+  /**
+   * Run the Envelope pipeline
+   * @param config The full configuration of the Envelope pipeline
+   */
   public static void run(Config config) throws Exception {
     Set<Step> steps = extractSteps(config);
     LOG.info("Steps instatiated");
@@ -64,6 +72,10 @@ public class Runner {
     LOG.info("Runner finished");
   }
 
+  /**
+   * Run the Envelope pipeline as a Spark Streaming job.
+   * @param steps The full configuration of the Envelope pipeline
+   */
   private static void runStreaming(final Set<Step> steps) throws Exception {
     Set<Step> independentSteps = getIndependentSteps(steps);
     runBatch(independentSteps);
@@ -101,12 +113,18 @@ public class Runner {
     LOG.info("Streaming context terminated");
   }
 
+  /**
+   * Run the steps in dependency order.
+   * @param steps The steps to run, which may be the full Envelope pipeline, or a subset of it.
+   */
   private static void runBatch(Set<? extends Step> steps) throws Exception {
     LOG.info("Started batch for steps: {}", stepNamesAsString(steps));
 
     ExecutorService threadPool = getNewThreadPool();
     Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
 
+    // The essential logic is to loop through all of the steps until they have all been submitted.
+    // Steps will not be submitted until all of their dependency steps have been submitted first.
     while (!allDataStepsFinished(steps)) {
       LOG.info("Not all steps are finished");
       for (final Step step : steps) {
@@ -123,6 +141,8 @@ public class Runner {
 
             if (allDataStepsFinished(dependencies)) {
               LOG.info("Step dependencies have finished, running step off main thread");
+              // Batch steps are run off the main thread so that if they contain outputs they will
+              // not block the parallel execution of independent steps.
               Future<Void> offMainThreadStep = runStepOffMainThread(batchStep, dependencies, threadPool);
               offMainThreadSteps.add(offMainThreadStep);
             }

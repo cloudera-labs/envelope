@@ -24,10 +24,22 @@ import com.cloudera.labs.envelope.plan.MutationType;
 
 import scala.Tuple2;
 
+/**
+ * Bulk outputs write data out in bulk mutations of a DataFrame at a time.
+ */
 public interface BulkOutput extends Output {
 
+  /**
+   * Get the set of mutation types that this output supports.
+   */
   Set<MutationType> getSupportedBulkMutationTypes();
 
+  /**
+   * Apply the bulk mutations to the external sink of the output.
+   * @param planned The list of bulk mutations, where each mutation is composed of a tuple of a
+   * mutation type and the mutation data as a DataFrame. The output must apply the mutations in
+   * the same order as the list.
+   */
   void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception;
 
 }
