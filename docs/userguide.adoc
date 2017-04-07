@@ -25,4 +25,4 @@ And can additionally define:
 - One application section for pipeline-level configurations
 - One or more steps with one or more dependencies
 
-For the full specification of Envelope configurations, see the link:docs/configurations.adoc[configuration guide] documentation page.
+For the full specification of Envelope configurations, see the link:configurations.adoc[configuration guide] documentation page.

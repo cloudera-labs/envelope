@@ -32,7 +32,6 @@ Envelope provides four example pipelines that you can run for yourself:
 - [FIX](examples/fix/): simulates receiving financial orders and executions and tracking the history of the orders over time.
     - This example includes a [walkthrough](examples/fix/README.adoc#walkthrough) that explains in detail how it meets the requirements.
 - [Traffic](examples/traffic/): simulates receiving traffic conditions and calculating an aggregate view of traffic congestion.
-- [Bluecoat Proxy](examples/proxy/): simulates receiving web logs and using a Morphline to parse the logs into their component fields.
 - [Filesystem](examples/filesystem/): demonstrates a batch job that reads a JSON file from HDFS and writes the data back to Avro files on HDFS.
 
 ### Running Envelope
@@ -49,4 +48,5 @@ If you are ready for more, dive in:
 * [User Guide](docs/userguide.adoc) - details on the design, operations, configuration, and usage of Envelope
 * [Configuration Guide](docs/configurations.adoc) - a deep-dive into the parameters and options of Envelope
 * [Planners Guide](docs/planners.adoc) - directions and details on when, why, and how to use planners and associated outputs
-* [Contributing to Envelope](docs/contributing.adoc) - guidelines and best practices for both developing and sharing Envelope components and applications
+
+Note that, like all Cloudera Labs projects, Envelope is not officially supported by Cloudera. For assistance with Envelope, please head over to the [Cloudera Community forums](http://community.cloudera.com/t5/Cloudera-Labs/bd-p/ClouderaLabs) and let us know your questions and feedback. If you wish to contribute to the project, we are happy to look at pull requests and issues on this Cloudera Labs repository.
