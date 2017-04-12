@@ -32,7 +32,6 @@ Envelope provides four example pipelines that you can run for yourself:
 - [FIX](examples/fix/): simulates receiving financial orders and executions and tracking the history of the orders over time.
     - This example includes a [walkthrough](examples/fix/README.adoc#walkthrough) that explains in detail how it meets the requirements.
 - [Traffic](examples/traffic/): simulates receiving traffic conditions and calculating an aggregate view of traffic congestion.
-- [Bluecoat Proxy](examples/proxy/): simulates receiving web logs and using a Morphline to parse the logs into their component fields.
 - [Filesystem](examples/filesystem/): demonstrates a batch job that reads a JSON file from HDFS and writes the data back to Avro files on HDFS.
 
 ### Running Envelope
