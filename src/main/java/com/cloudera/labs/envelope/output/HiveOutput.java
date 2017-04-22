@@ -80,7 +80,8 @@ public class HiveOutput implements BulkOutput {
   }
 
   private String[] getPartitionColumns() {
-    return (String[])config.getList(PARTITION_BY_CONFIG_NAME).toArray();
+    List<String> colNames = config.getStringList(PARTITION_BY_CONFIG_NAME);
+    return colNames.toArray(new String[colNames.size()]) ;
   }
 
   private String getTableName() {
