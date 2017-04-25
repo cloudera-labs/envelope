@@ -164,6 +164,8 @@ public class Runner {
       awaitAllOffMainThreadsFinished(offMainThreadSteps);
       offMainThreadSteps.clear();
     }
+    
+    threadPool.shutdown();
 
     LOG.info("Finished batch for steps: {}", stepNamesAsString(steps));
   }
