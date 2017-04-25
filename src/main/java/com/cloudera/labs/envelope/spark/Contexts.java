@@ -16,6 +16,7 @@
 package com.cloudera.labs.envelope.spark;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -49,7 +50,7 @@ public enum Contexts {
   public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
 
-  private Config config;
+  private Config config = ConfigFactory.empty();
 
   private JavaStreamingContext jssc;
   private JavaSparkContext jsc;
@@ -126,6 +127,15 @@ public enum Contexts {
 
   private static void initializeBatchJob() {
     SparkConf sparkConf = getSparkConfiguration(INSTANCE.config);
+    
+    if (!sparkConf.contains("spark.master")) {
+      LOG.warn("Spark master not provided, instead using local mode");
+      sparkConf.setMaster("local[*]");
+    }
+    if (!sparkConf.contains("spark.app.name")) {
+      LOG.warn("Spark application name not provided, instead using empty string");
+      sparkConf.setAppName("");
+    }
 
     INSTANCE.jsc = new JavaSparkContext(sparkConf);
   }

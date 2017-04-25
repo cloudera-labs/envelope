@@ -35,6 +35,8 @@ import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.spark.AccumulatorRequest;
+import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -57,6 +59,8 @@ public class Runner {
     LOG.info("Steps instatiated");
 
     Contexts.initialize(config);
+    
+    initializeAccumulators(steps);
 
     if (hasStreamingStep(steps)) {
       LOG.info("Streaming step(s) identified");
@@ -354,6 +358,32 @@ public class Runner {
   private static void awaitAllOffMainThreadsFinished(Set<Future<Void>> offMainThreadSteps) throws Exception {
     for (Future<Void> offMainThreadStep : offMainThreadSteps) {
       offMainThreadStep.get();
+    }
+  }
+  
+  private static Set<DataStep> getDataSteps(Set<Step> steps) {
+    Set<DataStep> dataSteps = Sets.newHashSet();
+    
+    for (Step step : steps) {
+      if (step instanceof DataStep) {
+        dataSteps.add((DataStep)step);
+      }
+    }
+    
+    return dataSteps;
+  }
+  
+  private static void initializeAccumulators(Set<Step> steps) {
+    Set<AccumulatorRequest> requests = Sets.newHashSet();
+    
+    for (DataStep dataStep : getDataSteps(steps)) {
+      requests.addAll(dataStep.getAccumulatorRequests());
+    }
+    
+    Accumulators accumulators = new Accumulators(requests);
+    
+    for (DataStep dataStep : getDataSteps(steps)) {
+      dataStep.receiveAccumulators(accumulators);
     }
   }
 

@@ -42,7 +42,10 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
+import com.cloudera.labs.envelope.spark.AccumulatorRequest;
+import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -51,12 +54,17 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class KuduOutput implements RandomOutput, BulkOutput {
+public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_CONFIG_NAME = "table.name"; 
+  
+  private static final String ACCUMULATOR_NUMBER_OF_SCANNERS = "Number of Kudu scanners";
+  private static final String ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED = "Number of filters scanned in Kudu";
+  private static final String ACCUMULATOR_SECONDS_SCANNING = "Seconds spent scanning Kudu";
 
   private Config config;
+  private Accumulators accumulators;
 
   private static KuduClient client;
   private static KuduSession session;
@@ -116,6 +124,7 @@ public class KuduOutput implements RandomOutput, BulkOutput {
     KuduTable table = connectToTable();
     KuduScanner scanner = scannerForFilters(filters, table);
 
+    long startTime = System.nanoTime();
     while (scanner.hasMoreRows()) {
       for (RowResult rowResult : scanner.nextRows()) {
         Row existing = resultAsRow(rowResult, table);
@@ -123,6 +132,8 @@ public class KuduOutput implements RandomOutput, BulkOutput {
         existingForFilters.add(existing);
       }
     }
+    long endTime = System.nanoTime();
+    accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_SCANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
     return existingForFilters;
   }
@@ -233,7 +244,10 @@ public class KuduOutput implements RandomOutput, BulkOutput {
     if (filtersList.size() == 0) {
       throw new RuntimeException("Kudu existing filter was not provided.");
     }
-
+    
+    accumulators.getIntAccumulators().get(ACCUMULATOR_NUMBER_OF_SCANNERS).add(1);
+    accumulators.getIntAccumulators().get(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED).add(filtersList.size());
+    
     KuduScannerBuilder builder = client.newScannerBuilder(table);
 
     for (String fieldName : filtersList.get(0).schema().fieldNames()) {
@@ -380,6 +394,22 @@ public class KuduOutput implements RandomOutput, BulkOutput {
           throw new RuntimeException("Kudu bulk output does not support mutation type: " + mutationType);
       }
     }
+  }
+
+  @Override
+  public Set<AccumulatorRequest> getAccumulatorRequests() {
+    LOG.info("Kudu output requesting accumulators");
+    
+    return Sets.newHashSet(new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_SCANNERS, Integer.class),
+                           new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED, Integer.class),
+                           new AccumulatorRequest(ACCUMULATOR_SECONDS_SCANNING, Double.class));
+  }
+
+  @Override
+  public void receiveAccumulators(Accumulators accumulators) {
+    this.accumulators = accumulators;
+    
+    LOG.info("Kudu output received accumulators");
   }
 
 }
