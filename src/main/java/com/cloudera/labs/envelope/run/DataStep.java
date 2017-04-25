@@ -63,6 +63,9 @@ public abstract class DataStep extends Step {
 
   public static final String CACHE_PROPERTY = "cache";
   public static final String SMALL_HINT_PROPERTY = "hint.small";
+  public static final String PRINT_SCHEMA_ENABLED_PROPERTY = "print.schema.enabled";
+  public static final String PRINT_DATA_ENABLED_PROPERTY = "print.data.enabled";
+  public static final String PRINT_DATA_LIMIT_PROPERTY = "print.data.limit";
 
   protected boolean finished = false;
   protected DataFrame data;
@@ -115,6 +118,14 @@ public abstract class DataStep extends Step {
     if (usesSmallHint()) {
       applySmallHint();
     }
+    
+    if (doesPrintSchema()) {
+      printSchema();
+    }
+    
+    if (doesPrintData()) {
+      printData();
+    }
 
     if (hasOutput()) {
       writeOutput();
@@ -143,6 +154,34 @@ public abstract class DataStep extends Step {
 
   private void applySmallHint() {
     data = functions.broadcast(data);
+  }
+  
+  private boolean doesPrintSchema() {
+    if (!config.hasPath(PRINT_SCHEMA_ENABLED_PROPERTY)) return false;
+
+    return config.getBoolean(PRINT_SCHEMA_ENABLED_PROPERTY);
+  }
+  
+  private void printSchema() {
+    System.out.println("Schema for step " + getName() + ":");
+    
+    data.printSchema();
+  }
+  
+  private boolean doesPrintData() {
+    if (!config.hasPath(PRINT_DATA_ENABLED_PROPERTY)) return false;
+
+    return config.getBoolean(PRINT_DATA_ENABLED_PROPERTY);
+  }
+  
+  private void printData() {
+    if (config.hasPath(PRINT_DATA_LIMIT_PROPERTY)) {
+      int limit = config.getInt(PRINT_DATA_LIMIT_PROPERTY);
+      data.limit(limit).show();
+    }
+    else {
+      data.show();
+    }
   }
 
   protected Map<String, DataFrame> getStepDataFrames(Set<Step> steps) {
