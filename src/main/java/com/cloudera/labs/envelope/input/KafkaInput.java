@@ -17,15 +17,20 @@ package com.cloudera.labs.envelope.input;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.kafka.KafkaUtils;
+import org.apache.spark.streaming.kafka010.ConsumerStrategies;
+import org.apache.spark.streaming.kafka010.KafkaUtils;
+import org.apache.spark.streaming.kafka010.LocationStrategies;
 
 import com.cloudera.labs.envelope.input.translate.TranslateFunction;
 import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
@@ -34,8 +39,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
-import kafka.serializer.DefaultDecoder;
-import kafka.serializer.StringDecoder;
+import scala.Tuple2;
 
 public class KafkaInput implements StreamInput {
 
@@ -55,15 +59,28 @@ public class KafkaInput implements StreamInput {
 
   @Override
   public JavaDStream<Row> getDStream() throws Exception {
-    Map<String, String> kafkaParams = Maps.newHashMap();
+    Map<String, Object> kafkaParams = Maps.newHashMap();
 
     String brokers = config.getString(BROKERS_CONFIG_NAME);
-    kafkaParams.put("metadata.broker.list", brokers);
+    kafkaParams.put("bootstrap.servers", brokers);
 
     String topics = config.getString(TOPICS_CONFIG_NAME);
     Set<String> topicsSet = Sets.newHashSet(topics.split(Pattern.quote(",")));
 
     String encoding = config.getString(ENCODING_CONFIG_NAME);
+    if (encoding.equals("string")) {
+      kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+      kafkaParams.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+    }
+    else if (encoding.equals("bytearray")) {
+      kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+      kafkaParams.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+    }
+    else {
+      throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
+    }
+    
+    kafkaParams.put("group.id", UUID.randomUUID().toString());
 
     addCustomParams(kafkaParams);
 
@@ -73,14 +90,18 @@ public class KafkaInput implements StreamInput {
     JavaDStream<Row> dStream = null;
 
     if (encoding.equals("string")) {
-      JavaPairDStream<String, String> stringDStream = KafkaUtils.createDirectStream(
-          jssc, String.class, String.class, StringDecoder.class, StringDecoder.class, kafkaParams, topicsSet);
-
+      JavaPairDStream<String, String> stringDStream = KafkaUtils
+          .createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+                              ConsumerStrategies.<String, String>Subscribe(topicsSet, kafkaParams))
+          .mapToPair(new UnwrapConsumerRecordFunction<String>());
+      
       dStream = stringDStream.flatMap(new TranslateFunction<String>(translatorConfig));
     }
     else if (encoding.equals("bytearray")) {
-      JavaPairDStream<byte[], byte[]> byteArrayDStream = KafkaUtils.createDirectStream(
-          jssc, byte[].class, byte[].class, DefaultDecoder.class, DefaultDecoder.class, kafkaParams, topicsSet);
+      JavaPairDStream<byte[], byte[]> byteArrayDStream = KafkaUtils
+          .createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+                              ConsumerStrategies.<byte[], byte[]>Subscribe(topicsSet, kafkaParams))
+          .mapToPair(new UnwrapConsumerRecordFunction<byte[]>());
 
       dStream = byteArrayDStream.flatMap(new TranslateFunction<byte[]>(translatorConfig));
     }
@@ -103,7 +124,7 @@ public class KafkaInput implements StreamInput {
     return TranslatorFactory.create(translatorConfig).getSchema();
   }
 
-  private void addCustomParams(Map<String, String> params) {
+  private void addCustomParams(Map<String, Object> params) {
     for (String propertyName : config.root().keySet()) {
       if (propertyName.startsWith(PARAMETER_CONFIG_PREFIX)) {
         String paramName = propertyName.substring(PARAMETER_CONFIG_PREFIX.length());
@@ -111,6 +132,14 @@ public class KafkaInput implements StreamInput {
 
         params.put(paramName, paramValue);
       }
+    }
+  }
+  
+  @SuppressWarnings("serial")
+  private static class UnwrapConsumerRecordFunction<T> implements PairFunction<ConsumerRecord<T, T>, T, T> {
+    @Override
+    public Tuple2<T, T> call(ConsumerRecord<T, T> record) {
+      return new Tuple2<>(record.key(), record.value());
     }
   }
 

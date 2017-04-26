@@ -20,40 +20,20 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 public class TestNestDeriver {
-
-  private static SQLContext sqlc;
-
-  @BeforeClass
-  public static void beforeClass() {
-    SparkConf conf = new SparkConf();
-    conf.setMaster("local[1]");
-    conf.setAppName("TestNestDeriver");
-    JavaSparkContext jsc = new JavaSparkContext(conf);
-    sqlc = new SQLContext(jsc);
-  }
-
-  @AfterClass
-  public static void afterClass() {
-    sqlc.sparkContext().stop();
-  }
 
   @Test
   public void testOneKeyFieldName() throws Exception {
@@ -76,10 +56,10 @@ public class TestNestDeriver {
     customerRows.add(RowFactory.create(10000, "Jane"));
     customerRows.add(RowFactory.create(10001, "Joe"));
 
-    DataFrame orders = sqlc.createDataFrame(orderRows, ordersSchema);
-    DataFrame customers = sqlc.createDataFrame(customerRows, customersSchema);
+    Dataset<Row> orders = Contexts.getSparkSession().createDataFrame(orderRows, ordersSchema);
+    Dataset<Row> customers = Contexts.getSparkSession().createDataFrame(customerRows, customersSchema);
 
-    Map<String, DataFrame> dependencies = Maps.newHashMap();
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("orders", orders);
     dependencies.put("customers", customers);
 
@@ -93,7 +73,7 @@ public class TestNestDeriver {
     Deriver deriver = new NestDeriver();
     deriver.configure(config);
 
-    DataFrame nested = deriver.derive(dependencies);
+    Dataset<Row> nested = deriver.derive(dependencies);
 
     assertEquals(nested.count(), 2);
 
@@ -131,10 +111,10 @@ public class TestNestDeriver {
     customerRows.add(RowFactory.create("Jane", "Smith", "NY"));
     customerRows.add(RowFactory.create("Jane", "Bloggs", "CA"));
 
-    DataFrame orders = sqlc.createDataFrame(orderRows, ordersSchema);
-    DataFrame customers = sqlc.createDataFrame(customerRows, customersSchema);
+    Dataset<Row> orders = Contexts.getSparkSession().createDataFrame(orderRows, ordersSchema);
+    Dataset<Row> customers = Contexts.getSparkSession().createDataFrame(customerRows, customersSchema);
 
-    Map<String, DataFrame> dependencies = Maps.newHashMap();
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("orders", orders);
     dependencies.put("customers", customers);
 
@@ -148,7 +128,7 @@ public class TestNestDeriver {
     Deriver deriver = new NestDeriver();
     deriver.configure(config);
 
-    DataFrame nested = deriver.derive(dependencies);
+    Dataset<Row> nested = deriver.derive(dependencies);
 
     assertEquals(nested.count(), 2);
 

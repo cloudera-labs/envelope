@@ -15,13 +15,14 @@
  */
 package com.cloudera.labs.envelope.examples;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
@@ -44,22 +45,20 @@ public class FIXInput implements BatchInput {
   }
 
   @Override
-  public DataFrame read() throws Exception {
-    List<Integer> taskList = Lists.newArrayList(new Integer[tasks]);
-    
-    JavaRDD<Integer> baseRDD = Contexts.getJavaSparkContext().parallelize(taskList).repartition(tasks);
+  public Dataset<Row> read() throws Exception {    
+    JavaRDD<Long> baseRDD = Contexts.getSparkSession().range(tasks).javaRDD().repartition(tasks);
     
     JavaRDD<Row> fixRDD = baseRDD.flatMap(new GenerateFIXMessages(ordersPerTask));
     
     StructType schema = DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField("fix", DataTypes.StringType, false)));
     
-    DataFrame fixDF = Contexts.getSQLContext().createDataFrame(fixRDD, schema);
+    Dataset<Row> fixDF = Contexts.getSparkSession().createDataFrame(fixRDD, schema);
     
     return fixDF;
   }
   
   @SuppressWarnings("serial")
-  private static class GenerateFIXMessages implements FlatMapFunction<Integer, Row> {
+  private static class GenerateFIXMessages implements FlatMapFunction<Long, Row> {
     private long ordersPerTask;
     
     public GenerateFIXMessages(long ordersPerTask) {
@@ -67,7 +66,7 @@ public class FIXInput implements BatchInput {
     }
     
     @Override
-    public Iterable<Row> call(Integer ignored) throws Exception {
+    public Iterator<Row> call(Long ignored) throws Exception {
       List<Row> messages = Lists.newArrayList();
       
       for (int i = 0; i < ordersPerTask; i++) {
@@ -79,7 +78,7 @@ public class FIXInput implements BatchInput {
         }
       }
       
-      return messages;
+      return messages.iterator();
     }
     
     private static class Order {

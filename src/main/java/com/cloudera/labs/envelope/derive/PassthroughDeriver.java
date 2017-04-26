@@ -18,7 +18,8 @@ package com.cloudera.labs.envelope.derive;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.typesafe.config.Config;
 
@@ -28,16 +29,16 @@ public class PassthroughDeriver implements Deriver {
   public void configure(Config config) {}
 
   @Override
-  public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {
+  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
     if (dependencies.isEmpty()) {
       throw new RuntimeException("Passthrough deriver requires at least one dependency");
     }
 
-    Iterator<DataFrame> dependencyIterator = dependencies.values().iterator();
+    Iterator<Dataset<Row>> dependencyIterator = dependencies.values().iterator();
 
-    DataFrame unioned = dependencyIterator.next();
+    Dataset<Row> unioned = dependencyIterator.next();
     while (dependencyIterator.hasNext()) {
-      unioned = unioned.unionAll(dependencyIterator.next());
+      unioned = unioned.union(dependencyIterator.next());
     }
 
     return unioned;

@@ -22,19 +22,13 @@ import static org.junit.Assert.assertNull;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.StructType;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.plan.AppendPlanner;
-import com.cloudera.labs.envelope.plan.BulkPlanner;
-import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -46,25 +40,13 @@ import scala.Tuple2;
 
 public class TestAppendPlanner {
 
-  private static JavaSparkContext jsc;
-  private static DataFrame dataFrame;
+  private static Dataset<Row> dataFrame;
 
   @BeforeClass
   public static void beforeClass() {
-    SparkConf conf = new SparkConf();
-    conf.setMaster("local[1]");
-    conf.setAppName("TestAppendPlanner");
-    jsc = new JavaSparkContext(conf);
-    SQLContext sqlc = new SQLContext(jsc);
-
     StructType schema = RowUtils.structTypeFor(Lists.newArrayList("key", "value"), Lists.newArrayList("string", "int"));
     Row row = new RowWithSchema(schema, null, 1);
-    dataFrame = sqlc.createDataFrame(Lists.newArrayList(row), schema);
-  }
-
-  @AfterClass
-  public static void afterClass() {
-    jsc.close();
+    dataFrame = Contexts.getSparkSession().createDataFrame(Lists.newArrayList(row), schema);
   }
 
   @Test
@@ -73,7 +55,7 @@ public class TestAppendPlanner {
     BulkPlanner ap = new AppendPlanner();
     ap.configure(config);
 
-    List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
+    List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
 
     assertEquals(planned.size(), 1);
     assertEquals(planned.get(0)._1(), MutationType.INSERT);
@@ -90,16 +72,16 @@ public class TestAppendPlanner {
     BulkPlanner ap = new AppendPlanner();
     ap.configure(config);
 
-    List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
+    List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
 
     assertEquals(planned.size(), 1);
 
-    DataFrame plannedDF = planned.get(0)._2();
+    Dataset<Row> plannedDF = planned.get(0)._2();
 
     assertEquals(planned.get(0)._1(), MutationType.INSERT);
     assertEquals(plannedDF.count(), 1);
 
-    Row plannedRow = plannedDF.collect()[0];
+    Row plannedRow = plannedDF.collectAsList().get(0);
 
     assertNotNull(plannedRow.get(plannedRow.fieldIndex("key")));
     assertEquals(plannedRow.getString(plannedRow.fieldIndex("key")).length(), 36);
@@ -114,16 +96,16 @@ public class TestAppendPlanner {
     BulkPlanner ap = new AppendPlanner();
     ap.configure(config);
 
-    List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
+    List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
 
     assertEquals(planned.size(), 1);
 
-    DataFrame plannedDF = planned.get(0)._2();
+    Dataset<Row> plannedDF = planned.get(0)._2();
 
     assertEquals(planned.get(0)._1(), MutationType.INSERT);
     assertEquals(plannedDF.count(), 1);
 
-    Row plannedRow = plannedDF.collect()[0];
+    Row plannedRow = plannedDF.collectAsList().get(0);
 
     assertNull(plannedRow.get(plannedRow.fieldIndex("key")));
   }
@@ -137,16 +119,16 @@ public class TestAppendPlanner {
     BulkPlanner ap = new AppendPlanner();
     ap.configure(config);
 
-    List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
+    List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
 
     assertEquals(planned.size(), 1);
 
-    DataFrame plannedDF = planned.get(0)._2();
+    Dataset<Row> plannedDF = planned.get(0)._2();
 
     assertEquals(planned.get(0)._1(), MutationType.INSERT);
     assertEquals(plannedDF.count(), 1);
 
-    Row plannedRow = plannedDF.collect()[0];
+    Row plannedRow = plannedDF.collectAsList().get(0);
 
     assertNotNull(plannedRow.get(plannedRow.fieldIndex("lastupdated")));
   }
@@ -157,16 +139,16 @@ public class TestAppendPlanner {
     BulkPlanner ap = new AppendPlanner();
     ap.configure(config);
 
-    List<Tuple2<MutationType, DataFrame>> planned = ap.planMutationsForSet(dataFrame);
+    List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
 
     assertEquals(planned.size(), 1);
 
-    DataFrame plannedDF = planned.get(0)._2();
+    Dataset<Row> plannedDF = planned.get(0)._2();
 
     assertEquals(planned.get(0)._1(), MutationType.INSERT);
     assertEquals(plannedDF.count(), 1);
 
-    Row plannedRow = plannedDF.collect()[0];
+    Row plannedRow = plannedDF.collectAsList().get(0);
     plannedRow.get(plannedRow.fieldIndex("lastupdated"));
   }
 

@@ -26,7 +26,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.StructType;
@@ -76,7 +76,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   private static final String ACCUMULATOR_SECONDS_APPLYING = "Seconds spent applying random mutations";
 
   protected boolean finished = false;
-  protected DataFrame data;
+  protected Dataset<Row> data;
   protected Input input;
   protected Deriver deriver;
   protected Planner planner;
@@ -116,14 +116,14 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     this.finished = finished;
   }
 
-  public DataFrame getData() {
+  public Dataset<Row> getData() {
     return data;  
   }
 
-  public void setData(DataFrame data) throws Exception {
-    this.data = data;
+  public void setData(Dataset<Row> batchDF) throws Exception {
+    this.data = batchDF;
 
-    data.registerTempTable(getName());
+    batchDF.createOrReplaceTempView(getName());
 
     if (doesCache()) {
       cache();
@@ -198,8 +198,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
   }
 
-  protected Map<String, DataFrame> getStepDataFrames(Set<Step> steps) {
-    Map<String, DataFrame> stepDFs = Maps.newHashMap();
+  protected Map<String, Dataset<Row>> getStepDataFrames(Set<Step> steps) {
+    Map<String, Dataset<Row>> stepDFs = Maps.newHashMap();
 
     for (Step step : steps) {
       if (step instanceof DataStep) {
@@ -284,7 +284,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
     else if (planner instanceof BulkPlanner) {
       BulkPlanner bulkPlanner = (BulkPlanner)planner;
-      List<Tuple2<MutationType, DataFrame>> planned = bulkPlanner.planMutationsForSet(data);
+      List<Tuple2<MutationType, Dataset<Row>>> planned = bulkPlanner.planMutationsForSet(data);
 
       BulkOutput bulkOutput = (BulkOutput)output;      
       bulkOutput.applyBulkMutations(planned);
@@ -333,7 +333,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   // Group the arriving records by key, attach the existing records for each key, and plan
-  private JavaRDD<PlannedRow> planMutationsByKey(DataFrame arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
+  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
     JavaPairRDD<Row, Iterable<Row>> arrivingByKey = 
         arriving.javaRDD().groupBy(new ExtractKeyFunction(keyFieldNames, accumulators));
 
@@ -390,12 +390,12 @@ public abstract class DataStep extends Step implements UsesAccumulators {
 
     // Add the existing records for the keys to the arriving records
     @Override
-    public Iterable<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>>
+    public Iterator<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>>
     call(Iterator<Tuple2<Row, Iterable<Row>>> arrivingForKeysIterator) throws Exception
     {
       // If there are no arriving keys, return an empty list
       if (!arrivingForKeysIterator.hasNext()) {
-        return Lists.newArrayList();
+        return Lists.<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>>newArrayList().iterator();
       }
       
       long startTime = System.nanoTime();
@@ -427,7 +427,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       long endTime = System.nanoTime();
       accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_EXISTING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
-      return arrivingAndExistingForKeys;
+      return arrivingAndExistingForKeys.iterator();
     }
 
     private Set<Row> extractKeys(List<Tuple2<Row, Iterable<Row>>> arrivingForKeys) {
@@ -498,7 +498,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
 
     @Override
-    public Iterable<PlannedRow>
+    public Iterator<PlannedRow>
     call(Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>> keyedRecords) throws Exception {
       long startTime = System.nanoTime();
       
@@ -518,7 +518,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       long endTime = System.nanoTime();
       accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_PLANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
-      return plannedForKey;
+      return plannedForKey.iterator();
     }
   };
 

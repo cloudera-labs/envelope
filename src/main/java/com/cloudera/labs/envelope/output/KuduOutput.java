@@ -33,7 +33,7 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowResult;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.spark.kudu.KuduContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -245,8 +245,8 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
       throw new RuntimeException("Kudu existing filter was not provided.");
     }
     
-    accumulators.getIntAccumulators().get(ACCUMULATOR_NUMBER_OF_SCANNERS).add(1);
-    accumulators.getIntAccumulators().get(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED).add(filtersList.size());
+    accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_SCANNERS).add(1);
+    accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED).add(filtersList.size());
     
     KuduScannerBuilder builder = client.newScannerBuilder(table);
 
@@ -369,12 +369,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
     KuduContext kc = new KuduContext(config.getString(CONNECTION_CONFIG_NAME));
 
-    for (Tuple2<MutationType, DataFrame> plan : planned) {
+    for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      DataFrame mutation = plan._2();
+      Dataset<Row> mutation = plan._2();
       String tableName = config.getString(TABLE_CONFIG_NAME);
 
       switch (mutationType) {
@@ -400,8 +400,8 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   public Set<AccumulatorRequest> getAccumulatorRequests() {
     LOG.info("Kudu output requesting accumulators");
     
-    return Sets.newHashSet(new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_SCANNERS, Integer.class),
-                           new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED, Integer.class),
+    return Sets.newHashSet(new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_SCANNERS, Long.class),
+                           new AccumulatorRequest(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED, Long.class),
                            new AccumulatorRequest(ACCUMULATOR_SECONDS_SCANNING, Double.class));
   }
 

@@ -17,11 +17,11 @@ The configuration for this example is found link:fix.conf[here]. The messages do
 
 . Run the example by submitting the Envelope application with the example's configuration:
 
-    spark-submit envelope-*.jar fix.conf
+    SPARK_KAFKA_VERSION=0.10 spark2-submit envelope-*.jar fix.conf
 
 . In another terminal session start the data generator, which is itself an Envelope pipeline that writes out one million example orders to Kafka:
 
-    spark-submit envelope-*.jar fix_generator.conf
+    spark2-submit envelope-*.jar fix_generator.conf
 
 . View the arriving large order alerts by running the Kafka console consumer:
 
@@ -616,7 +616,7 @@ steps {
 
 `FIXInput` is an implementation of the `BatchInput` interface, and is bundled with Envelope as part of the example. For Envelope to load implementations that are not part of Envelope itself, the implementation should be compiled into a separate jar to Envelope and then the pipeline submitted similarly to:
 
-    spark-submit --jars yourimplementation.jar envelope-*.jar yourpipeline.conf
+    spark2-submit --jars yourimplementation.jar envelope-*.jar yourpipeline.conf
 
 `FIXInput` reads in two configurations. `tasks` defines how many Spark tasks should generate the orders, and `orders.per.task` defines how many orders each task should create. Note that because a new order record is followed by one to many execution records that there will be more than one million (1000 tasks * 1000 orders per task) records written to Kafka.
 

@@ -16,15 +16,18 @@
 package com.cloudera.labs.envelope.output;
 
 
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.typesafe.config.Config;
-import com.google.common.collect.Sets;
-import org.apache.spark.sql.DataFrame;
-import scala.Tuple2;
-
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+
+import scala.Tuple2;
 
 public class JdbcOutput implements BulkOutput  {
 
@@ -64,7 +67,7 @@ public class JdbcOutput implements BulkOutput  {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
     String url = config.getString(JDBC_CONFIG_URL);
     String tablename = config.getString(JDBC_CONFIG_TABLENAME);
     String username = config.getString(JDBC_CONFIG_USERNAME);
@@ -73,9 +76,9 @@ public class JdbcOutput implements BulkOutput  {
     properties.put("user",username);
     properties.put("password",password);
 
-    for (Tuple2<MutationType, DataFrame> plan : planned) {
+    for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      DataFrame mutation = plan._2();
+      Dataset<Row> mutation = plan._2();
       switch (mutationType) {
         case INSERT:
           mutation.write().jdbc(url, tablename, properties);

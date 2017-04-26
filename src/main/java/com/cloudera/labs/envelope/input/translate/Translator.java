@@ -15,6 +15,8 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import java.util.Iterator;
+
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
@@ -41,7 +43,7 @@ public interface Translator<T> {
    * only translates to a single Spark SQL Row then it can be wrapped with Collection#singleton.
    * @throws Exception
    */
-  Iterable<Row> translate(T key, T message) throws Exception;
+  Iterator<Row> translate(T key, T message) throws Exception;
 
   /**
    * Get the schema of the translated objects.

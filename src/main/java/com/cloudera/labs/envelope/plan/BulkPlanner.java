@@ -17,7 +17,8 @@ package com.cloudera.labs.envelope.plan;
 
 import java.util.List;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import scala.Tuple2;
 
@@ -32,6 +33,6 @@ public interface BulkPlanner extends Planner {
    * @return A list of bulk mutations, where each mutation is composed of a tuple of a mutation
    * type and a mutation DataFrame. The mutations will be applied in the same order as the list.
    */
-  List<Tuple2<MutationType, DataFrame>> planMutationsForSet(DataFrame arriving);
+  List<Tuple2<MutationType, Dataset<Row>>> planMutationsForSet(Dataset<Row> arriving);
 
 }

@@ -19,7 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -32,10 +33,10 @@ public class OverwritePlanner implements BulkPlanner {
   public void configure(Config config) { }
 
   @Override
-  public List<Tuple2<MutationType, DataFrame>> planMutationsForSet(DataFrame arriving) {
-    Tuple2<MutationType, DataFrame> mutation = new Tuple2<>(MutationType.OVERWRITE, arriving);
+  public List<Tuple2<MutationType, Dataset<Row>>> planMutationsForSet(Dataset<Row> arriving) {
+    Tuple2<MutationType, Dataset<Row>> mutation = new Tuple2<>(MutationType.OVERWRITE, arriving);
 
-    List<Tuple2<MutationType, DataFrame>> mutations = new ArrayList<>();
+    List<Tuple2<MutationType, Dataset<Row>>> mutations = new ArrayList<>();
     mutations.add(mutation);
 
     return mutations;

@@ -24,7 +24,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -53,10 +53,10 @@ public class KafkaOutput implements BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) {
-    for (Tuple2<MutationType, DataFrame> mutation : planned) {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
+    for (Tuple2<MutationType, Dataset<Row>> mutation : planned) {
       MutationType mutationType = mutation._1();
-      DataFrame mutationDF = mutation._2();
+      Dataset<Row> mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
         mutationDF.javaRDD().foreach(new SendRowToKafkaFunction(topic, brokers, delimiter));

@@ -16,6 +16,8 @@
 package com.cloudera.labs.envelope.utils;
 
 import com.google.common.collect.Lists;
+
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import mockit.Expectations;
@@ -44,12 +46,12 @@ import org.kitesdk.morphline.api.Record;
  *
  */
 @RunWith(JMockit.class)
-public class MorphlineUtilsTest {
+public class TestMorphlineUtils {
 
   private static final String MORPHLINE_FILE = "/morphline.conf";
 
   private String getResourcePath(String resource) {
-    return MorphlineUtilsTest.class.getResource(resource).getPath();
+    return TestMorphlineUtils.class.getResource(resource).getPath();
   }
 
   // TODO : Pipeline tests
@@ -146,7 +148,7 @@ public class MorphlineUtilsTest {
     }};
 
     FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
-    Iterable<Row> results = function.call(row);
+    Iterator<Row> results = function.call(row);
 
     assertEquals("Invalid number of Rows returned", 0, Lists.newArrayList(results).size());
 
@@ -175,7 +177,7 @@ public class MorphlineUtilsTest {
     }};
 
     FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
-    Iterable<Row> results = function.call(row);
+    Iterator<Row> results = function.call(row);
 
     assertEquals("Invalid number of Rows returned", 0, Lists.newArrayList(results).size());
 

@@ -19,7 +19,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.functions;
 
 import com.google.common.collect.Lists;
@@ -40,15 +41,15 @@ public class SystemTimeUpsertPlanner implements BulkPlanner {
   }
 
   @Override
-  public List<Tuple2<MutationType, DataFrame>> planMutationsForSet(DataFrame arriving)
+  public List<Tuple2<MutationType, Dataset<Row>>> planMutationsForSet(Dataset<Row> arriving)
   {
     if (hasLastUpdatedField()) {
       arriving = arriving.withColumn(getLastUpdatedFieldName(), functions.lit(currentTimestampString()));
     }
 
-    List<Tuple2<MutationType, DataFrame>> planned = Lists.newArrayList();
+    List<Tuple2<MutationType, Dataset<Row>>> planned = Lists.newArrayList();
 
-    planned.add(new Tuple2<MutationType, DataFrame>(MutationType.UPSERT, arriving));
+    planned.add(new Tuple2<MutationType, Dataset<Row>>(MutationType.UPSERT, arriving));
 
     return planned;
   }

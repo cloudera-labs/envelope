@@ -15,24 +15,28 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import mockit.Mock;
-import mockit.MockUp;
-import mockit.integration.junit4.JMockit;
-import org.apache.spark.SparkConf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+
 import org.apache.spark.SparkContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.junit.*;
-
-import static org.junit.Assert.*;
-
 import org.h2.tools.Server;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.sql.*;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+
+import mockit.integration.junit4.JMockit;
 
 /**
  * Test h2 table user with two columns firstname, lastname and three rows using JdbcInput
@@ -71,36 +75,22 @@ public class TestJdbcInput {
 
   @Test
   public void checkJdbcInput_works() throws Exception {
-
-    new MockUp<Contexts>() {
-      @Mock
-      public SQLContext getSQLContext() {
-        SparkConf config = new SparkConf();
-        config.setAppName("JDBC test");
-        config.setMaster("local[1]");
-        sparkContext = new SparkContext(config);
-        return new SQLContext(sparkContext);
-      }
-
-    };
     JdbcInput jdbcInput = new JdbcInput();
     jdbcInput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_PATH).getPath()));
-    DataFrame read = jdbcInput.read();
+    Dataset<Row> read = jdbcInput.read();
     assertNotNull(read);
     assertEquals(3, read.count());
     assertEquals(2, read.schema().size());
-    Row[] rows = read.collect();
+    List<Row> rows = read.collectAsList();
     for (Row row : rows) {
       assertEquals(2, row.size());
       assertNotNull(row.get(0));
       assertNotNull(row.get(1));
     }
-    sparkContext.stop();
   }
 
   @AfterClass
   public static void afterClass() {
     server.stop();
-
   }
 }

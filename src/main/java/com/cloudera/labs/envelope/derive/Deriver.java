@@ -17,7 +17,8 @@ package com.cloudera.labs.envelope.derive;
 
 import java.util.Map;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.typesafe.config.Config;
 
@@ -40,6 +41,6 @@ public interface Deriver {
    * @return The derived DataFrame.
    * @throws Exception
    */
-  DataFrame derive(Map<String, DataFrame> dependencies) throws Exception;
+  Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception;
 
 }

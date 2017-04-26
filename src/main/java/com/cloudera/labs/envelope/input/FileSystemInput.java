@@ -15,11 +15,13 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.typesafe.config.Config;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.typesafe.config.Config;
 
 public class FileSystemInput implements BatchInput {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
@@ -42,24 +44,20 @@ public class FileSystemInput implements BatchInput {
   }
 
   @Override
-  public DataFrame read() throws Exception {
+  public Dataset<Row> read() throws Exception {
     String format = config.getString(FORMAT_CONFIG_NAME);
     String path = config.getString(PATH_CONFIG_NAME);
 
-    DataFrame fs = null;
+    Dataset<Row> fs = null;
 
     switch (format) {
       case "parquet":
         LOG.debug("Reading Parquet: {}", path);
-        fs = Contexts.getSQLContext().read().parquet(path);
-        break;
-      case "avro":
-        LOG.debug("Reading Avro: {}", path);
-        fs = Contexts.getSQLContext().read().format("com.databricks.spark.avro").load(path);
+        fs = Contexts.getSparkSession().read().parquet(path);
         break;
       case "json":
         LOG.debug("Reading JSON: {}", path);
-        fs = Contexts.getSQLContext().read().json(path);
+        fs = Contexts.getSparkSession().read().json(path);
         break;
       default:
         throw new RuntimeException("Filesystem input format not supported: " + format);

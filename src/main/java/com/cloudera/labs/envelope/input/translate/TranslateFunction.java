@@ -15,6 +15,8 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import java.util.Iterator;
+
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -37,7 +39,7 @@ public class TranslateFunction<T> implements FlatMapFunction<Tuple2<T, T>, Row> 
 
   @SuppressWarnings("unchecked")
   @Override
-  public Iterable<Row> call(Tuple2<T, T> keyAndMessage) throws Exception {
+  public Iterator<Row> call(Tuple2<T, T> keyAndMessage) throws Exception {
     T key = keyAndMessage._1;
     T message = keyAndMessage._2;
 

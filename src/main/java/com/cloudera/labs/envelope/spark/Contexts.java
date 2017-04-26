@@ -15,21 +15,20 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
+import java.util.Map;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.hive.HiveContext;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.api.java.JavaStreamingContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
 
 /**
  * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts,
@@ -51,42 +50,24 @@ public enum Contexts {
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
 
   private Config config = ConfigFactory.empty();
-
-  private JavaStreamingContext jssc;
-  private JavaSparkContext jsc;
-  private SQLContext sqlc;
-  private HiveContext hc;
-
-  public static synchronized JavaStreamingContext getJavaStreamingContext() {
-    if (INSTANCE.jssc == null) {
-      initializeStreamingJob();
-    }
-
-    return INSTANCE.jssc;
-  }
-
-  public static synchronized JavaSparkContext getJavaSparkContext() {
-    if (INSTANCE.jsc == null) {
+  
+  private SparkSession ss;
+  private JavaStreamingContext jsc;
+  
+  public static synchronized SparkSession getSparkSession() {
+    if (INSTANCE.ss == null) {
       initializeBatchJob();
     }
-
+    
+    return INSTANCE.ss;
+  }
+  
+  public static synchronized JavaStreamingContext getJavaStreamingContext() {
+    if (INSTANCE.jsc == null) {
+      initializeStreamingJob();
+    }
+    
     return INSTANCE.jsc;
-  }
-
-  public static synchronized SQLContext getSQLContext() {
-    if (INSTANCE.sqlc == null) {
-      initializeSQLContext();
-    }
-
-    return INSTANCE.sqlc;
-  }
-
-  public static synchronized HiveContext getHiveContext() {
-    if (INSTANCE.hc == null) {
-      initializeHiveContext();
-    }
-
-    return INSTANCE.hc;
   }
 
   public static void initialize(Config config) {
@@ -94,35 +75,12 @@ public enum Contexts {
   }
 
   private static void initializeStreamingJob() {
-    final SparkConf sparkConf = getSparkConfiguration(INSTANCE.config);
-
     int batchMilliseconds = INSTANCE.config.getInt(BATCH_MILLISECONDS_PROPERTY);
     final Duration batchDuration = Durations.milliseconds(batchMilliseconds);
 
-    JavaStreamingContext jssc;
-    boolean toCheckpoint = doesCheckpoint(INSTANCE.config);
-    if (toCheckpoint) {
-      String checkpointPath = INSTANCE.config.getString(CHECKPOINT_PATH_PROPERTY);
-      JavaStreamingContextFactory factory = new JavaStreamingContextFactory() {
-        @Override
-        public JavaStreamingContext create() {
-          return new JavaStreamingContext(sparkConf, batchDuration);
-        }
-      };
-      jssc = JavaStreamingContext.getOrCreate(checkpointPath, factory);
-      jssc.checkpoint(checkpointPath);
-    }
-    else {
-      if (INSTANCE.jsc != null) {
-        jssc = new JavaStreamingContext(INSTANCE.jsc, batchDuration);
-      }
-      else {
-        jssc = new JavaStreamingContext(sparkConf, batchDuration);
-      }
-    }
-
-    INSTANCE.jssc = jssc;
-    INSTANCE.jsc = jssc.sparkContext();
+    JavaStreamingContext jsc = new JavaStreamingContext(new JavaSparkContext(getSparkSession().sparkContext()), batchDuration);
+    
+    INSTANCE.jsc = jsc;
   }
 
   private static void initializeBatchJob() {
@@ -137,15 +95,9 @@ public enum Contexts {
       sparkConf.setAppName("");
     }
 
-    INSTANCE.jsc = new JavaSparkContext(sparkConf);
-  }
+    SparkSession sparkSession = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate();
 
-  private static void initializeSQLContext() {    
-    INSTANCE.sqlc = new SQLContext(getJavaSparkContext());
-  }
-
-  private static void initializeHiveContext() {
-    INSTANCE.hc = new HiveContext(getJavaSparkContext());
+    INSTANCE.ss = sparkSession;
   }
 
   static synchronized SparkConf getSparkConfiguration(Config config) {
@@ -210,12 +162,6 @@ public enum Contexts {
     }
 
     return sparkConf;
-  }
-
-  private static boolean doesCheckpoint(Config config) {
-    if (!config.hasPath(CHECKPOINT_ENABLED_PROPERTY)) return false;
-
-    return INSTANCE.config.getBoolean(CHECKPOINT_ENABLED_PROPERTY);
   }
 
 }

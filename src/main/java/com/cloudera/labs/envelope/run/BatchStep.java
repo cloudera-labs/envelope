@@ -18,7 +18,8 @@ package com.cloudera.labs.envelope.run;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.derive.PassthroughDeriver;
 import com.cloudera.labs.envelope.input.BatchInput;
@@ -35,19 +36,19 @@ public class BatchStep extends DataStep {
   }
 
   public void runStep(Set<Step> dependencySteps) throws Exception {
-    Contexts.getJavaSparkContext().sc().setJobDescription("Step: " + getName());
+    Contexts.getSparkSession().sparkContext().setJobDescription("Step: " + getName());
 
-    DataFrame data;
+    Dataset<Row> data;
     if (hasInput()) {
       data = ((BatchInput)input).read();
     }
     else if (hasDeriver()) {
-      Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
+      Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
       data = deriver.derive(dependencies);
     }
     else {
       deriver = new PassthroughDeriver();
-      Map<String, DataFrame> dependencies = getStepDataFrames(dependencySteps);
+      Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
       data = deriver.derive(dependencies);
     }
 

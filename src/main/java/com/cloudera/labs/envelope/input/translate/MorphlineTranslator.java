@@ -15,11 +15,9 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
+import java.util.Iterator;
 import java.util.List;
+
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
@@ -27,6 +25,11 @@ import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 
 /**
  * Morphline
@@ -82,7 +85,7 @@ public class MorphlineTranslator<T> implements Translator<T> {
   }
 
   @Override
-  public Iterable<Row> translate(T key, T message) throws Exception {
+  public Iterator<Row> translate(T key, T message) throws Exception {
     LOG.debug("Translating {}[{}]", key, message);
 
     // Get the Morphline Command pipeline
@@ -122,7 +125,7 @@ public class MorphlineTranslator<T> implements Translator<T> {
       outputRows.add(MorphlineUtils.convertToRow(this.schema, output));
     }
 
-    return outputRows;
+    return outputRows.iterator();
   }
 
 }

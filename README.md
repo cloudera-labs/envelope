@@ -15,7 +15,7 @@ Some examples of what you can easily do with Envelope:
 
 ### Requirements
 
-Envelope requires a CDH5.7+ cluster. Kafka 0.9 and Kudu 1.2 are required if connecting to those components.
+Envelope requires a CDH5.7+ cluster with Cloudera's distributions of Spark 2.1 (and Kafka 0.10 and Kudu 1.3, if connecting to those components).
 
 ### Compiling Envelope
 
@@ -23,7 +23,7 @@ You can build the Envelope application from the top-level directory of the sourc
 
     mvn clean package
 
-This will create `envelope-0.3.0.jar` in the target directory.
+This will create `envelope-0.4.0.jar` in the target directory.
 
 ### Finding examples
 
@@ -38,7 +38,7 @@ Envelope provides four example pipelines that you can run for yourself:
 
 You can run Envelope by submitting it to Spark with the configuration file for your pipeline:
 
-    spark-submit envelope-0.3.0.jar yourpipeline.conf
+    spark2-submit envelope-0.4.0.jar yourpipeline.conf
 
 A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI, which can be found in Cloudera Manager by navigating to the YARN service and then to the ResourceManager Web UI link.
 

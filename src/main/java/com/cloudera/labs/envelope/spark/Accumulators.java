@@ -19,7 +19,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.spark.Accumulator;
+import org.apache.spark.util.DoubleAccumulator;
+import org.apache.spark.util.LongAccumulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +29,8 @@ import com.google.common.collect.Maps;
 @SuppressWarnings("serial")
 public class Accumulators implements Serializable {
   
-  private Map<String, Accumulator<Integer>> intAccumulators = Maps.newHashMap();
-  private Map<String, Accumulator<Double>> doubleAccumulators = Maps.newHashMap();
+  private Map<String, LongAccumulator> longAccumulators = Maps.newHashMap();
+  private Map<String, DoubleAccumulator> doubleAccumulators = Maps.newHashMap();
   
   private static Logger LOG = LoggerFactory.getLogger(Accumulators.class);
   
@@ -37,15 +38,14 @@ public class Accumulators implements Serializable {
     for (AccumulatorRequest request : requests) {
       String name = request.getName();
       Class<?> clazz = request.getClazz();
-      Object initialValue = request.getInitialValue();
       
-      if (clazz == Integer.class) {
-        Accumulator<Integer> acc = Contexts.getJavaSparkContext().intAccumulator((int)initialValue, name);
-        intAccumulators.put(name, acc);
+      if (clazz == Long.class) {
+        LongAccumulator acc = Contexts.getSparkSession().sparkContext().longAccumulator(name);
+        longAccumulators.put(name, acc);
       }
       
       if (clazz == Double.class) {
-        Accumulator<Double> acc = Contexts.getJavaSparkContext().doubleAccumulator((double)initialValue, name);
+        DoubleAccumulator acc = Contexts.getSparkSession().sparkContext().doubleAccumulator(name);
         doubleAccumulators.put(name, acc);
       }
       
@@ -53,11 +53,11 @@ public class Accumulators implements Serializable {
     }
   }
   
-  public Map<String, Accumulator<Integer>> getIntAccumulators() {
-    return intAccumulators;
+  public Map<String, LongAccumulator> getLongAccumulators() {
+    return longAccumulators;
   }
   
-  public Map<String, Accumulator<Double>> getDoubleAccumulators() {
+  public Map<String, DoubleAccumulator> getDoubleAccumulators() {
     return doubleAccumulators;
   }
   

@@ -23,7 +23,7 @@ import java.util.concurrent.Future;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -96,7 +96,7 @@ public class Runner {
       stream.foreachRDD(new VoidFunction<JavaRDD<Row>>() {
         @Override
         public void call(JavaRDD<Row> batch) throws Exception {
-          DataFrame batchDF = Contexts.getSQLContext().createDataFrame(batch, streamSchema);
+          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(batch, streamSchema);
           streamingStep.setData(batchDF);
           streamingStep.setFinished(true);
 
@@ -110,10 +110,10 @@ public class Runner {
       LOG.info("Finished setting up streaming step: " + streamingStep.getName());
     }
 
-    JavaStreamingContext sc = Contexts.getJavaStreamingContext();
-    sc.start();
+    JavaStreamingContext jsc = Contexts.getJavaStreamingContext();
+    jsc.start();
     LOG.info("Streaming context started");
-    sc.awaitTermination();
+    jsc.awaitTermination();
     LOG.info("Streaming context terminated");
   }
 

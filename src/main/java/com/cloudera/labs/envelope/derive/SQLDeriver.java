@@ -22,8 +22,8 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.base.Charsets;
@@ -46,7 +46,7 @@ public class SQLDeriver implements Deriver {
   }
 
   @Override
-  public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {
+  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
     String query;
 
     if (config.hasPath(QUERY_LITERAL_CONFIG_NAME)) {
@@ -59,8 +59,7 @@ public class SQLDeriver implements Deriver {
       throw new RuntimeException("SQL deriver query not provided. Use '" + QUERY_LITERAL_CONFIG_NAME + "' or '" + QUERY_FILE_CONFIG_NAME + "'.");
     }
 
-    SQLContext sqlc = Contexts.getSQLContext();
-    DataFrame derived = sqlc.sql(query);
+    Dataset<Row> derived = Contexts.getSparkSession().sql(query);
 
     return derived;
   }

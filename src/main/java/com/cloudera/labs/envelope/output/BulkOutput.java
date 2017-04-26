@@ -18,7 +18,8 @@ package com.cloudera.labs.envelope.output;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 
@@ -40,6 +41,6 @@ public interface BulkOutput extends Output {
    * mutation type and the mutation data as a DataFrame. The output must apply the mutations in
    * the same order as the list.
    */
-  void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception;
+  void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception;
 
 }

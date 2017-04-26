@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +47,11 @@ public class LogOutput implements BulkOutput {
     this.config = config;
   }
 
-  @SuppressWarnings("serial")
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception {
-    for (Tuple2<MutationType, DataFrame> mutation : planned) {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+    for (Tuple2<MutationType, Dataset<Row>> mutation : planned) {
       MutationType mutationType = mutation._1();
-      DataFrame mutationDF = mutation._2();
+      Dataset<Row> mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
         mutationDF.javaRDD().foreach(new SendRowToLogFunction(getDelimiter(), getLogLevel()));
@@ -77,7 +76,7 @@ public class LogOutput implements BulkOutput {
     return config.getString(LOG_LEVEL_CONFIG_NAME).toUpperCase();
   }
 
-
+  @SuppressWarnings("serial")
   private static class SendRowToLogFunction implements VoidFunction<Row> {
     private Joiner joiner;
     private String delimiter;

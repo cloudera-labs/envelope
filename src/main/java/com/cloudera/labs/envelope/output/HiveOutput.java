@@ -19,8 +19,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kudu.client.shaded.com.google.common.collect.Sets;
-import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.DataFrameWriter;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -45,11 +46,11 @@ public class HiveOutput implements BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception {    
-    for (Tuple2<MutationType, DataFrame> plan : planned) {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {    
+    for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      DataFrame mutation = plan._2();
-      DataFrameWriter writer = mutation.write();
+      Dataset<Row> mutation = plan._2();
+      DataFrameWriter<Row> writer = mutation.write();
 
       if (hasPartitionColumns()) {
         writer = writer.partitionBy(getPartitionColumns());

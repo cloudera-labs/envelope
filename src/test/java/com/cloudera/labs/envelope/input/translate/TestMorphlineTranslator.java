@@ -19,6 +19,8 @@ import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import java.io.File;
+import java.util.Iterator;
+
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
@@ -44,7 +46,7 @@ import org.kitesdk.morphline.base.Compiler;
  *
  */
 @RunWith(JMockit.class)
-public class MorphlineTranslatorTest {
+public class TestMorphlineTranslator {
 
   private static final String MORPHLINE_FILE = "/morphline.conf";
 
@@ -54,7 +56,7 @@ public class MorphlineTranslatorTest {
   private Translator<byte[]> byteMorphline;
 
   private String getResourcePath(String resource) {
-    return MorphlineTranslatorTest.class.getResource(resource).getPath();
+    return TestMorphlineTranslator.class.getResource(resource).getPath();
   }
 
   @Before
@@ -162,8 +164,8 @@ public class MorphlineTranslatorTest {
     }};
 
     stringMorphline.configure(config);
-    Iterable<Row> result = stringMorphline.translate("The Key", "The Message");
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate("The Key", "The Message");
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -187,8 +189,8 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String key = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(key, "The Message");
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate(key, "The Message");
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -226,8 +228,8 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate("The Key", message);
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate("The Key", message);
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -249,8 +251,8 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate("The Key", message);
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate("The Key", message);
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -272,8 +274,8 @@ public class MorphlineTranslatorTest {
 
     byteMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
+    Iterator<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -295,8 +297,8 @@ public class MorphlineTranslatorTest {
 
     byteMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
+    Iterator<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -367,8 +369,8 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(null, message);
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate(null, message);
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -389,8 +391,8 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(null, message);
-    Row row = result.iterator().next();
+    Iterator<Row> result = stringMorphline.translate(null, message);
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -411,8 +413,8 @@ public class MorphlineTranslatorTest {
 
     byteMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
+    Iterator<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -433,8 +435,8 @@ public class MorphlineTranslatorTest {
 
     byteMorphline.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
+    Iterator<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
+    Row row = result.next();
 
     Assert.assertNotNull("Row is null", result);
     Assert.assertEquals("Invalid number of fields", 3, row.length());
@@ -472,9 +474,9 @@ public class MorphlineTranslatorTest {
 
     stringMorphline.configure(config);
     String message = "The Message";
-    Iterable<Row> result = stringMorphline.translate(null, message);
+    Iterable<Row> result = Lists.newArrayList(stringMorphline.translate(null, message));
 
-    Assert.assertThat("Invalid Iterable<Row> contents", result, CoreMatchers.is(expectedRows));
+    Assert.assertThat("Invalid Iterator<Row> contents", result, CoreMatchers.is(expectedRows));
 
   }
 

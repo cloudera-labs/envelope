@@ -18,8 +18,9 @@ package com.cloudera.labs.envelope.output;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.DataFrameWriter;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -48,15 +49,15 @@ public class FileSystemOutput implements BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, DataFrame>> planned) throws Exception {
-    for (Tuple2<MutationType, DataFrame> plan : planned) {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+    for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      DataFrame mutation = plan._2();
+      Dataset<Row> mutation = plan._2();
 
       String format = config.getString(FORMAT_CONFIG_NAME);
       String path = config.getString(PATH_CONFIG_NAME);
 
-      DataFrameWriter writer = mutation.write();
+      DataFrameWriter<Row> writer = mutation.write();
       switch (mutationType) {
         case INSERT:
           writer = writer.mode(SaveMode.Append);
@@ -71,9 +72,6 @@ public class FileSystemOutput implements BulkOutput {
       switch (format) {
         case "parquet":
           writer.parquet(path);
-          break;
-        case "avro":
-          writer.format("com.databricks.spark.avro").save(path);
           break;
         default:
           throw new RuntimeException("Filesystem output does not support file format: " + format);

@@ -15,7 +15,8 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 /**
  * Batch inputs read in a DataFrame from a static external source.
@@ -28,6 +29,6 @@ public interface BatchInput extends Input {
    * @return The DataFrame of the input.
    * @throws Exception
    */
-  DataFrame read() throws Exception;
+  Dataset<Row> read() throws Exception;
 
 }

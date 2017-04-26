@@ -19,24 +19,14 @@ public class AccumulatorRequest {
 
   private String name;
   private Class<?> clazz;
-  private Object initialValue;
   
   public AccumulatorRequest(String name, Class<?> clazz) {
-    this(name, clazz, clazz.equals(Integer.class) ? (Object)Integer.valueOf(0) : (Object)Double.valueOf(0.0));
-  }
-  
-  public AccumulatorRequest(String name, Class<?> clazz, Object initialValue) {
-    if (!clazz.equals(Integer.class) && !clazz.equals(Double.class)) {
-      throw new IllegalArgumentException("Accumulator user must request only integer or double accumulators");
-    }
-    
-    if (!initialValue.getClass().equals(clazz)) {
-      throw new IllegalArgumentException("Accumulator initial value must match the requested accumulator data type");
+    if (!clazz.equals(Long.class) && !clazz.equals(Double.class)) {
+      throw new IllegalArgumentException("Accumulator user must request only long or double accumulators");
     }
     
     this.name = name;
     this.clazz = clazz;
-    this.initialValue = initialValue;
   }
   
   public String getName() {
@@ -46,10 +36,6 @@ public class AccumulatorRequest {
   public Class<?> getClazz() {
     return clazz;
   }
-
-  public Object getInitialValue() {
-    return initialValue;
-  }
   
   @Override
   public boolean equals(Object other) {
@@ -58,8 +44,7 @@ public class AccumulatorRequest {
     if (!(other instanceof AccumulatorRequest)) return false;
     
     // Accumulator requests are unique only by their name. If multiple objects request accumulators
-    // with the same name but different classes or initial values then it is not defined which one
-    // Envelope will request from Spark.
+    // with the same name but different classes then it is not defined which one Envelope will request from Spark.
     if (!((AccumulatorRequest)other).getName().equals(this.getName())) return false;
     
     return true;

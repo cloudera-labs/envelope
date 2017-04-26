@@ -15,11 +15,13 @@
  */
 package com.cloudera.labs.envelope.input;
 
+import java.util.Properties;
+
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
-import org.apache.spark.sql.DataFrame;
-
-import java.util.Properties;
 
 public class JdbcInput implements BatchInput{
 
@@ -52,7 +54,7 @@ public class JdbcInput implements BatchInput{
   }
 
   @Override
-  public DataFrame read() throws Exception {
+  public Dataset<Row> read() throws Exception {
     String url = config.getString(JDBC_CONFIG_URL);
     String tablename = config.getString(JDBC_CONFIG_TABLENAME);
     String username = config.getString(JDBC_CONFIG_USERNAME);
@@ -62,6 +64,6 @@ public class JdbcInput implements BatchInput{
     properties.put("user",username);
     properties.put("password",password);
 
-    return Contexts.getSQLContext().read().jdbc(url,tablename,properties);
+    return Contexts.getSparkSession().read().jdbc(url,tablename,properties);
   }
 }

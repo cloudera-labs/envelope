@@ -15,14 +15,14 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -39,6 +39,9 @@ import org.kitesdk.morphline.base.FaultTolerance;
 import org.kitesdk.morphline.base.Notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -150,7 +153,7 @@ public class MorphlineUtils {
                                                           final StructType outputSchema) {
     return new FlatMapFunction<Row, Row>() {
       @Override
-      public Iterable<Row> call(Row row) throws Exception {
+      public Iterator<Row> call(Row row) throws Exception {
         // Retrieve the Command pipeline via ThreadLocal
         Pipeline pipeline = MorphlineUtils.getPipeline(morphlineFile, morphlineId);
 
@@ -181,7 +184,7 @@ public class MorphlineUtils {
           outputRows.add(MorphlineUtils.convertToRow(outputSchema, record));
         }
 
-        return outputRows;
+        return outputRows.iterator();
       }
     };
   }

@@ -15,7 +15,8 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
@@ -36,10 +37,10 @@ public class HiveInput implements BatchInput {
   }
 
   @Override
-  public DataFrame read() throws Exception {
+  public Dataset<Row> read() throws Exception {
     String tableName = config.getString(TABLE_CONFIG_NAME);
 
-    return Contexts.getHiveContext().read().table(tableName);
+    return Contexts.getSparkSession().read().table(tableName);
   }
 
 }

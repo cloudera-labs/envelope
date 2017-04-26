@@ -15,19 +15,21 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.typesafe.config.Config;
 
 /**
  *
@@ -65,21 +67,21 @@ public class MorphlineDeriver implements Deriver {
   }
 
   @Override
-  public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {
+  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
     LOG.debug("Executing on Dependencies {}", dependencies.keySet());
 
     // Get the DF
     if (dependencies.size() != 1) {
       throw new RuntimeException("MorphlineDeriver must have only one dependency");
     }
-    DataFrame inputDF = dependencies.values().iterator().next();
+    Dataset<Row> inputDF = dependencies.values().iterator().next();
 
     // For each partition in the DataFrame / RDD
     JavaRDD<Row> outputRDD = inputDF.toJavaRDD().flatMap(
         MorphlineUtils.morphlineMapper(this.morphlineFile, this.morphlineId, getSchema()));
 
     // Convert all the Rows into a new DataFrame
-    return Contexts.getSQLContext().createDataFrame(outputRDD, getSchema());
+    return Contexts.getSparkSession().createDataFrame(outputRDD, getSchema());
   }
 
   /**

@@ -24,29 +24,14 @@ import org.junit.Test;
 public class TestAccumulatorRequest {
   
   @Test
-  public void testWithoutInitialValue() {
-    AccumulatorRequest requestInt = new AccumulatorRequest("hello", Integer.class);
+  public void testNewAccumulatorRequest() {
+    AccumulatorRequest requestInt = new AccumulatorRequest("hello", Long.class);
     assertEquals(requestInt.getName(), "hello");
-    assertEquals(requestInt.getClazz(), Integer.class);
-    assertEquals(requestInt.getInitialValue(), 0);
+    assertEquals(requestInt.getClazz(), Long.class);
     
     AccumulatorRequest requestDouble = new AccumulatorRequest("world", Double.class);
     assertEquals(requestDouble.getName(), "world");
     assertEquals(requestDouble.getClazz(), Double.class);
-    assertEquals(requestDouble.getInitialValue(), 0.0);
-  }
-  
-  @Test
-  public void testWithInitialValue() {
-    AccumulatorRequest requestInt = new AccumulatorRequest("hello", Integer.class, 10);
-    assertEquals(requestInt.getName(), "hello");
-    assertEquals(requestInt.getClazz(), Integer.class);
-    assertEquals(requestInt.getInitialValue(), 10);
-    
-    AccumulatorRequest requestDouble = new AccumulatorRequest("world", Double.class, 100.0);
-    assertEquals(requestDouble.getName(), "world");
-    assertEquals(requestDouble.getClazz(), Double.class);
-    assertEquals(requestDouble.getInitialValue(), 100.0);
   }
   
   @Test
@@ -54,39 +39,27 @@ public class TestAccumulatorRequest {
     AccumulatorRequest request1;
     AccumulatorRequest request2;
     
-    request1 = new AccumulatorRequest("hello", Integer.class, 10);
-    request2 = new AccumulatorRequest("hello", Integer.class, 10);
+    request1 = new AccumulatorRequest("hello", Long.class);
+    request2 = new AccumulatorRequest("hello", Long.class);
     assertTrue(request1.equals(request2));
     
-    request1 = new AccumulatorRequest("hello", Integer.class, 10);
-    request2 = new AccumulatorRequest("hello", Integer.class, 20);
+    request1 = new AccumulatorRequest("hello", Long.class);
+    request2 = new AccumulatorRequest("hello", Long.class);
     assertTrue(request1.equals(request2));
     
-    request1 = new AccumulatorRequest("hello", Integer.class, 10);
-    request2 = new AccumulatorRequest("hello", Double.class, 10.0);
+    request1 = new AccumulatorRequest("hello", Long.class);
+    request2 = new AccumulatorRequest("hello", Double.class);
     assertTrue(request1.equals(request2));
     
-    request1 = new AccumulatorRequest("hello", Integer.class, 10);
-    request2 = new AccumulatorRequest("world", Integer.class, 10);
+    request1 = new AccumulatorRequest("hello", Long.class);
+    request2 = new AccumulatorRequest("world", Long.class);
     assertFalse(request1.equals(request2));
   }
   
   @Test
   (expected = IllegalArgumentException.class)
   public void testUnsupportedClass() {
-    new AccumulatorRequest("hello", Float.class, 10.0);
-  }
-  
-  @Test
-  (expected = IllegalArgumentException.class)
-  public void testInvalidInitialValueInt() {
-    new AccumulatorRequest("hello", Integer.class, 10.0);
-  }
-  
-  @Test
-  (expected = IllegalArgumentException.class)
-  public void testInvalidInitialValueDouble() {
-    new AccumulatorRequest("hello", Double.class, 10);
+    new AccumulatorRequest("hello", Float.class);
   }
   
 }

@@ -22,12 +22,13 @@ import java.util.Map;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
@@ -56,18 +57,18 @@ public class NestDeriver implements Deriver {
   }
 
   @Override
-  public DataFrame derive(Map<String, DataFrame> dependencies) throws Exception {
+  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
     String intoDependency = config.getString(NEST_INTO_CONFIG_NAME);
     if (!dependencies.containsKey(intoDependency)) {
       throw new RuntimeException("Nest deriver points to non-existent nest-into dependency");
     }
-    DataFrame into = dependencies.get(intoDependency);
+    Dataset<Row> into = dependencies.get(intoDependency);
 
     String fromDependency = config.getString(NEST_FROM_CONFIG_NAME);
     if (!dependencies.containsKey(fromDependency)) {
       throw new RuntimeException("Nest deriver points to non-existent nest-from dependency");
     }
-    DataFrame from = dependencies.get(fromDependency);
+    Dataset<Row> from = dependencies.get(fromDependency);
 
     List<String> keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
     String nestedFieldName = config.getString(NESTED_FIELD_NAME_CONFIG_NAME);
@@ -81,7 +82,7 @@ public class NestDeriver implements Deriver {
 
     StructType nestedSchema = into.schema().add(nestedFieldName, DataTypes.createArrayType(from.schema()));
 
-    DataFrame nested = into.sqlContext().createDataFrame(nestedRDD, nestedSchema);
+    Dataset<Row> nested = into.sqlContext().createDataFrame(nestedRDD, nestedSchema);
 
     return nested;
   }
@@ -112,7 +113,7 @@ public class NestDeriver implements Deriver {
     public Row call(Tuple2<Iterable<Row>, Iterable<Row>> cogrouped) throws Exception {
       // There should only be one 'into' record per key
       Row intoRow = cogrouped._1().iterator().next();
-      Iterable<Row> fromRows = cogrouped._2();
+      Row[] fromRows = Iterables.toArray(cogrouped._2(), Row.class);
       int intoRowNumFields = intoRow.size();
 
       Object[] nestedValues = new Object[intoRowNumFields + 1];
