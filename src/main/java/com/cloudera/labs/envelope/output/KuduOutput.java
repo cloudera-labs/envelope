@@ -96,7 +96,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
     // Fail fast on any error applying mutations
     if (session.countPendingErrors() > 0) {
       RowError firstError = session.getPendingErrors().getRowErrors()[0];
-      String errorMessage = String.format("Kudu output error '{}' during operation '{}' at tablet server '{}'",
+      String errorMessage = String.format("Kudu output error '%s' during operation '%s' at tablet server '%s'",
           firstError.getErrorStatus(), firstError.getOperation(), firstError.getTsUUID());
 
       throw new RuntimeException(errorMessage);

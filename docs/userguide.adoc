@@ -1,8 +1,8 @@
-# Envelope User Guide
+= Envelope User Guide
 
 :toc:
 
-## Fundamentals
+== Fundamentals
 
 Envelope runs as a graph of steps that are defined by the configuration. The key mapping back to Spark is that each Envelope step is a DataFrame, which is created from either an external input or a derivation of one or more other steps. Each step's DataFrame is registered by the step name as a Spark SQL temporary table so that subsequent queries can read directly from that step.
 
@@ -12,17 +12,27 @@ Each step can optionally write to an external output. The way that a step is app
 
 When at least one of the external input steps is a stream, e.g. Kafka, then the Envelope pipeline becomes a Spark Streaming job and the graph of steps will be executed every micro-batch.
 
-## Configuration
+== Configuration
 
 Envelope can read Java properties, JSON, and https://github.com/typesafehub/config/blob/master/HOCON.md[HOCON] configuration files.
 
 Each pipeline configuration file must define:
+
 - One or more input steps with no dependencies
 - One or more steps with an output
 - One compatible planner for each output
 
 And can additionally define:
+
 - One application section for pipeline-level configurations
 - One or more steps with one or more dependencies
 
 For the full specification of Envelope configurations, see the link:docs/configurations.adoc[configuration guide] documentation page.
+
+The final configuration is constructed with the following layers (in order of precedence):
+
+- System environment (see link:https://github.com/typesafehub/config#optional-system-or-env-variable-overrides[Optional System or ENV variables])
+- Primary Envelope configuration file
+- Command line parameters (either as HOCON or JSON; see link:http://typesafehub.github.io/config/latest/api/com/typesafe/config/ConfigFactory.html#parseString-java.lang.String-[ConfigFactory.parseString()])
+
+Then the composite is resolved for substitutions and used throughout the pipeline.

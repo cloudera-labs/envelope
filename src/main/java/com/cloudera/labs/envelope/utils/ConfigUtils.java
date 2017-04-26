@@ -25,9 +25,7 @@ public class ConfigUtils {
 
   public static Config configFromPath(String path) {
     File configFile = new File(path);
-    Config config = ConfigFactory.parseFile(configFile);
-
-    return config;
+    return ConfigFactory.parseFile(configFile);
   }
 
   public static Config applySubstitutions(Config config, String substitutionsString) {
@@ -38,9 +36,9 @@ public class ConfigUtils {
       config = config.withFallback(substitutionConfig);
     }
 
-    Config resolvedConfig = config.resolve();
-
-    return resolvedConfig;
+    return ConfigFactory.defaultOverrides()
+        .withFallback(config)
+        .resolve();
   }
 
 }

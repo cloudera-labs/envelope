@@ -1,5 +1,7 @@
 = Contributing to Envelope
 
+:toc: right
+
 *tl;dr*
 
 _Hack:_ Fork the repo, PR against the `develop` branch.
@@ -60,3 +62,31 @@ The pieces to an Envelope application are pretty simple:
 . Envelope JAR
 
 At minimum, the application needs the configuration file and the Envelope JAR.
+
+=== Configuring Extensions
+
+For extensions, like a custom Input or Deriver, defaults are best handled using a `reference.conf` configuration bundled in the extension's JAR:
+
+[source,java]
+----
+
+String REFERENCE_CONFIG = "example-extension-reference.conf";
+Config config; // The primary Envelope configuration (already resolved and passed to the extension)
+config = config.withFallback(ConfigFactory.parseResources(REFERENCE_CONFIG));
+----
+
+Extensions should also mask any sensitive parameters, after handling the defaults:
+
+[source,java]
+----
+if (LOG.isDebugEnabled()) {
+  Map<String, Object> mask = new HashMap<>();
+  mask.put(ExampleExtension.USERNAME_PARAM_CONFIG, "--username--");
+  mask.put(ExampleExtension.PASSWORD_PARAM_CONFIG, "--password--");
+  LOG.debug("Configuration:\n{}", ConfigFactory.parseMap(mask, "Masked")
+      .withFallback(config).root().render());
+}
+----
+
+
+
