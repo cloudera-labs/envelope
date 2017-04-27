@@ -1,6 +1,6 @@
 = Configuration specification
 
-This page specifies the configurations available in Envelope 0.3.
+This page specifies the configurations available in Envelope 0.4.
 
 :toc:
 
@@ -296,6 +296,19 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 
 |query.file
 |The path to the file containing the query to be submitted to Spark SQL.
+
+|===
+
+== Partitioners
+
+Partitioner configurations have the `steps.[stepname].partitioner.` prefix.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The partitioner type to be used. Envelope provides `hash`, `range`, `uuid`. To use a custom partitioner, specify the fully qualified name of the `ConfigurablePartitioner` implementation class. If no partitioner type is specified, Envelope will use the `hash` partitioner.
 
 |===
 

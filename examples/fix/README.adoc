@@ -490,6 +490,9 @@ orderhistory {
         SELECT `11` AS clordid, `55` AS symbol, `38` AS orderqty, NVL(`151`, `38`) AS leavesqty,
         NVL(`14`, 0) AS cumqty, `6` AS avgpx, `60` AS transacttime FROM fix"""
   }
+  partitioner {
+    type = uuid
+  }
   planner {
     type = history
     carry.forward.when.null = true
@@ -518,6 +521,14 @@ This step is only dependent on the `fix` step because we are not joining to the 
 ##### Deriver
 
 We again use the `sql` deriver to use SQL to transform the stream into the data model we want to write to Kudu. The query for this step selects the relevant fields, such as order id (`clordid`), order/execution timestamp (`transacttime`), order quantity (`orderqty`), and remaining quantity (`leavesqty`). When the remaining quantity is missing (i.e. on new orders) we substitute it with the order quantity, and when the cumulative quantity (`cumqty`) is missing (also on new orders) we substitute it with `0`.
+
+##### Partitioner
+
+In order for the step to track the history of the orders over time we are going to use the `history` planner (as described in the next section), which to function requires the existing records of the keys of the arriving records from the step. For Envelope to retrieve the existing records it groups the arriving records by key, and then for each subset of distinct keys Envelope sends a single request to the output asking for all the existing records of all of the subset's keys. The way that each key is assigned to a subset (in Spark as an RDD partition) is by the partitioner.
+
+By default Envelope uses Spark's default `hash` partitioner, which produces a roughly even spread of key values to each subset. For outputs that return existing records of a set of keys faster when the keys are within a narrow range of the keyspace, then another partitioner can be specified. Envelope provides access to Spark's alternative `range` partitioner, which assigns keys to subsets by the ranges of the natural ordering of the keys, however this requires a sort and sampling of the arriving records first, which can be a high overhead in tight streaming micro-batch durations. Envelope also provides the `uuid` partitioner to evenly split the range of keys without a sort/sample, where the keys are known to be UUID strings.
+
+For this example the keys are known to be UUIDs, and the Kudu output is known to provide existing records dramatically faster where the range of keys in each request covers a narrow range of the keyspace, so we utilize the `uuid` partitioner. We could have had similar improvements from the `range` partitioner, but at the cost of a sort/sample of the arriving records every micro-batch. For other streaming applications that use a planner which requires existing records, and that have a non-UUID keyspace, it may be prudent to make a custom partitioner for the keyspace to enable fast partitioning and fast existing record retrieval.
 
 ##### Planner
 

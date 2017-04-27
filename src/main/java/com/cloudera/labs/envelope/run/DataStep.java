@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.spark.HashPartitioner;
+import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -40,6 +42,7 @@ import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.Output;
 import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.partition.PartitionerFactory;
 import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.PlannedRow;
@@ -264,6 +267,10 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public boolean hasPlanner() {
     return config.hasPath("planner");
   }
+    
+  public boolean hasPartitioner() {
+    return config.hasPath("partitioner");
+  }
 
   public boolean hasOutput() {
     return config.hasPath("output");
@@ -331,11 +338,14 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   private void handleIncompatiblePlannerOutput(Planner planner, Output output) {
     throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
   }
-
+  
   // Group the arriving records by key, attach the existing records for each key, and plan
-  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
+  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) throws Exception  {
+    JavaPairRDD<Row, Row> keyedArriving = 
+        arriving.javaRDD().keyBy(new ExtractKeyFunction(keyFieldNames, accumulators));
+
     JavaPairRDD<Row, Iterable<Row>> arrivingByKey = 
-        arriving.javaRDD().groupBy(new ExtractKeyFunction(keyFieldNames, accumulators));
+        keyedArriving.groupByKey(getPartitioner(keyedArriving));
 
     JavaPairRDD<Row, Tuple2<Iterable<Row>, Iterable<Row>>> arrivingAndExistingByKey =
         arrivingByKey.mapPartitionsToPair(new JoinExistingForKeysFunction(outputConfig, keyFieldNames, accumulators));
@@ -360,7 +370,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     @Override
     public Row call(Row arrived) throws Exception {
       long startTime = System.nanoTime();
-      
+
       if (schema == null) {
         schema = RowUtils.subsetSchema(arrived.schema(), keyFieldNames);
       }
@@ -372,8 +382,18 @@ public abstract class DataStep extends Step implements UsesAccumulators {
 
       return key;
     }
-  };
-
+  }
+  
+  private Partitioner getPartitioner(JavaPairRDD<Row, Row> keyedArriving) throws Exception {    
+    if (hasPartitioner()) {
+      Config partitionerConfig = config.getConfig("partitioner");      
+      return PartitionerFactory.create(partitionerConfig, keyedArriving); 
+    }
+    else {
+      return new HashPartitioner(keyedArriving.getNumPartitions());
+    }
+  }
+  
   @SuppressWarnings("serial")
   private static class JoinExistingForKeysFunction
   implements PairFlatMapFunction<Iterator<Tuple2<Row, Iterable<Row>>>, Row, Tuple2<Iterable<Row>, Iterable<Row>>> {

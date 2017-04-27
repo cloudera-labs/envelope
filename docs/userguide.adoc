@@ -8,7 +8,7 @@ Envelope runs as a graph of steps that are defined by the configuration. The key
 
 Each step can specify other steps as dependencies so that Envelope will wait for those steps to be submitted first. Steps that have no dependencies will run immediately. Steps that have common dependencies will run in parallel.
 
-Each step can optionally write to an external output. The way that a step is applied to the output, e.g. to append, or to upsert, or to maintain a Type 2 SCD, is specified with a planner.
+Each step can optionally write to an external output. The way that a step is applied to the output, e.g. to append, or to upsert, or to maintain a Type 2 SCD, is specified with a planner. The way that a step groups keys together (which only occurs when the planner requires existing records) is specified with a partitioner.
 
 When at least one of the external input steps is a stream, e.g. Kafka, then the Envelope pipeline becomes a Spark Streaming job and the graph of steps will be executed every micro-batch.
 
@@ -26,8 +26,9 @@ And can additionally define:
 
 - One application section for pipeline-level configurations
 - One or more steps with one or more dependencies
+- Zero or one or more steps with a partitioner
 
-For the full specification of Envelope configurations, see the link:docs/configurations.adoc[configuration guide] documentation page.
+For the full specification of Envelope configurations, see the link:configurations.adoc[configuration guide] documentation page.
 
 The final configuration is constructed with the following layers (in order of precedence):
 
