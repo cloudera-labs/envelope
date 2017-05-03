@@ -126,8 +126,6 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public void setData(Dataset<Row> batchDF) throws Exception {
     this.data = batchDF;
 
-    batchDF.createOrReplaceTempView(getName());
-
     if (doesCache()) {
       cache();
     }
@@ -144,9 +142,15 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       printData();
     }
 
+    registerStep();
+    
     if (hasOutput()) {
       writeOutput();
     }
+  }
+  
+  private void registerStep() {
+    data.createOrReplaceTempView(getName());
   }
 
   private boolean doesCache() {
@@ -156,11 +160,11 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private void cache() {
-    data.persist(StorageLevel.MEMORY_ONLY());
+    data = data.persist(StorageLevel.MEMORY_ONLY());
   }
 
   public void clearCache() {
-    data.unpersist(false);
+    data = data.unpersist(false);
   }
 
   private boolean usesSmallHint() {

@@ -27,7 +27,6 @@ import com.typesafe.config.Config;
  */
 public class StreamingStep extends DataStep {
 
-  public static final String REPARTITION_PROPERTY = "input.repartition";
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
 
   public StreamingStep(String name, Config config) throws Exception {
@@ -37,8 +36,8 @@ public class StreamingStep extends DataStep {
   public JavaDStream<Row> getStream() throws Exception {
     JavaDStream<Row> stream = ((StreamInput)input).getDStream();
 
-    if (doesRepartition(config)) {
-      stream = repartition(stream, config);
+    if (doesRepartition()) {
+      stream = repartition(stream);
     }
 
     return stream;
@@ -50,13 +49,11 @@ public class StreamingStep extends DataStep {
     return schema;
   }
 
-  private static boolean doesRepartition(Config config) {
-    if (!config.hasPath(REPARTITION_PROPERTY)) return false;
-
-    return config.getBoolean(REPARTITION_PROPERTY);
+  private boolean doesRepartition() {
+    return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY);
   }
 
-  private static <T> JavaDStream<T> repartition(JavaDStream<T> stream, Config config) {
+  private <T> JavaDStream<T> repartition(JavaDStream<T> stream) {
     int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
 
     return stream.repartition(numPartitions);

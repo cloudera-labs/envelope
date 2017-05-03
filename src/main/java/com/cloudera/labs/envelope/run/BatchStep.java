@@ -30,9 +30,23 @@ import com.typesafe.config.Config;
  * A batch step is a data step that contains a single DataFrame.
  */
 public class BatchStep extends DataStep {
+  
+  public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "repartition.partitions";
+  public static final String COALESCE_NUM_PARTITIONS_PROPERTY = "coalesce.partitions";
 
+  private static final String INPUT_PREFIX = "input.";
+  private static final String DERIVER_PREFIX = "deriver.";
+  
   public BatchStep(String name, Config config) throws Exception {
     super(name, config);
+    
+    if ((config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+         config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) &&
+        (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
+         config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)))
+    {
+      throw new RuntimeException("Step " + getName() + " can not both repartition and coalesce.");
+    }
   }
 
   public void runStep(Set<Step> dependencySteps) throws Exception {
@@ -51,10 +65,42 @@ public class BatchStep extends DataStep {
       Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
       data = deriver.derive(dependencies);
     }
+    
+    if (doesRepartition()) {
+      data = repartition(data);
+    }
 
     setData(data);
 
     setFinished(true);
+  }
+  
+  private boolean doesRepartition() {
+    return config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+           config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+           config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
+           config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+  }
+
+  private Dataset<Row> repartition(Dataset<Row> data) {
+    if (config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
+      int numPartitions = config.getInt(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
+      data = data.repartition(numPartitions);
+    }
+    else if (config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
+      int numPartitions = config.getInt(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
+      data = data.repartition(numPartitions);
+    }
+    else if (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
+      int numPartitions = config.getInt(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+      data = data.coalesce(numPartitions);
+    }
+    else if (config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
+      int numPartitions = config.getInt(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+      data = data.coalesce(numPartitions);
+    }
+    
+    return data;
   }
 
 }
