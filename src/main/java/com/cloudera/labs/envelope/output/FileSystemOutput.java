@@ -33,6 +33,7 @@ public class FileSystemOutput implements BulkOutput {
 
   public final static String FORMAT_CONFIG_NAME = "format";
   public final static String PATH_CONFIG_NAME = "path";
+  public final static String PARTITION_COLUMNS_CONFIG = "partition.by";
 
   private Config config;
 
@@ -40,11 +41,16 @@ public class FileSystemOutput implements BulkOutput {
   public void configure(Config config) {
     this.config = config;
 
-    if (!config.hasPath(FORMAT_CONFIG_NAME)) {
+    if (!config.hasPath(FORMAT_CONFIG_NAME) || config.getString(FORMAT_CONFIG_NAME).isEmpty()) {
       throw new RuntimeException("Filesystem output requires '" + FORMAT_CONFIG_NAME + "' property");
     }
-    if (!config.hasPath(PATH_CONFIG_NAME)) {
+
+    if (!config.hasPath(PATH_CONFIG_NAME) || config.getString(PATH_CONFIG_NAME).isEmpty() ) {
       throw new RuntimeException("Filesystem output requires '" + PATH_CONFIG_NAME + "' property");
+    }
+
+    if (config.hasPath(PARTITION_COLUMNS_CONFIG) && config.getList(PARTITION_COLUMNS_CONFIG).isEmpty() ) {
+      throw new RuntimeException("Filesystem output '" + PATH_CONFIG_NAME + "' property cannot be empty if defined");
     }
   }
 
@@ -58,6 +64,12 @@ public class FileSystemOutput implements BulkOutput {
       String path = config.getString(PATH_CONFIG_NAME);
 
       DataFrameWriter<Row> writer = mutation.write();
+
+      if (config.hasPath(PARTITION_COLUMNS_CONFIG)) {
+        List<String> columns = config.getStringList(PARTITION_COLUMNS_CONFIG);
+        writer = writer.partitionBy(columns.toArray(new String[columns.size()]));
+      }
+
       switch (mutationType) {
         case INSERT:
           writer = writer.mode(SaveMode.Append);
