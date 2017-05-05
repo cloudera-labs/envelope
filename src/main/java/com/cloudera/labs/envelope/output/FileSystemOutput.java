@@ -15,42 +15,70 @@
  */
 package com.cloudera.labs.envelope.output;
 
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
-
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
 public class FileSystemOutput implements BulkOutput {
+  private static final Logger LOG = LoggerFactory.getLogger(FileSystemOutput.class);
 
-  public final static String FORMAT_CONFIG_NAME = "format";
-  public final static String PATH_CONFIG_NAME = "path";
+  public final static String FORMAT_CONFIG = "format";
+  public final static String PATH_CONFIG = "path";
   public final static String PARTITION_COLUMNS_CONFIG = "partition.by";
 
+  // CSV optional parameters
+  public final static String CSV_SEPARATOR_CONFIG = "separator";
+  public final static String CSV_QUOTE_CONFIG = "quote";
+  public final static String CSV_ESCAPE_CONFIG = "escape";
+  public final static String CSV_ESCAPE_QUOTES_CONFIG = "escape-quotes";
+  public final static String CSV_QUOTE_ALL_CONFIG = "quote-all";
+  public final static String CSV_HEADER_CONFIG = "header";
+  public final static String CSV_NULL_VALUE_CONFIG = "null-value";
+  public final static String CSV_COMPRESSION_CONFIG = "compression";
+  public final static String CSV_DATE_CONFIG = "date-format";
+  public final static String CSV_TIMESTAMP_CONFIG = "timestamp-format";
+
   private Config config;
+  private ConfigUtils.OptionMap options;
 
   @Override
   public void configure(Config config) {
     this.config = config;
 
-    if (!config.hasPath(FORMAT_CONFIG_NAME) || config.getString(FORMAT_CONFIG_NAME).isEmpty()) {
-      throw new RuntimeException("Filesystem output requires '" + FORMAT_CONFIG_NAME + "' property");
+    if (!config.hasPath(FORMAT_CONFIG) || config.getString(FORMAT_CONFIG).isEmpty()) {
+      throw new RuntimeException("Filesystem output requires '" + FORMAT_CONFIG + "' property");
     }
 
-    if (!config.hasPath(PATH_CONFIG_NAME) || config.getString(PATH_CONFIG_NAME).isEmpty() ) {
-      throw new RuntimeException("Filesystem output requires '" + PATH_CONFIG_NAME + "' property");
+    if (!config.hasPath(PATH_CONFIG) || config.getString(PATH_CONFIG).isEmpty() ) {
+      throw new RuntimeException("Filesystem output requires '" + PATH_CONFIG + "' property");
     }
 
     if (config.hasPath(PARTITION_COLUMNS_CONFIG) && config.getList(PARTITION_COLUMNS_CONFIG).isEmpty() ) {
-      throw new RuntimeException("Filesystem output '" + PATH_CONFIG_NAME + "' property cannot be empty if defined");
+      throw new RuntimeException("Filesystem output '" + PATH_CONFIG + "' property cannot be empty if defined");
+    }
+
+    if (config.getString(FORMAT_CONFIG).equals("csv")) {
+      options = new ConfigUtils.OptionMap(config)
+          .resolve("sep", CSV_SEPARATOR_CONFIG)
+          .resolve("quote", CSV_QUOTE_CONFIG)
+          .resolve("escape", CSV_ESCAPE_CONFIG)
+          .resolve("escapeQuotes", CSV_ESCAPE_QUOTES_CONFIG)
+          .resolve("quoteAll", CSV_QUOTE_ALL_CONFIG)
+          .resolve("header", CSV_HEADER_CONFIG)
+          .resolve("nullValue", CSV_NULL_VALUE_CONFIG)
+          .resolve("compression", CSV_COMPRESSION_CONFIG)
+          .resolve("dateFormat", CSV_DATE_CONFIG)
+          .resolve("timestampFormat", CSV_TIMESTAMP_CONFIG);
     }
   }
 
@@ -60,12 +88,13 @@ public class FileSystemOutput implements BulkOutput {
       MutationType mutationType = plan._1();
       Dataset<Row> mutation = plan._2();
 
-      String format = config.getString(FORMAT_CONFIG_NAME);
-      String path = config.getString(PATH_CONFIG_NAME);
+      String format = config.getString(FORMAT_CONFIG);
+      String path = config.getString(PATH_CONFIG);
 
       DataFrameWriter<Row> writer = mutation.write();
 
       if (config.hasPath(PARTITION_COLUMNS_CONFIG)) {
+        LOG.debug("Partitioning output");
         List<String> columns = config.getStringList(PARTITION_COLUMNS_CONFIG);
         writer = writer.partitionBy(columns.toArray(new String[columns.size()]));
       }
@@ -83,7 +112,12 @@ public class FileSystemOutput implements BulkOutput {
 
       switch (format) {
         case "parquet":
+          LOG.debug("Writing Parquet: {}", path);
           writer.parquet(path);
+          break;
+        case "csv":
+          LOG.debug("Writing CSV: {}", path);
+          writer.options(options).csv(path);
           break;
         default:
           throw new RuntimeException("Filesystem output does not support file format: " + format);

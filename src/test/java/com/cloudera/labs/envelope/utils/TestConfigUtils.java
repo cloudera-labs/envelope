@@ -21,6 +21,8 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -55,6 +57,22 @@ public class TestConfigUtils {
     assertEquals(substitutedConfig.getInt("key_a"), 1);
     assertEquals(substitutedConfig.getString("key_b"), "X");
     assertEquals(substitutedConfig.getString("key_c"), "Y");
+  }
+
+  @Test
+  public void testOptionMap() {
+    Config config1 = ConfigFactory.parseString("key_a: 1");
+    Config config2 = ConfigFactory.parseString("key_a: two");
+
+    ConfigUtils.OptionMap optionMap1 = new ConfigUtils.OptionMap(config1);
+    optionMap1.resolve("option", "key_a");
+    optionMap1.resolve("none", "foo");
+
+    ConfigUtils.OptionMap optionMap2 = new ConfigUtils.OptionMap(config2);
+    optionMap2.resolve("option", "key_a");
+
+    assertNull("Invalid option value", optionMap1.get("none"));
+    assertNotSame("OptionMaps are the same", optionMap1.get("option"), optionMap2.get("option"));
   }
 
 }

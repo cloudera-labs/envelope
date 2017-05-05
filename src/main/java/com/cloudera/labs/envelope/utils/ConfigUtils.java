@@ -15,11 +15,11 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import java.io.File;
-import java.util.regex.Pattern;
-
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.io.File;
+import java.util.HashMap;
+import java.util.regex.Pattern;
 
 public class ConfigUtils {
 
@@ -39,6 +39,21 @@ public class ConfigUtils {
     return ConfigFactory.defaultOverrides()
         .withFallback(config)
         .resolve();
+  }
+
+  public static class OptionMap extends HashMap<String, String> {
+    private Config config;
+
+    public OptionMap(Config config) {
+      this.config = config;
+    }
+
+    public OptionMap resolve(String option, String parameter) {
+      if (config.hasPath(parameter)) {
+        this.put(option, config.getString(parameter));
+      }
+      return this;
+    }
   }
 
 }

@@ -118,7 +118,72 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |The Hadoop filesystem path to read as the input. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
 
 |format
-|The file format of the files of the input directory. Envelope supports formats `parquet`, `avro`, and `json`.
+|The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, and `csv`.
+
+|separator
+|(csv) Spark option `sep`; sets the single character as a separator for each field and value. (default ,)
+
+|encoding
+|(csv) Spark option `encoding`; decodes the CSV files by the given encoding type. (default `UTF-8`)
+
+|quote
+|(csv) Spark option `quote`; sets the single character used for escaping quoted values where the separator can be part of the value. _If you would like to turn off quotations, you need to set not `null` but an empty string._ (default ")
+
+|escape
+|(csv) Spark option `escape`; sets the single character used for escaping quotes inside an already quoted value. (default \)
+
+|comment
+|(csv) Spark option `comment`; sets the single character used for skipping lines beginning with this character. By default, it is disabled. (default empty string)
+
+|header
+|(csv) Spark option `header`; uses the first line as names of columns. (default `false`)
+
+|infer-schema
+|(csv) Spark option `inferSchema`; infers the input schema automatically from data. It requires one extra pass over the data. (default `false`)
+
+|ignore-leading-ws
+|(csv) Spark option `ignoreLeadingWhiteSpace`; defines whether or not leading whitespaces from values being read should be skipped. (default `false`)
+
+|ignore-trailing-ws
+|(csv) Spark option `ignoreTrailingWhiteSpace`; defines whether or not trailing whitespaces from values being read should be skipped. (default `false`)
+
+|null-value
+|(csv) Spark option `nullValue`; sets the string representation of a null value. This applies to all supported types including the string type. (default empty string)
+
+|nan-value
+|(csv) Spark option `nanValue`; sets the string representation of a "non-number" value. (default `NaN`)
+
+|positive-infinity
+|(csv) Spark option `positiveInf`; sets the string representation of a positive infinity value. (default `Inf`)
+
+|negative-infinity
+|(csv) Spark option `negativeInf`; sets the string representation of a negative infinity value. (default `-Inf`)
+
+|date-format
+|(csv) Spark option `dateFormat`; sets the string that indicates a date format. Custom date formats follow the formats at `java.text.SimpleDateFormat`. This applies to `date` type. (default `yyyy-MM-dd`)
+
+|timestamp-format
+|(csv) Spark option `timestampFormat`; sets the string that indicates a timestamp format. Custom date formats follow the formats at `java.text.SimpleDateFormat`. This applies to `timestamp` type. (default `yyyy-MM-dd'T'HH:mm:ss.SSSZZ`)
+
+|max-columns
+|(csv) Spark option `maxColumns`; defines a hard limit of how many columns a record can have. (default `20480`)
+
+|max-chars-per-column
+|(csv) Spark option `maxCharsPerColumn`; defines the maximum number of characters allowed for any given value being read. By default, it is `-1` meaning unlimited length. (default `-1`)
+
+|max-malformed-logged
+|(csv) Spark option `maxMalformedLogPerPartition`; sets the maximum number of malformed rows Spark will log for each partition. Malformed records beyond this number will be ignored. (default `10`)
+
+|mode
+|(csv) Spark option `mode`; allows a mode for dealing with corrupt records during parsing.
+
+`PERMISSIVE`: sets other fields to `null` when it meets a corrupted record. When a schema is set by user, it sets `null` for extra fields.
+
+`DROPMALFORMED`: ignores the whole corrupted records.
+
+`FAILFAST`: throws an exception when it meets corrupted records.
+
+(default `PERMISSIVE`)
 
 ||
 |`_hive_`|
@@ -442,10 +507,40 @@ Output configurations have the `steps.[stepname].output.` prefix.
 |The Hadoop filesystem path to write as the output. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
 
 |format
-|The file format for the files of the output directory. Envelope supports formats `parquet`.
+|The file format for the files of the output directory. Envelope supports formats `parquet` and `csv`.
 
 |partition.by
 |The list of columns to partition the write output. Optional.
+
+|separator
+|(csv) Spark option `sep`; sets the single character as a separator for each field and value. (default ,)
+
+|quote
+|(csv) Spark option `quote`; sets the single character used for escaping quoted values where the separator can be part of the value. (default ")
+
+|escape
+|(csv) Spark option `escape`; sets the single character used for escaping quotes inside an already quoted value. (default \)
+
+|escape-quotes
+|(csv) Spark option `escapeQuotes`; a flag indicating whether values containing quotes should always be enclosed in quotes. Default is to escape all values containing a quote character. (default `true`)
+
+|quote-all
+|(csv) Spark option `quoteAll`; a flag indicating whether all values should always be enclosed in quotes. Default is to only escape values containing a quote character. (default `false`)
+
+|header
+|(csv) Spark option `header`; writes the names of columns as the first line. (default `false`)
+
+|null-value
+|(csv) Spark option `nullValue`; sets the string representation of a null value. (default empty string)
+
+|compression
+|(csv) Spark option `compression`; compression codec to use when saving to file. This can be one of the known case-insensitive shorten names (`none`, `bzip2`, `gzip`, `lz4`, `snappy`, and `deflate`). (default `null`)
+
+|date-format
+|(csv) Spark option `dateFormat`; sets the string that indicates a date format. Custom date formats follow the formats at `java.text.SimpleDateFormat`. This applies to `date` type. (default `yyyy-MM-dd`)
+
+|timestamp-format
+|(csv) Spark option `timestampFormat`; sets the string that indicates a timestamp format. Custom date formats follow the formats at `java.text.SimpleDateFormat`. This applies to `timestamp` type. (default `yyyy-MM-dd'T'HH:mm:ss.SSSZZ`)
 
 ||
 |`_hive_`|

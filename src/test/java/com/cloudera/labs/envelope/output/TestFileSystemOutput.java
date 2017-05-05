@@ -17,10 +17,13 @@ package com.cloudera.labs.envelope.output;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,11 +62,6 @@ public class TestFileSystemOutput {
   public void setup() throws IOException {
     results = temporaryFolder.newFolder();
 
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemOutput.FORMAT_CONFIG_NAME, "parquet");
-    paramMap.put(FileSystemOutput.PATH_CONFIG_NAME, results.getPath());
-    config = ConfigFactory.parseMap(paramMap);
-
     plannedRows = new ArrayList<>();
     Dataset<Row> rowDataset = Contexts.getSparkSession().read().json(
         TestFileSystemOutput.class.getResource(FS_DATA).getPath());
@@ -80,20 +78,32 @@ public class TestFileSystemOutput {
 
   @Test (expected = RuntimeException.class)
   public void missingFormat() throws Exception {
-    config = ConfigFactory.parseString(FileSystemOutput.FORMAT_CONFIG_NAME + ": null").withFallback(config);
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, null);
+    config = ConfigFactory.parseMap(paramMap);
+
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
     fileSystemOutput.configure(config);
   }
 
   @Test (expected = RuntimeException.class)
   public void missingPath() throws Exception {
-    config = ConfigFactory.parseString(FileSystemOutput.PATH_CONFIG_NAME + ": null").withFallback(config);
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, null);
+    config = ConfigFactory.parseMap(paramMap);
+
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
     fileSystemOutput.configure(config);
   }
 
   @Test
   public void writeParquet() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    config = ConfigFactory.parseMap(paramMap);
+
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
@@ -119,16 +129,74 @@ public class TestFileSystemOutput {
     assertEquals("Invalid record count", 4, i);
   }
 
+  @Test
+  public void writeCsvNoOptions() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "csv");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    fileSystemOutput.configure(config);
+    fileSystemOutput.applyBulkMutations(plannedRows);
+
+    File[] files = results.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".csv");
+      }
+    });
+    assertEquals("Incorrect number of CSV files", 1, files.length);
+
+    BufferedReader br = new BufferedReader(new FileReader(files[0]));
+    String line = br.readLine();
+    assertEquals("Invalid header", "0,zero,true,dog", line);
+  }
+
+  @Test
+  public void writeCsvWithOptions() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "csv");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    paramMap.put(FileSystemOutput.CSV_HEADER_CONFIG, true);
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    fileSystemOutput.configure(config);
+    fileSystemOutput.applyBulkMutations(plannedRows);
+
+    File[] files = results.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".csv");
+      }
+    });
+    assertEquals("Incorrect number of CSV files", 1, files.length);
+
+    BufferedReader br = new BufferedReader(new FileReader(files[0]));
+    String line = br.readLine();
+    assertEquals("Invalid header", "field1,field2,field3,field4", line);
+  }
+
   @Test (expected = RuntimeException.class)
   public void missingPartitions() throws Exception {
-    config = ConfigFactory.parseString(FileSystemOutput.PARTITION_COLUMNS_CONFIG + ": []").withFallback(config);
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    paramMap.put(FileSystemOutput.PARTITION_COLUMNS_CONFIG, Lists.newArrayList());
+    config = ConfigFactory.parseMap(paramMap);
+
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
     fileSystemOutput.configure(config);
   }
 
   @Test
   public void repartitioningParquetColumns() throws Exception {
-    config = ConfigFactory.parseString(FileSystemOutput.PARTITION_COLUMNS_CONFIG + ": [ field4, field3 ]").withFallback(config);
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    paramMap.put(FileSystemOutput.PARTITION_COLUMNS_CONFIG, Lists.newArrayList("field4", "field3"));
+    config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
     fileSystemOutput.configure(config);
