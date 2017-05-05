@@ -35,6 +35,10 @@ public class EnvelopeMain {
     Config config = ConfigUtils.configFromPath(args[0]);
     if (args.length == 2) {
       config = ConfigUtils.applySubstitutions(config, args[1]);
+    } else if (args.length > 2) {
+      LOG.error("Too many parameters to Envelope application");
+    } else {
+      config = ConfigUtils.applySubstitutions(config);
     }
     LOG.info("Configuration loaded");
 

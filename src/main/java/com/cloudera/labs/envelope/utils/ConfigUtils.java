@@ -28,6 +28,12 @@ public class ConfigUtils {
     return ConfigFactory.parseFile(configFile);
   }
 
+  public static Config applySubstitutions(Config config) {
+    return ConfigFactory.defaultOverrides()
+        .withFallback(config)
+        .resolve();
+  }
+
   public static Config applySubstitutions(Config config, String substitutionsString) {
     String[] substitutions = substitutionsString.split(Pattern.quote(","));
 
@@ -36,9 +42,7 @@ public class ConfigUtils {
       config = config.withFallback(substitutionConfig);
     }
 
-    return ConfigFactory.defaultOverrides()
-        .withFallback(config)
-        .resolve();
+    return applySubstitutions(config);
   }
 
   public static class OptionMap extends HashMap<String, String> {

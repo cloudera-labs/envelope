@@ -170,6 +170,7 @@
           <workingDirectory>${project.build.directory}</workingDirectory>
           <systemPropertyVariables>
             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+            <substitution.test>substitution value</substitution.test>
           </systemPropertyVariables>
         </configuration>
       </plugin>

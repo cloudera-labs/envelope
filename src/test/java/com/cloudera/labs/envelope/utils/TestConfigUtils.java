@@ -15,20 +15,26 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 public class TestConfigUtils {
+
+  @BeforeClass
+  public static void envSetup() {
+    // This will satisfy IDE unit tests, but not Maven Surefire unit tests
+    System.setProperty("substitution.test", "substitution value");
+  }
 
   @Test
   public void testConfigFromPath() throws Exception {
@@ -47,8 +53,8 @@ public class TestConfigUtils {
   }
 
   @Test
-  public void testApplySubstitutions() {
-    Config baseConfig = ConfigFactory.parseString("key_a = ${a}, key_b = ${b}, key_c = ${c}");
+  public void testApplySubstitutionsWithArguments() {
+    Config baseConfig = ConfigFactory.parseString("key_a = ${a}, key_b = ${b}, key_c = ${c}, key_d = ${substitution.test}");
 
     String substitutions = "a=1,b=X,c=Y";
 
@@ -57,6 +63,17 @@ public class TestConfigUtils {
     assertEquals(substitutedConfig.getInt("key_a"), 1);
     assertEquals(substitutedConfig.getString("key_b"), "X");
     assertEquals(substitutedConfig.getString("key_c"), "Y");
+    assertEquals(substitutedConfig.getString("key_d"), "substitution value");
+  }
+
+  @Test
+  public void testApplySubstitutionsNoArguments() {
+    Config baseConfig = ConfigFactory.parseString("key_a = A, key_b = ${substitution.test}, key_c = ${key_a}");
+    Config substitutedConfig = ConfigUtils.applySubstitutions(baseConfig);
+
+    assertEquals(substitutedConfig.getString("key_a"), "A");
+    assertEquals(substitutedConfig.getString("key_b"), "substitution value");
+    assertEquals(substitutedConfig.getString("key_c"), "A");
   }
 
   @Test
