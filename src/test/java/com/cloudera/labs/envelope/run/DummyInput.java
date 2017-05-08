@@ -39,7 +39,8 @@ public class DummyInput implements BatchInput {
   @Override
   public Dataset<Row> read() throws Exception {
     Dataset<Row> df = Contexts.getSparkSession()
-        .range(numPartitions)
+        .range(numPartitions * 10)
+        .repartition(numPartitions)
         .map(new LongToRowFunction(), 
             RowEncoder.apply(DataTypes.createStructType(
                 Lists.newArrayList(DataTypes.createStructField("value", DataTypes.LongType, true)))));
