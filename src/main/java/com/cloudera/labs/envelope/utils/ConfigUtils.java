@@ -45,6 +45,12 @@ public class ConfigUtils {
     return applySubstitutions(config);
   }
 
+  public static void assertConfig(Config config, String key) {
+    if (!config.hasPath(key)) {
+      throw new RuntimeException("Missing required property [" + key + "]");
+    }
+  }
+
   public static class OptionMap extends HashMap<String, String> {
     private Config config;
 

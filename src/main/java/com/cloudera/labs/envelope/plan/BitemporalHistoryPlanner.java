@@ -15,15 +15,8 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static com.cloudera.labs.envelope.utils.RowUtils.after;
-import static com.cloudera.labs.envelope.utils.RowUtils.append;
-import static com.cloudera.labs.envelope.utils.RowUtils.before;
-import static com.cloudera.labs.envelope.utils.RowUtils.compareTimestamp;
-import static com.cloudera.labs.envelope.utils.RowUtils.different;
-import static com.cloudera.labs.envelope.utils.RowUtils.get;
-import static com.cloudera.labs.envelope.utils.RowUtils.precedingTimestamp;
-import static com.cloudera.labs.envelope.utils.RowUtils.set;
-import static com.cloudera.labs.envelope.utils.RowUtils.simultaneous;
+import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
+import static com.cloudera.labs.envelope.utils.RowUtils.*;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -60,6 +53,13 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
   @Override
   public void configure(Config config) {
     this.config = config;
+    assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
+    assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
+    assertConfig(config, TIMESTAMP_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
   }
 
   @Override
@@ -76,13 +76,17 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     String systemTimeEffectiveFromFieldName = getSystemTimeEffectiveFromFieldName();
     String systemTimeEffectiveToFieldName = getSystemTimeEffectiveToFieldName();
     boolean hasCurrentFlagField = hasCurrentFlagField();
-    String currentFlagFieldName = getCurrentFlagFieldName();
+    String currentFlagFieldName = null;
+    if (hasCurrentFlagField) {
+      currentFlagFieldName = getCurrentFlagFieldName();
+    }
 
     long currentSystemTime = System.currentTimeMillis();
     Comparator<PlannedRow> tc = new PlanTimestampComparator(timestampFieldName);
 
     List<PlannedRow> plannedForKey = Lists.newArrayList();
 
+    // Filter out existing entries for this key that have already been closed
     if (existingForKey != null) {
       for (Row existing : existingForKey) {
         if (currentSystemTime < (long)get(existing, systemTimeEffectiveToFieldName)) {

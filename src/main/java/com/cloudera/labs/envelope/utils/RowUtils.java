@@ -437,6 +437,10 @@ public class RowUtils {
     return row.get(row.fieldIndex(fieldName));
   }
 
+  public static <T> T getAs(Class<T> clazz, Row row, String fieldName) {
+    return row.getAs(row.fieldIndex(fieldName));
+  }
+
   public static Row set(Row row, String fieldName, Object replacement) {
     Object[] values = new Object[row.length()];
 
