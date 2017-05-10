@@ -96,6 +96,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     }
 
     Collections.sort(plannedForKey, tc);
+    Collections.sort(arrivingForKey, new ArrivingTimestampComparator(timestampFieldName));
 
     for (Row arriving : arrivingForKey) {
       arriving = append(arriving, eventTimeEffectiveFromFieldName, DataTypes.LongType, null);
@@ -196,7 +197,6 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           if (hasCurrentFlagField) {
             arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_NO);
           }
-          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
@@ -227,7 +227,6 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           if (hasCurrentFlagField) {
             arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_YES);
           }
-          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           if (hasCurrentFlagField) {
@@ -260,14 +259,61 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
       Collections.sort(plannedForKey, tc);
     }
 
-    Iterator<PlannedRow> planIterator = plannedForKey.iterator();
-    while (planIterator.hasNext()) {
-      if (planIterator.next().getMutationType().equals(MutationType.NONE)) {
-        planIterator.remove();
+    // Final pass-through here to carry forward anything we need to
+    List<PlannedRow> planned = Lists.newArrayList();
+    if (doesCarryForward()) {
+      for (int position = 0; position < plannedForKey.size(); position++) {
+        PlannedRow plan = plannedForKey.get(position);
+        // We carry forward for all mutations in case the next non-NONE row needs the values from this row
+        if (position > 0) {
+          Row carried = carryForwardWhenNull(plan.getRow(),
+              plannedForKey.get(position - 1).getRow());
+          if (different(plan.getRow(), carried, getValueFieldNames())) {
+            // Close existing record and add a new one if not an insert - otherwise just replace
+            Row superseded = plan.getRow();
+            superseded = set(superseded, systemTimeEffectiveToFieldName,
+                precedingTimestamp(currentSystemTime));
+            if (hasCurrentFlagField) {
+              superseded = set(superseded, currentFlagFieldName, CURRENT_FLAG_NO);
+            }
+            if (plan.getMutationType().equals(MutationType.INSERT)) {
+              plan.setRow(carried);
+              // This might supersede a previous insert that we've just added as part of a history re-write
+              // Condition: the values are the same, it has the same timestamp and has the same currentSystemTime
+              if (planned.size() > 1 &&
+                  simultaneous(plan.getRow(), planned.get(planned.size() - 1).getRow(),
+                      timestampFieldName) &&
+                  simultaneous(plan.getRow(), planned.get(planned.size() - 1).getRow(),
+                      systemTimeEffectiveFromFieldName)) {
+                planned.remove(planned.size() - 1);
+              }
+              planned.add(plan);
+            } else {
+              planned.add(new PlannedRow(superseded, MutationType.UPDATE));
+              carried = set(carried, systemTimeEffectiveFromFieldName, currentSystemTime);
+              carried = set(carried, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
+              if (hasCurrentFlagField) {
+                carried = set(carried, currentFlagFieldName, CURRENT_FLAG_YES);
+              }
+              planned.add(new PlannedRow(carried, MutationType.INSERT));
+            }
+          } else if (!plan.getMutationType().equals(MutationType.NONE)) {
+            planned.add(plan);
+          }
+          plan.setRow(carried);
+        } else if (!plan.getMutationType().equals(MutationType.NONE)) {
+          planned.add(plan);
+        }
+      }
+    } else {
+      for (PlannedRow plan : plannedForKey) {
+        if (!plan.getMutationType().equals(MutationType.NONE)) {
+          planned.add(plan);
+        }
       }
     }
 
-    return plannedForKey;
+    return planned;
   }
 
   @Override
@@ -307,10 +353,14 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     return config.getString(TIMESTAMP_FIELD_NAME_CONFIG_NAME);
   }
 
+  private boolean doesCarryForward() {
+    return config.hasPath(CARRY_FORWARD_CONFIG_NAME) && config.getBoolean(CARRY_FORWARD_CONFIG_NAME);
+  }
+
   // When the arrived record value is null then we have the option to carry forward
   // the value from the previous record. This is useful for handling sparse records.
   private Row carryForwardWhenNull(Row into, Row from) {
-    if (!config.hasPath(CARRY_FORWARD_CONFIG_NAME) || !config.getBoolean(CARRY_FORWARD_CONFIG_NAME)) {
+    if (!doesCarryForward()) {
       return into;
     }
 
@@ -334,6 +384,19 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     @Override
     public int compare(PlannedRow p1, PlannedRow p2) {
       return compareTimestamp(p1.getRow(), p2.getRow(), timestampFieldName);
+    }
+  }
+
+  private class ArrivingTimestampComparator implements Comparator<Row> {
+    private String timestampFieldName;
+
+    public ArrivingTimestampComparator(String timestampFieldName) {
+      this.timestampFieldName = timestampFieldName;
+    }
+
+    @Override
+    public int compare(Row r1, Row r2) {
+      return compareTimestamp(r1, r2, timestampFieldName);
     }
   }
 

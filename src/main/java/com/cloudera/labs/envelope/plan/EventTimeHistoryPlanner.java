@@ -30,6 +30,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
+import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
+
 /**
  * A planner implementation for storing all versions of the values of a key (its history) using
  * Type II SCD modeling.
@@ -54,6 +56,11 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
   @Override
   public void configure(Config config) {
     this.config = config;
+    assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
+    assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
+    assertConfig(config, TIMESTAMP_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
+    assertConfig(config, EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
   }
 
   @Override
@@ -174,7 +181,6 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
           if (hasLastUpdatedField()) {
             arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
           }
-          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           plan.setRow(RowUtils.set(plan.getRow(), getEffectiveToFieldName(), RowUtils.precedingTimestamp(arrivedTimestamp)));
@@ -203,7 +209,6 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
           if (hasLastUpdatedField()) {
             arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
           }
-          arriving = carryForwardWhenNull(arriving, plan.getRow());
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           plan.setRow(RowUtils.set(plan.getRow(), getEffectiveToFieldName(), RowUtils.precedingTimestamp(arrivedTimestamp)));
@@ -224,7 +229,12 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
       Collections.sort(plannedForKey, tc);
     }
 
-    for (PlannedRow plan : plannedForKey) {
+    for (int position = 0; position < plannedForKey.size(); position++) {
+      PlannedRow plan = plannedForKey.get(position);
+      // We carry forward for all mutations in case the next non-NONE row needs the values from this row
+      if (position > 0) {
+        plan.setRow(carryForwardWhenNull(plan.getRow(), plannedForKey.get(position - 1).getRow()));
+      }
       if (!plan.getMutationType().equals(MutationType.NONE)) {
         planned.add(plan);
       }
