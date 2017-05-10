@@ -27,9 +27,9 @@ import com.typesafe.config.Config;
 import scala.Tuple2;
 
 @SuppressWarnings("serial")
-public class TranslateFunction<T> implements FlatMapFunction<Tuple2<T, T>, Row> {
+public class TranslateFunction<K, V> implements FlatMapFunction<Tuple2<K, V>, Row> {
   private Config config;
-  private Translator<T> translator;
+  private Translator<K, V> translator;
 
   private static Logger LOG = LoggerFactory.getLogger(TranslateFunction.class);
 
@@ -39,12 +39,12 @@ public class TranslateFunction<T> implements FlatMapFunction<Tuple2<T, T>, Row> 
 
   @SuppressWarnings("unchecked")
   @Override
-  public Iterator<Row> call(Tuple2<T, T> keyAndMessage) throws Exception {
-    T key = keyAndMessage._1;
-    T message = keyAndMessage._2;
+  public Iterator<Row> call(Tuple2<K, V> keyAndMessage) throws Exception {
+    K key = keyAndMessage._1;
+    V message = keyAndMessage._2;
 
     if (translator == null) {
-      translator = (Translator<T>)TranslatorFactory.create(config);
+      translator = (Translator<K, V>) TranslatorFactory.create(config);
       LOG.info("Translator created: " + translator.getClass().getName());
     }
 

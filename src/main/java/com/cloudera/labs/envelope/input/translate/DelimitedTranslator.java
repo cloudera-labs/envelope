@@ -31,7 +31,7 @@ import com.typesafe.config.Config;
 /**
  * A translator implementation for plain delimited text messages, e.g. CSV.
  */
-public class DelimitedTranslator implements Translator<String> {
+public class DelimitedTranslator implements Translator<String, String> {
 
   private String delimiter;
   private List<String> fieldNames;

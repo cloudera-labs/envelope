@@ -23,10 +23,11 @@ import org.apache.spark.sql.types.StructType;
 import com.typesafe.config.Config;
 
 /**
- * Translators turn raw stream objects into structured Spark SQL Rows.
- * @param <T> The data type of the input keys and messages.
+ * Translators turn raw objects into structured Spark SQL Rows.
+ * @param <K> The data type of the input keys
+ * @param <V> The data type of the input values
  */
-public interface Translator<T> {
+public interface Translator<K, V> {
 
   /**
    * Configure the translator.
@@ -36,14 +37,14 @@ public interface Translator<T> {
   void configure(Config config);
 
   /**
-   * Translate the raw key and message into one or more structured rows.
-   * @param key The key of the message, which could be null if not provided or is not applicable.
-   * @param message
-   * @return An iterable collection of Spark SQL Rows for the keyed message. If the keyed message
+   * Translate the raw key and value into one or more structured rows.
+   * @param key The key of the value, which could be null if not provided or is not applicable.
+   * @param value
+   * @return An iterable collection of Spark SQL Rows for the keyed value. If the keyed value
    * only translates to a single Spark SQL Row then it can be wrapped with Collection#singleton.
    * @throws Exception
    */
-  Iterator<Row> translate(T key, T message) throws Exception;
+  Iterator<Row> translate(K key, V value) throws Exception;
 
   /**
    * Get the schema of the translated objects.

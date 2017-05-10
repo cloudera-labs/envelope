@@ -35,7 +35,7 @@ import com.typesafe.config.Config;
 /**
  * A translator implementation for text key-value pair messages.
  */
-public class KVPTranslator implements Translator<String> {
+public class KVPTranslator implements Translator<String, String> {
 
   private String kvpDelimiter;
   private String fieldDelimiter;

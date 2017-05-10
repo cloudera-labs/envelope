@@ -52,8 +52,8 @@ public class TestMorphlineTranslator {
 
   private @Mocked Config config;
 
-  private Translator<String> stringMorphline;
-  private Translator<byte[]> byteMorphline;
+  private Translator<String, String> stringMorphline;
+  private Translator<byte[], byte[]> byteMorphline;
 
   private String getResourcePath(String resource) {
     return TestMorphlineTranslator.class.getResource(resource).getPath();

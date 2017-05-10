@@ -15,10 +15,16 @@
  */
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.spark.SparkException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +42,13 @@ public class TestFileSystemInput {
   @Test (expected = RuntimeException.class)
   public void missingFormat() throws Exception {
     config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": null").withFallback(config);
+    FileSystemInput fileSystemInput = new FileSystemInput();
+    fileSystemInput.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void invalidFormat() throws Exception {
+    config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": WILLGOBOOM").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
     fileSystemInput.configure(config);
   }
@@ -80,6 +93,93 @@ public class TestFileSystemInput {
 
     Row first = dataFrame.first();
     assertEquals("four", first.getString(3));
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void readInputFormatMissingInputFormat() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void readInputFormatMissingKey() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void readInputFormatMissingValue() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void readInputFormatMissingTranslator() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+  }
+
+  @Test (expected = SparkException.class)
+  public void readInputFormatMismatchTranslator() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, KeyValueTextInputFormat.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, Text.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
+    paramMap.put("translator.type", DummyInputFormatTranslator.class.getCanonicalName());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+    formatInput.read().show();
+  }
+
+  @Test
+  public void readInputFormat() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
+    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
+    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
+    paramMap.put("translator.type", DummyInputFormatTranslator.class.getCanonicalName());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+
+    Dataset<Row> results = formatInput.read();
+
+    assertEquals("Invalid number of rows", 4, results.count());
+    assertEquals("Invalid first row result", 0L, results.first().getLong(0));
+    assertEquals("Invalid first row result", "One,Two,Three,Four", results.first().getString(1));
   }
 
 }

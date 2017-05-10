@@ -34,7 +34,7 @@ import com.typesafe.config.Config;
 /**
  * Morphline
  */
-public class MorphlineTranslator<T> implements Translator<T> {
+public class MorphlineTranslator<K, V> implements Translator<K, V> {
 
   // TODO : Move default parameter values to reference.conf? How? Each Translator is separate/nested?
   // This most likely should use Config.withFallback() on a per instance basis.
@@ -85,7 +85,7 @@ public class MorphlineTranslator<T> implements Translator<T> {
   }
 
   @Override
-  public Iterator<Row> translate(T key, T message) throws Exception {
+  public Iterator<Row> translate(K key, V message) throws Exception {
     LOG.debug("Translating {}[{}]", key, message);
 
     // Get the Morphline Command pipeline

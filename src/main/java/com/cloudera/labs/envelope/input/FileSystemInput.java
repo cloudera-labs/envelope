@@ -15,9 +15,15 @@
  */
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.input.translate.TranslateFunction;
+import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -49,6 +55,11 @@ public class FileSystemInput implements BatchInput {
   public static final String CSV_MAX_CHARS_COLUMN_CONFIG = "max-chars-per-column";
   public static final String CSV_MAX_MALFORMED_LOG_CONFIG = "max-malformed-logged";
   public static final String CSV_MODE_CONFIG = "mode";
+
+  // InputFormat mandatory parameters
+  public static final String INPUT_FORMAT_TYPE_CONFIG = "format-class";
+  public static final String INPUT_FORMAT_KEY_CONFIG = "key-class";
+  public static final String INPUT_FORMAT_VALUE_CONFIG = "value-class";
 
   private Config config;
   private ConfigUtils.OptionMap options;
@@ -87,8 +98,27 @@ public class FileSystemInput implements BatchInput {
           .resolve("maxMalformedLogPerPartition", CSV_MAX_MALFORMED_LOG_CONFIG)
           .resolve("mode", CSV_MODE_CONFIG);
     }
+
+    if (config.getString(FORMAT_CONFIG).equals("input-format")) {
+      if (!config.hasPath(INPUT_FORMAT_TYPE_CONFIG)) {
+        throw new RuntimeException("Filesystem 'input-format' requires '" + INPUT_FORMAT_TYPE_CONFIG + "' config");
+      }
+
+      if (!config.hasPath(INPUT_FORMAT_KEY_CONFIG)) {
+        throw new RuntimeException("Filesystem 'input-format' requires '" + INPUT_FORMAT_KEY_CONFIG + "' config");
+      }
+
+      if (!config.hasPath(INPUT_FORMAT_VALUE_CONFIG)) {
+        throw new RuntimeException("Filesystem 'input-format' requires '" + INPUT_FORMAT_VALUE_CONFIG + "' config");
+      }
+
+      if (!config.hasPath("translator")) {
+        throw new RuntimeException("Filesystem 'input-format' requires 'translator' config");
+      }
+    }
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Dataset<Row> read() throws Exception {
     String format = config.getString(FORMAT_CONFIG);
@@ -108,6 +138,28 @@ public class FileSystemInput implements BatchInput {
       case "csv":
         LOG.debug("Reading CSV: {}", path);
         fs = Contexts.getSparkSession().read().options(options).csv(path);
+        break;
+      case "input-format":
+        String inputType = config.getString(INPUT_FORMAT_TYPE_CONFIG);
+        String keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
+        String valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);
+
+        Config translatorConfig = config.getConfig("translator");
+
+        LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
+
+        Class<? extends InputFormat> typeClazz = Class.forName(inputType).asSubclass(InputFormat.class);
+        Class<?> keyClazz = Class.forName(keyType);
+        Class<?> valueClazz = Class.forName(valueType);
+
+        JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
+        JavaPairRDD<?, ?> rdd = context.newAPIHadoopFile(path, typeClazz, keyClazz, valueClazz, new Configuration());
+
+        // NOTE: Suppressed unchecked warning
+        // Look at https://books.google.com/books?id=zaoK0Z2STlkC&pg=PA28&lpg=PA28&dq=java+capture+%3C?%3E&source=bl&ots=6Yvmcb-2HP&sig=plvfyf16f7npvQ4IEanVAIqPsRg&hl=en&sa=X&ved=0ahUKEwjvh-62m-PTAhUBy2MKHeL8D-MQ6AEITDAG#v=onepage&q&f=false
+        // for using a Wildcard Capture helper - might work here?
+        fs = Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslateFunction(translatorConfig)),
+            TranslatorFactory.create(translatorConfig).getSchema());
         break;
       default:
         throw new RuntimeException("Filesystem input format not supported: " + format);

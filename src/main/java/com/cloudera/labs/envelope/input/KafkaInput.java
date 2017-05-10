@@ -95,7 +95,7 @@ public class KafkaInput implements StreamInput {
                               ConsumerStrategies.<String, String>Subscribe(topicsSet, kafkaParams))
           .mapToPair(new UnwrapConsumerRecordFunction<String>());
       
-      dStream = stringDStream.flatMap(new TranslateFunction<String>(translatorConfig));
+      dStream = stringDStream.flatMap(new TranslateFunction<String, String>(translatorConfig));
     }
     else if (encoding.equals("bytearray")) {
       JavaPairDStream<byte[], byte[]> byteArrayDStream = KafkaUtils
@@ -103,7 +103,7 @@ public class KafkaInput implements StreamInput {
                               ConsumerStrategies.<byte[], byte[]>Subscribe(topicsSet, kafkaParams))
           .mapToPair(new UnwrapConsumerRecordFunction<byte[]>());
 
-      dStream = byteArrayDStream.flatMap(new TranslateFunction<byte[]>(translatorConfig));
+      dStream = byteArrayDStream.flatMap(new TranslateFunction<byte[], byte[]>(translatorConfig));
     }
     else {
       throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");

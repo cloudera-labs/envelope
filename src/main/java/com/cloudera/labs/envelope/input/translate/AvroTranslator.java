@@ -39,7 +39,7 @@ import com.typesafe.config.Config;
 /**
  * A translator implementation for binary Apache Avro generic record messages.
  */
-public class AvroTranslator implements Translator<byte[]> {
+public class AvroTranslator implements Translator<byte[], byte[]> {
 
   private List<String> fieldNames;
   private List<String> fieldTypes;

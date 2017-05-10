@@ -118,7 +118,7 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |The Hadoop filesystem path to read as the input. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
 
 |format
-|The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, and `csv`.
+|The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, `csv`, and `input-format`.
 
 |separator
 |(csv) Spark option `sep`; sets the single character as a separator for each field and value. (default ,)
@@ -184,6 +184,18 @@ Input configurations have the `steps.[stepname].input.` prefix.
 `FAILFAST`: throws an exception when it meets corrupted records.
 
 (default `PERMISSIVE`)
+
+|format-class
+|(input-format) The `org.apache.hadoop.mapreduce.InputFormat` canonical class name.
+
+|key-class
+|(input-format) The canonical class name for the InputFormat's keys.
+
+|value-class
+|(input-format) The canonical class name for the InputFormat's values.
+
+|translator
+|(input-format) The Translator class to use to convert the InputFormat's Key/Value pairs into Dataset Rows. See <<Translators>> for details.
 
 ||
 |`_hive_`|
