@@ -15,8 +15,10 @@
  */
 package com.cloudera.labs.envelope.spark;
 
+import java.io.File;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -50,6 +52,7 @@ public enum Contexts {
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
 
   private Config config = ConfigFactory.empty();
+  private boolean isStreaming;
   
   private SparkSession ss;
   private JavaStreamingContext jsc;
@@ -69,9 +72,37 @@ public enum Contexts {
     
     return INSTANCE.jsc;
   }
+  
+  public static synchronized void closeSparkSession() {
+    closeSparkSession(false);
+  }
 
-  public static void initialize(Config config) {
+  public static synchronized void closeSparkSession(boolean cleanupHiveMetastore) {
+    if (INSTANCE.ss != null) {
+      INSTANCE.ss.close();
+      INSTANCE.ss = null;
+    }
+    if (cleanupHiveMetastore) {
+      FileUtils.deleteQuietly(new File("metastore_db"));
+      FileUtils.deleteQuietly(new File("derby.log"));
+    }
+  }
+
+  public static synchronized void closeJavaStreamingContext() {
+    closeJavaStreamingContext(false);
+  }
+
+  public static synchronized void closeJavaStreamingContext(boolean cleanupHiveMetastore) {
+    if (INSTANCE.jsc != null) {
+      INSTANCE.jsc.close();
+      INSTANCE.jsc = null;
+      closeSparkSession(cleanupHiveMetastore);
+    }
+  }
+
+  public static void initialize(Config config, boolean isStreaming) {
     INSTANCE.config = config;
+    INSTANCE.isStreaming = isStreaming;
   }
 
   private static void initializeStreamingJob() {
@@ -84,7 +115,7 @@ public enum Contexts {
   }
 
   private static void initializeBatchJob() {
-    SparkConf sparkConf = getSparkConfiguration(INSTANCE.config);
+    SparkConf sparkConf = getSparkConfiguration(INSTANCE.config, INSTANCE.isStreaming);
     
     if (!sparkConf.contains("spark.master")) {
       LOG.warn("Spark master not provided, instead using local mode");
@@ -100,7 +131,7 @@ public enum Contexts {
     INSTANCE.ss = sparkSession;
   }
 
-  static synchronized SparkConf getSparkConfiguration(Config config) {
+  private static synchronized SparkConf getSparkConfiguration(Config config, boolean isStreaming) {
     SparkConf sparkConf = new SparkConf();
     
     if (config.hasPath(APPLICATION_NAME_PROPERTY)) {
@@ -108,19 +139,21 @@ public enum Contexts {
       sparkConf.setAppName(applicationName);
     }
 
-    // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
-    // of the resource requests are too long.
-    sparkConf.set("spark.dynamicAllocation.enabled", "false");
-    // Spark Streaming back-pressure helps automatically tune the size of the micro-batches so
-    // that they don't breach the micro-batch length.
-    sparkConf.set("spark.streaming.backpressure.enabled", "true");
-    // Rate limit the micro-batches when using Apache Kafka to 2000 records per Kafka topic partition
-    // per second. Without this we could end up with arbitrarily large initial micro-batches
-    // for existing topics.
-    sparkConf.set("spark.streaming.kafka.maxRatePerPartition", "2000");
-    // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise
-    // the default is typically 200 partitions, which is very high for micro-batches.
-    sparkConf.set("spark.sql.shuffle.partitions", "2");
+    if (isStreaming) {
+      // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
+      // of the resource requests are too long.
+      sparkConf.set("spark.dynamicAllocation.enabled", "false");
+      // Spark Streaming back-pressure helps automatically tune the size of the micro-batches so
+      // that they don't breach the micro-batch length.
+      sparkConf.set("spark.streaming.backpressure.enabled", "true");
+      // Rate limit the micro-batches when using Apache Kafka to 2000 records per Kafka topic partition
+      // per second. Without this we could end up with arbitrarily large initial micro-batches
+      // for existing topics.
+      sparkConf.set("spark.streaming.kafka.maxRatePerPartition", "2000");
+      // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise
+      // the default is typically 200 partitions, which is very high for micro-batches.
+      sparkConf.set("spark.sql.shuffle.partitions", "2");
+    }
 
     if (config.hasPath(NUM_EXECUTORS_PROPERTY)) {
       sparkConf.set("spark.executor.instances", config.getString(NUM_EXECUTORS_PROPERTY));
@@ -146,15 +179,7 @@ public enum Contexts {
       Config sparkConfigs = config.getConfig(SPARK_CONF_PROPERTY_PREFIX);
       for (Map.Entry<String, ConfigValue> entry : sparkConfigs.entrySet()) {
         String param = entry.getKey();
-        String value = null;
-        switch (entry.getValue().valueType()) {
-          case STRING:
-            value = (String) entry.getValue().unwrapped();
-            break;
-          default:
-            LOG.warn("Only string parameters currently " +
-              "supported, enclose {} in quotes", param);
-        }
+        String value = entry.getValue().unwrapped().toString();
         if (value != null) {
           sparkConf.set(param, value);
         }

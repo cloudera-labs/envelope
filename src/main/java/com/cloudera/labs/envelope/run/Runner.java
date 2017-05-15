@@ -58,7 +58,7 @@ public class Runner {
     Set<Step> steps = extractSteps(config);
     LOG.info("Steps instatiated");
 
-    Contexts.initialize(config);
+    Contexts.initialize(config, hasStreamingStep(steps));
     
     initializeAccumulators(steps);
 

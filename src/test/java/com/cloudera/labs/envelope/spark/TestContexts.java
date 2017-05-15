@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.spark;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
@@ -37,29 +36,16 @@ public class TestContexts {
     Config config = ConfigUtils.configFromPath(
       this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-good.conf").getPath());
 
-    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, false);
+    
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
 
     assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
     assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
 
     assertTrue(sparkConf.contains("spark.master"));
     assertEquals("local[1]", sparkConf.get("spark.master"));
-  }
-
-  @Test
-  public void testSparkPassthroughWithInvalid() {
-    Config config = ConfigUtils.configFromPath(
-      this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-with-invalid.conf").getPath());
-
-    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
-
-    assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
-    assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
-
-    assertTrue(sparkConf.contains("spark.master"));
-    assertEquals("local[1]", sparkConf.get("spark.master"));
-
-    assertFalse(sparkConf.contains("spark.invalid.conf"));
   }
   
   @Test
@@ -68,7 +54,10 @@ public class TestContexts {
     props.setProperty("application.name", "test");
     Config config = ConfigFactory.parseProperties(props);
     
-    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, false);
+    
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     
     assertEquals(sparkConf.get("spark.app.name"), "test");
   }
@@ -77,9 +66,38 @@ public class TestContexts {
   public void testApplicationNameNotProvided() {
     Config config = ConfigFactory.empty();
     
-    SparkConf sparkConf = Contexts.getSparkConfiguration(config);
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, false);
     
-    assertTrue(!sparkConf.contains("spark.app.name"));
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
+    
+    assertEquals(sparkConf.get("spark.app.name"), "");
+  }
+  
+  @Test
+  public void testDefaultBatchConfiguration() {
+    Config config = ConfigFactory.empty();
+    
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, false);
+    
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
+    
+    assertTrue(!sparkConf.contains("spark.dynamicAllocation.enabled"));
+    assertTrue(!sparkConf.contains("spark.sql.shuffle.partitions"));
+  }
+  
+  @Test
+  public void testDefaultStreamingConfiguration() {
+    Config config = ConfigFactory.empty();
+    
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, true);
+    
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
+    
+    assertTrue(sparkConf.contains("spark.dynamicAllocation.enabled"));
+    assertTrue(sparkConf.contains("spark.sql.shuffle.partitions"));
   }
 
 }
