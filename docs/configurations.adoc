@@ -505,12 +505,12 @@ Planner configurations have the `steps.[stepname].planner.` prefix.
 
 Output configurations have the `steps.[stepname].output.` prefix.
 
-[cols="2,8", options="header"]
+[cols="2,8a", options="header"]
 |===
 |Configuration suffix|Description
 
 |type
-|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
+|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log` and `hbase`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
 
 ||
 |`_filesystem_`|
@@ -607,5 +607,80 @@ Output configurations have the `steps.[stepname].output.` prefix.
 
 |level
 |The log4j level for the written logs. Default is `INFO`.
+
+||
+|`_hbase_`|
+
+|table.name
+|Required. The table for the output, specified in the format `[namespace:]name`, e.g. `envelopetest:test`.
+
+|zookeeper
+|Optional. In non-secure setups it is not a strict requirement to supply an hbase-site.xml file on the classpath,
+so the ZooKeeper quorum can be specified with this property with the usual HBase configuration syntax. Note that
+this will supersede any quorum specified in any hbase-site.xml file on the classpath.
+
+|hbase.conf.*
+|Optional. Pass-through options to set on the HBase connection. The `hbase.conf` prefix will be stripped. For example:
+
+....
+hbase {
+  conf {
+    hbase.client.retries.number = 5
+    hbase.client.operation.timeout = 30000
+  }
+}
+....
+
+Note that non-String parameters are automatically cast to Strings, but the underlying HBase code will do any
+required conversions from String.
+
+|mapping.serde
+|Optional. The fully qualified class name of the implementation to use when converting Spark `Row` objects into HBase `Put` s and `Get` s and
+converting HBase `Result` s into `Row` s. Defaults to `default`, which is maps to `com.cloudera.labs.envelope.utils.hbase.HBase.DefaultMappingSerde`.
+The default serde configuration syntax adheres as closely as possible to that of the
+Spark-HBase DataSource at the expense of some additional functionality - this is with a view to
+moving to the HBaseRelation at some point in the future.
+
+|mapping.rowkey
+|Required for `default` serde. The ordered list columns which comprise the HBase row key. These are expected to be separated by `rowkey.separator` in HBase, e.g. `["symbol", "transacttime"]`.
+
+|mapping.rowkey.separator
+|Optional. The separator to use when constructing the row key. This is interpreted as a Unicode string
+so for binary separators use the `\uXXXX` syntax. Defaults to "`:`".
+
+|mapping.columns
+|Required for `default` serde. A map of column definitions specifying how to map Row fields into HBase columns. Each
+column requires three attributes: the column family `cf`, the column qualifier `col` and
+the column type `type`. The columns which comprise the row key are denoted with `cf = rowkey`.
+Supported types are int, long, boolean, float, double and string. For example:
+
+....
+mapping.columns {
+  symbol {
+    cf = "rowkey"
+    col = "symbol"
+    type = "string"
+  }
+  transacttime {
+    cf = "rowkey"
+    col = "transacttime"
+    type = "long"
+  }
+  clordid {
+    cf = "cf1"
+    col = "clordid"
+    type = "string"
+  }
+  orderqty {
+    cf = "cf1"
+    col = "orderqty"
+    type = "int"
+  }
+}
+....
+
+|batch.size
+|Optional. An integer value with default 1000. The number of mutations to accumulate before making an HBase RPC call. For larger
+cell sizes you may want to reduce this number or increase the relevant client buffers.
 
 |===

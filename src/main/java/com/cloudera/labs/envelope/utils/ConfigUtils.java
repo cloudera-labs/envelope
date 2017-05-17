@@ -17,7 +17,11 @@ package com.cloudera.labs.envelope.utils;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
@@ -26,6 +30,14 @@ public class ConfigUtils {
   public static Config configFromPath(String path) {
     File configFile = new File(path);
     return ConfigFactory.parseFile(configFile);
+  }
+
+  public static Config configFromResource(String resource) {
+    try (Reader reader = new InputStreamReader(ConfigUtils.class.getResourceAsStream(resource))) {
+      return ConfigFactory.parseReader(reader);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static Config applySubstitutions(Config config) {

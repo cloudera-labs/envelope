@@ -51,6 +51,9 @@ public class OutputFactory {
       case "jdbc":
         output = new JdbcOutput();
         break;
+      case "hbase":
+        output = new HBaseOutput();
+        break;
       default:
         Class<?> clazz = Class.forName(outputType);
         Constructor<?> constructor = clazz.getConstructor();
