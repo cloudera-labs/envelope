@@ -18,7 +18,11 @@ package com.cloudera.labs.envelope.utils;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +36,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.ISODateTimeFormat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -326,8 +328,8 @@ public class TestRowUtils {
     byte[] byteArray = "Test".getBytes();
     ByteBuffer byteBuffer = ByteBuffer.wrap(byteArray);
 
-    assertEquals("Invalid byte[]", byteBuffer, RowUtils.toRowValue(byteArray, field));
-    assertEquals("Invalid ByteBuffer", byteBuffer, RowUtils.toRowValue(byteBuffer, field));
+    assertEquals("Invalid byte[]", byteArray, RowUtils.toRowValue(byteArray, field));
+    assertEquals("Invalid ByteBuffer", byteArray, RowUtils.toRowValue(byteBuffer, field));
 
     thrown.expect(RuntimeException.class);
     RowUtils.toRowValue(123, field);
@@ -339,14 +341,9 @@ public class TestRowUtils {
 
     assertEquals("Invalid Boolean", true, RowUtils.toRowValue(true, field));
     assertEquals("Invalid 'true'", true, RowUtils.toRowValue("true", field));
-    assertEquals("Invalid 'true'", false, RowUtils.toRowValue("false", field));
-
-    try {
-      RowUtils.toRowValue("True", field);
-      fail("Expected a RuntimeException for invalid type");
-    } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
-    }
+    assertEquals("Invalid 'true'", true, RowUtils.toRowValue("TrUe", field));
+    assertEquals("Invalid 'false'", false, RowUtils.toRowValue("false", field));
+    assertEquals("Invalid 'false'", false, RowUtils.toRowValue("FaLsE", field));
 
     try {
       RowUtils.toRowValue(123, field);
@@ -371,12 +368,12 @@ public class TestRowUtils {
     DataType field = DataTypes.DateType;
 
     DateTime dateObj = DateTime.parse("2017-01-01T00:00:00"); // Pass-thru the TZ
-    String dateStr = DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC().print(dateObj);
+    Date sqlDate = new Date(dateObj.getMillis());
 
-    assertEquals("Invalid Long", dateStr, RowUtils.toRowValue(dateObj.getMillis(), field));
-    assertEquals("Invalid String", dateStr, RowUtils.toRowValue("2017-001", field)); // ISO Date format
-    assertEquals("Invalid Date", dateStr, RowUtils.toRowValue(dateObj.toDate(), field));
-    assertEquals("Invalid DateTime", dateStr, RowUtils.toRowValue(dateObj, field));
+    assertEquals("Invalid Long", sqlDate, RowUtils.toRowValue(dateObj.getMillis(), field));
+    assertEquals("Invalid String", sqlDate, RowUtils.toRowValue("2017-001", field)); // ISO Date format
+    assertEquals("Invalid Date", sqlDate, RowUtils.toRowValue(dateObj.toDate(), field));
+    assertEquals("Invalid DateTime", sqlDate, RowUtils.toRowValue(dateObj, field));
 
     thrown.expect(RuntimeException.class);
     thrown.expectMessage(JUnitMatchers.containsString("Invalid or unrecognized input format"));
@@ -388,12 +385,12 @@ public class TestRowUtils {
     DataType field = DataTypes.TimestampType;
 
     DateTime dateObj = DateTime.parse("2017-01-01T00:00:00"); // Pass-thru the TZ
-    String dateStr = ISODateTimeFormat.dateTime().withZoneUTC().print(dateObj);
+    Timestamp sqlTimestamp = new Timestamp(dateObj.getMillis());
 
-    assertEquals("Invalid Long", dateStr, RowUtils.toRowValue(dateObj.getMillis(), field));
-    assertEquals("Invalid String", dateStr, RowUtils.toRowValue("2017-001", field)); // ISO Date format
-    assertEquals("Invalid Date", dateStr, RowUtils.toRowValue(dateObj.toDate(), field));
-    assertEquals("Invalid DateTime", dateStr, RowUtils.toRowValue(dateObj, field));
+    assertEquals("Invalid Long", sqlTimestamp, RowUtils.toRowValue(dateObj.getMillis(), field));
+    assertEquals("Invalid String", sqlTimestamp, RowUtils.toRowValue("2017-001", field)); // ISO Date format
+    assertEquals("Invalid Date", sqlTimestamp, RowUtils.toRowValue(dateObj.toDate(), field));
+    assertEquals("Invalid DateTime", sqlTimestamp, RowUtils.toRowValue(dateObj, field));
 
     thrown.expect(RuntimeException.class);
     thrown.expectMessage(JUnitMatchers.containsString("Invalid or unrecognized input format"));
@@ -540,7 +537,7 @@ public class TestRowUtils {
   public void testToRowValueShort() {
     DataType field = DataTypes.ShortType;
 
-    Byte value = Byte.valueOf("123");
+    Short value = Short.valueOf("123");
 
     assertEquals("Invalid Short", value, RowUtils.toRowValue(value, field));
     assertEquals("Invalid Number", value, RowUtils.toRowValue(123, field));
@@ -572,11 +569,44 @@ public class TestRowUtils {
 
   @Test
   public void testToRowValueDecimal() {
-    DataType field = DataTypes.createDecimalType();
+    DataType defaultField = DataTypes.createDecimalType(); // precision 10, scale 0
 
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("StructField DataType unrecognized or not yet implemented");
-    RowUtils.toRowValue(12.34, field);
+    BigDecimal defaultDecimal = new BigDecimal("10");
+
+    assertEquals("Invalid double", defaultDecimal, RowUtils.toRowValue(10.157D, defaultField));
+    assertEquals("Invalid string", defaultDecimal, RowUtils.toRowValue("10.157", defaultField));
+    assertEquals("Invalid BigDecimal", defaultDecimal, RowUtils.toRowValue(new BigDecimal("10"), defaultField));
+
+    assertEquals("Invalid long", defaultDecimal, RowUtils.toRowValue(10L, defaultField));
+    assertEquals("Invalid BigInteger", defaultDecimal, RowUtils.toRowValue(new BigInteger("10"), defaultField));
+
+    assertEquals("Invalid precision", 2,
+        ((BigDecimal) RowUtils.toRowValue("10.157", defaultField)).precision());
+    assertEquals("Invalid scale", 0,
+        ((BigDecimal) RowUtils.toRowValue("10.157", defaultField)).scale());
+
+    try {
+      RowUtils.toRowValue(ByteBuffer.allocate(1), defaultField);
+      fail("Expected a RuntimeException for invalid type");
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+    }
+
+    DataType customField = DataTypes.createDecimalType(3, 2);
+
+    BigDecimal customDecimal = new BigDecimal("1.23");
+
+    assertEquals("Invalid double", customDecimal, RowUtils.toRowValue(1.23D, customField));
+    assertEquals("Invalid string", customDecimal, RowUtils.toRowValue("1.23", customField));
+    assertEquals("Invalid BigDecimal", customDecimal, RowUtils.toRowValue(new BigDecimal("1.23"), customField));
+
+    assertEquals("Invalid long", customDecimal, RowUtils.toRowValue(123L, customField));
+    assertEquals("Invalid BigInteger", customDecimal, RowUtils.toRowValue(new BigInteger("123"), customField));
+
+    assertEquals("Invalid precision", 3,
+        ((BigDecimal) RowUtils.toRowValue("1.23", customField)).precision());
+    assertEquals("Invalid scale", 2,
+        ((BigDecimal) RowUtils.toRowValue("1.23", customField)).scale());
   }
 
   @Test
@@ -941,8 +971,8 @@ public class TestRowUtils {
         DataTypes.createStructField("field2", DataTypes.IntegerType, false)
     ));
 
-    List<?> expectedValues = Lists.<Object>newArrayList(9L, 2);
-    List<?> expectedNulls = Lists.newArrayList(null, 2);
+    Row expectedValues = RowFactory.create(9L, 2);
+    Row expectedNulls = RowFactory.create(null, 2);
 
     //
     // Lists
@@ -1129,9 +1159,8 @@ public class TestRowUtils {
             true)
     ));
 
-    List<?> expectedInnerValues = Lists.<Object>newArrayList(9L, 2);
-    List<Object> expectedValues = new ArrayList<>();
-    expectedValues.add(expectedInnerValues);
+    Row expectedInnerValues = RowFactory.create(9L, 2);
+    Row expectedValues = RowFactory.create(expectedInnerValues);
 
     Map<Object, Object> innerMap = Maps.newHashMap();
     innerMap.put("field1", 9L);

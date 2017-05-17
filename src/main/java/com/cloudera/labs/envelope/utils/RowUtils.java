@@ -18,31 +18,31 @@ package com.cloudera.labs.envelope.utils;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.MapType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
 public class RowUtils {
-
-  private static final DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC();
-  private static final DateTimeFormatter timestampFormat = ISODateTimeFormat.dateTime().withZoneUTC();
 
   /**
    * <p>Converts a Java object (simple or compound, e.g. Maps and Arrays) or Row object (for Arrays, Maps, and
@@ -53,14 +53,176 @@ public class RowUtils {
    * </p>
    * <p>NOTE: Does not handle the following DataTypes:</p>
    * <ul>
-   * <li>{@link org.apache.spark.sql.types.DecimalType}</li>
    * <li>{@link org.apache.spark.sql.types.UserDefinedType}</li>
    * <li>{@link org.apache.spark.sql.types.CalendarIntervalType}</li>
    * </ul>
-   *
+   * <p>Details for accepted conversion values.</p>
+   * <dl>
+   *   <dt>BinaryType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>ByteBuffer</li>
+   *       <li>byte[]</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>BooleanType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Boolean</li>
+   *       <li>Case-insensitive String value of <code>true</code> or <code>false</code></li>
+   *     </ul>
+   *   </dd>
+   *   <dt>DateType</dt>
+   *   <dd>
+   *     <ul>
+   *      <li>Long value of milliseconds since epoch</li>
+   *      <li>String value of milliseconds since epoch</li>
+   *      <li>{@link java.util.Date} value</li>
+   *      <li>{@link org.joda.time.DateTime} value</li>
+   *      <li>or the following String value:<br/>
+   *      <pre>
+   datetime          = time | date-opt-time
+   time              = 'T' time-element [offset]
+   date-opt-time     = date-element ['T' [time-element] [offset]]
+   date-element      = std-date-element | ord-date-element | week-date-element
+   std-date-element  = yyyy ['-' MM ['-' dd]]
+   ord-date-element  = yyyy ['-' DDD]
+   week-date-element = xxxx '-W' ww ['-' e]
+   time-element      = HH [minute-element] | [fraction]
+   minute-element    = ':' mm [second-element] | [fraction]
+   second-element    = ':' ss [fraction]
+   fraction          = ('.' | ',') digit+
+   offset            = 'Z' | (('+' | '-') HH [':' mm [':' ss [('.' | ',') SSS]]])
+          </pre>
+   *      </li>
+   *     </ul>
+   *   </dd>
+   *   <dt>TimestampType</dt>
+   *   <dd>
+   *     <ul>
+   *      <li>Long value of milliseconds since epoch</li>
+   *      <li>String value of milliseconds since epoch</li>
+   *      <li>{@link java.util.Date} value</li>
+   *      <li>{@link org.joda.time.DateTime} value</li>
+   *      <li>or the following String value:<br/>
+   *      <pre>
+   datetime          = time | date-opt-time
+   time              = 'T' time-element [offset]
+   date-opt-time     = date-element ['T' [time-element] [offset]]
+   date-element      = std-date-element | ord-date-element | week-date-element
+   std-date-element  = yyyy ['-' MM ['-' dd]]
+   ord-date-element  = yyyy ['-' DDD]
+   week-date-element = xxxx '-W' ww ['-' e]
+   time-element      = HH [minute-element] | [fraction]
+   minute-element    = ':' mm [second-element] | [fraction]
+   second-element    = ':' ss [fraction]
+   fraction          = ('.' | ',') digit+
+   offset            = 'Z' | (('+' | '-') HH [':' mm [':' ss [('.' | ',') SSS]]])
+   </pre>
+   *      </li>
+   *     </ul>
+   *     <p><em>Note:</em> The precision is limited to milliseconds; nanosecond resolution is not supported.</p>
+   *   </dd>
+   *   <dt>DoubleType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Double</li>
+   *       <li>Number</li>
+   *       <li>String value of a Double</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>FloatType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Float</li>
+   *       <li>Number</li>
+   *       <li>String value of a Float</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>IntegerType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Integer</li>
+   *       <li>Number</li>
+   *       <li>String value of an Integer</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>LongType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Long</li>
+   *       <li>Number</li>
+   *       <li>String value of a Long</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>NullType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li><code>null</code></li>
+   *     </ul>
+   *   </dd>
+   *   <dt>ByteType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Byte</li>
+   *       <li>Number</li>
+   *       <li>String value of a Byte</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>ShortType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Short</li>
+   *       <li>Number</li>
+   *       <li>String value of a Short</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>DecimalType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Long </li>
+   *       <li>Double</li>
+   *       <li>String value of a BigDecimal</li>
+   *       <li>BigInteger</li>
+   *       <li>BigDecimal</li>
+   *     </ul>
+   *     <p><em>Note:</em> For Double and String conversions, the parsed value will be rounded down, per
+   *     {@link RoundingMode#HALF_DOWN} convention.</p>
+   *   </dd>
+   *   <dt>StringType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>String</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>ArrayType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>List of supported DataTypes</li>
+   *       <li>Row of supported DataTypes</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>MapType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Map with key/value pairs of supported DataTypes</li>
+   *       <li>Row of supported DataTypes. <em>NOTE:</em> The Row must have an associated schema or conversion will fail.</li>
+   *     </ul>
+   *   </dd>
+   *   <dt>StructType</dt>
+   *   <dd>
+   *     <ul>
+   *       <li>Map with the following restrictions: keys must be Strings and match the names of the fields in the StructType,
+   *       values must be supported DataTypes.</li>
+   *       <li>List of supported DataTypes; list must have an exact count and in-order list of values for the StructType</li>
+   *       <li>Row of supported DataTypes; Row must have an exact count and in-order list of values for the StructType</li>
+   *     </ul>
+   *   </dd>
+   * </dl>
    * @param item The value for conversion
    * @param type The DataType of the field
    * @return A Row-compatible value
+   * @see <a href="https://spark.apache.org/docs/latest/sql-programming-guide.html#data-types">Spark SQL Data Types</a>
    */
   public static Object toRowValue(Object item, DataType type) {
 
@@ -70,50 +232,55 @@ public class RowUtils {
 
     switch (typeName) {
       case "binary":
+        // byte[]
         if (item instanceof ByteBuffer) {
-          return item;
+          return ((ByteBuffer) item).array();
         } else if (item instanceof byte[]) {
-          return ByteBuffer.wrap((byte[]) item);
+          return item;
         } else {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format", type));
         }
       case "boolean":
+        // boolean or Boolean
         if (item instanceof Boolean) {
           return item;
         }
         String str = item.toString();
-        if ("true".equals(str)) {
+        if ("true".equals(str.toLowerCase())) {
           return Boolean.TRUE;
-        } else if ("false".equals(str)) {
+        } else if ("false".equals(str.toLowerCase())) {
           return Boolean.FALSE;
         } else {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "date":
+        // java.sql.Date
         if (item instanceof Long) {
-          return dateFormat.print((Long) item);
+          return new java.sql.Date((Long) item);
         } else if (item instanceof String) {
-          return dateFormat.print(DateTime.parse((String) item));
+          return new java.sql.Date(DateTime.parse((String) item).getMillis());
         } else if (item instanceof Date) {
-          return dateFormat.print(new DateTime((Date) item));
+          return new java.sql.Date(((Date) item).getTime());
         } else if (item instanceof DateTime) {
-          return dateFormat.print((DateTime) item);
+          return new java.sql.Date(((DateTime) item).getMillis());
         } else {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "timestamp":
+        // java.sql.Timestamp
         if (item instanceof Long) {
-          return timestampFormat.print((Long) item);
+          return new Timestamp((Long) item);
         } else if (item instanceof String) {
-          return timestampFormat.print(DateTime.parse((String) item));
+          return new Timestamp(DateTime.parse((String) item).getMillis());
         } else if (item instanceof Date) {
-          return timestampFormat.print(new DateTime((Date) item));
+          return new Timestamp(((Date) item).getTime());
         } else if (item instanceof DateTime) {
-          return timestampFormat.print((DateTime) item);
+          return new Timestamp(((DateTime) item).getMillis());
         } else {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "double":
+        // double or Double
         if (item instanceof Double) {
           return item;
         } else if (item instanceof Number) {
@@ -126,6 +293,7 @@ public class RowUtils {
           }
         }
       case "float":
+        // float or Float
         if (item instanceof Float) {
           return item;
         } else if (item instanceof Number) {
@@ -138,6 +306,7 @@ public class RowUtils {
           }
         }
       case "integer":
+        // int or Integer
         if (item instanceof Integer) {
           return item;
         } else if (item instanceof Number) {
@@ -150,6 +319,7 @@ public class RowUtils {
           }
         }
       case "long":
+        // long or Long
         if (item instanceof Long) {
           return item;
         } else if (item instanceof Number) {
@@ -168,7 +338,7 @@ public class RowUtils {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "byte":
-      case "short":
+        // byte or Byte
         if (item instanceof Byte) {
           return item;
         } else if (item instanceof Number) {
@@ -180,9 +350,24 @@ public class RowUtils {
             throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
           }
         }
+      case "short":
+        // short or Short
+        if (item instanceof Short) {
+          return item;
+        } else if (item instanceof Number) {
+          return ((Number) item).shortValue();
+        } else {
+          try {
+            return Short.parseShort((String) item);
+          } catch (Exception e) {
+            throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
+          }
+        }
       case "string":
+        // String
         return item.toString();
       case "array":
+        // List
         DataType elementType = ((ArrayType) type).elementType();
         ArrayList<Object> arrayList = new ArrayList<>();
 
@@ -232,6 +417,7 @@ public class RowUtils {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "map":
+        // Map
         MapType mapType = (MapType) type;
         DataType keyType = mapType.keyType();
         DataType valueType = mapType.valueType();
@@ -302,6 +488,7 @@ public class RowUtils {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
       case "struct":
+        // Row
         ArrayList<Object> valueList = new ArrayList<>();
 
         if (item instanceof Map) {
@@ -333,8 +520,6 @@ public class RowUtils {
                   f.dataType()));
             }
           }
-
-          return valueList;
         } else if (item instanceof List) {
           // An exact count, in-order list of values for the StructType
           // Values must convert to the field DataTypes
@@ -365,8 +550,6 @@ public class RowUtils {
 
             valueList.add(value);
           }
-
-          return valueList;
         } else if (item instanceof Row) {
           // An exact count, in-order list of values for the StructType
           // Values must convert to the field DataTypes
@@ -395,14 +578,30 @@ public class RowUtils {
 
             valueList.add(value);
           }
-
-          return valueList;
         } else {
           throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
         }
+        return RowFactory.create(valueList.toArray());
       default:
-        throw new RuntimeException(String.format("Type[%s] - StructField DataType unrecognized or not yet implemented",
-            type));
+        if (type.typeName().startsWith("decimal")) {
+          // java.math.BigDecimal
+          if (item instanceof Long) {
+            return BigDecimal.valueOf((Long) item, ((DecimalType) type).scale());
+          } else if (item instanceof Double) {
+            return BigDecimal.valueOf((Double) item).setScale(((DecimalType) type).scale(), RoundingMode.HALF_DOWN);
+          } else if (item instanceof String) {
+            return new BigDecimal((String) item).setScale(((DecimalType) type).scale(), RoundingMode.HALF_DOWN);
+          } else if (item instanceof BigDecimal) {
+            return item;
+          } else if (item instanceof BigInteger) {
+            return new BigDecimal((BigInteger) item, ((DecimalType) type).scale());
+          } else {
+            throw new RuntimeException(String.format("Type[%s] - Invalid or unrecognized input format: %s", type, item));
+          }
+        } else {
+          throw new RuntimeException(String.format("Type[%s] - StructField DataType unrecognized or not yet implemented",
+              type));
+        }
     }
   }
 
