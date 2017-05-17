@@ -38,8 +38,13 @@ import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigList;
+import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 
 /**
  * Runner merely submits the pipeline steps to Spark in dependency order.
@@ -56,11 +61,13 @@ public class Runner {
    */
   public static void run(Config config) throws Exception {
     Set<Step> steps = extractSteps(config);
-    LOG.info("Steps instatiated");
+    LOG.info("Steps instantiated");
 
     Contexts.initialize(config, hasStreamingStep(steps));
     
     initializeAccumulators(steps);
+    
+    initializeUDFs(config);
 
     if (hasStreamingStep(steps)) {
       LOG.info("Streaming step(s) identified");
@@ -384,6 +391,39 @@ public class Runner {
     
     for (DataStep dataStep : getDataSteps(steps)) {
       dataStep.receiveAccumulators(accumulators);
+    }
+  }
+  
+  private static void initializeUDFs(Config config) {
+    if (!config.hasPath("udfs")) return;
+    
+    if (!config.getValue("udfs").valueType().equals(ConfigValueType.LIST)) {
+      throw new RuntimeException("UDFs must be provided as a list");
+    }
+    
+    ConfigList udfList = config.getList("udfs");
+    
+    for (ConfigValue udfValue : udfList) {
+      ConfigValueType udfValueType = udfValue.valueType();
+      if (!udfValueType.equals(ConfigValueType.OBJECT)) {
+        throw new RuntimeException("UDF list must contain UDF objects");
+      }
+      
+      Config udfConfig = ((ConfigObject)udfValue).toConfig();
+      
+      for (String path : Lists.newArrayList("name", "class")) {
+        if (!udfConfig.hasPath(path)) {
+          throw new RuntimeException("UDF entries must provide '" + path + "'");
+        }
+      }
+      
+      String name = udfConfig.getString("name");
+      String className = udfConfig.getString("class");
+      
+      // null third argument means that registerJava will infer the return type
+      Contexts.getSparkSession().udf().registerJava(name, className, null);
+      
+      LOG.info("Registered Spark SQL UDF: " + name);
     }
   }
 

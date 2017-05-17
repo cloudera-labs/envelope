@@ -27,7 +27,7 @@ steps {
     dependencies = [exampleInput]
     deriver {
       type = sql
-      query.literal = "SELECT foo FROM exampleInput WHERE bar = 'blag'"
+      query.literal = "SELECT MY_UPPER(foo) AS foo FROM exampleInput WHERE MY_LOWER(bar) = 'blag'"
     }
     planner {
       type = append
@@ -39,6 +39,16 @@ steps {
     }
   }
 }
+udfs : [
+  {
+    name = my_upper
+    class = com...
+  },
+  {
+    name = my_lower
+    class = com...
+  }
+]
 ----
 
 == Application
@@ -94,7 +104,7 @@ Step configurations have the `steps.[stepname].` prefix.
 
 |===
 
-== Inputs
+=== Inputs
 
 Input configurations have the `steps.[stepname].input.` prefix.
 
@@ -250,7 +260,7 @@ Input configurations have the `steps.[stepname].input.` prefix.
 
 |===
 
-== Translators
+=== Translators
 
 Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
@@ -320,7 +330,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
 |===
 
-== Derivers
+=== Derivers
 
 Deriver configurations have the `steps.[stepname].deriver.` prefix.
 
@@ -382,7 +392,7 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 
 |===
 
-== Partitioners
+=== Partitioners
 
 Partitioner configurations have the `steps.[stepname].partitioner.` prefix.
 
@@ -395,7 +405,7 @@ Partitioner configurations have the `steps.[stepname].partitioner.` prefix.
 
 |===
 
-== Planners
+=== Planners
 
 Planner configurations have the `steps.[stepname].planner.` prefix.
 
@@ -501,7 +511,7 @@ Planner configurations have the `steps.[stepname].planner.` prefix.
 
 |===
 
-== Outputs
+=== Outputs
 
 Output configurations have the `steps.[stepname].output.` prefix.
 
@@ -682,5 +692,21 @@ mapping.columns {
 |batch.size
 |Optional. An integer value with default 1000. The number of mutations to accumulate before making an HBase RPC call. For larger
 cell sizes you may want to reduce this number or increase the relevant client buffers.
+
+|===
+
+== User-defined functions
+
+Spark SQL user-defined functions (UDFs) are provided with a list of UDF specifications under `udfs`, where each specification has the following:
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|name
+|The name of the UDF that will be used in SQL queries.
+
+|class
+|The fully qualified class name of the UDF implementation.
 
 |===
