@@ -198,7 +198,7 @@ public class AvroUtils {
 
   /**
    * Convert Avro Types into their associated DataType.
-   * TODO : Add conversion table and supported LogicalTypes to documentation
+   *
    * @param schemaType Avro Schema.Type
    * @return DataType representation
    */

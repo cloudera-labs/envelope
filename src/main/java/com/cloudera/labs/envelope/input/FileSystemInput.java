@@ -18,14 +18,21 @@ package com.cloudera.labs.envelope.input;
 import com.cloudera.labs.envelope.input.translate.TranslateFunction;
 import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
 import com.typesafe.config.Config;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +41,12 @@ public class FileSystemInput implements BatchInput {
 
   public static final String FORMAT_CONFIG = "format";
   public static final String PATH_CONFIG = "path";
+
+  // Schema optional parameters
+  public static final String FIELD_NAMES_CONFIG = "field.names";
+  public static final String FIELD_TYPES_CONFIG = "field.types";
+  public static final String AVRO_LITERAL_CONFIG = "avro-schema.literal";
+  public static final String AVRO_FILE_CONFIG = "avro-schema.file";
 
   // CSV optional parameters
   public static final String CSV_HEADER_CONFIG = "header";
@@ -61,8 +74,14 @@ public class FileSystemInput implements BatchInput {
   public static final String INPUT_FORMAT_KEY_CONFIG = "key-class";
   public static final String INPUT_FORMAT_VALUE_CONFIG = "value-class";
 
+  private static final String CSV_FORMAT = "csv";
+  private static final String PARQUET_FORMAT = "parquet";
+  private static final String JSON_FORMAT = "json";
+  private static final String INPUT_FORMAT_FORMAT = "input-format";
+
   private Config config;
   private ConfigUtils.OptionMap options;
+  private StructType schema;
 
   @Override
   public void configure(Config config) {
@@ -76,7 +95,56 @@ public class FileSystemInput implements BatchInput {
       throw new RuntimeException("Filesystem input requires '" + PATH_CONFIG + "' config");
     }
 
-    if (config.getString(FORMAT_CONFIG).equals("csv")) {
+    if (config.getString(FORMAT_CONFIG).equals(CSV_FORMAT) || config.getString(FORMAT_CONFIG).equals(JSON_FORMAT)) {
+      if ((config.hasPath(FIELD_NAMES_CONFIG) || config.hasPath(FIELD_TYPES_CONFIG)) &&
+          (config.hasPath(AVRO_LITERAL_CONFIG) || config.hasPath(AVRO_FILE_CONFIG))) {
+        throw new RuntimeException(String.format("Filesystem input has too many schema parameters set. Set either '%s' " +
+            "and '%s', or '%s', or '%s'", FIELD_NAMES_CONFIG, FIELD_TYPES_CONFIG, AVRO_FILE_CONFIG, AVRO_LITERAL_CONFIG));
+
+      } else if (config.hasPath(FIELD_NAMES_CONFIG) || config.hasPath(FIELD_TYPES_CONFIG)) {
+
+        if (!config.hasPath(FIELD_NAMES_CONFIG) || config.getStringList(FIELD_NAMES_CONFIG).isEmpty()) {
+          throw new RuntimeException("Filesystem input schema parameter missing: " + FIELD_NAMES_CONFIG);
+        } else if (!config.hasPath(FIELD_TYPES_CONFIG) || config.getStringList(FIELD_TYPES_CONFIG).isEmpty()) {
+          throw new RuntimeException("Filesystem input schema parameter missing: " + FIELD_TYPES_CONFIG);
+        }
+
+        List<String> names = config.getStringList(FIELD_NAMES_CONFIG);
+        List<String> types = config.getStringList(FIELD_TYPES_CONFIG);
+
+        this.schema = RowUtils.structTypeFor(names, types);
+
+      } else if (config.hasPath(AVRO_FILE_CONFIG) || config.hasPath(AVRO_LITERAL_CONFIG)) {
+        if (config.hasPath(AVRO_FILE_CONFIG) && config.hasPath(AVRO_LITERAL_CONFIG)) {
+          throw new RuntimeException(String.format("Filesystem input cannot have both schema parameters defined, '%s' and '%s'",
+              AVRO_FILE_CONFIG, AVRO_LITERAL_CONFIG));
+        }
+
+        Schema avroSchema;
+        if (config.hasPath(AVRO_FILE_CONFIG)) {
+          if (config.getString(AVRO_FILE_CONFIG).trim().isEmpty()) {
+            throw new RuntimeException("Filesystem input schema parameter is missing, '" + AVRO_FILE_CONFIG + "'");
+          } else {
+            try {
+              File avroFile = new File(config.getString(AVRO_FILE_CONFIG));
+              avroSchema = new Schema.Parser().parse(avroFile);
+            } catch (IOException e) {
+              throw new RuntimeException("Error parsing Avro schema file", e);
+            }
+          }
+        } else {
+          if (config.getString(AVRO_LITERAL_CONFIG).trim().isEmpty()) {
+            throw new RuntimeException("Filesystem input schema parameter is missing, '" + AVRO_LITERAL_CONFIG + "'");
+          } else {
+            avroSchema = new Schema.Parser().parse(config.getString(AVRO_LITERAL_CONFIG));
+          }
+        }
+
+        this.schema = AvroUtils.structTypeFor(avroSchema);
+      }
+    }
+
+    if (config.getString(FORMAT_CONFIG).equals(CSV_FORMAT)) {
       options = new ConfigUtils.OptionMap(config)
           .resolve("sep", CSV_SEPARATOR_CONFIG)
           .resolve("encoding", CSV_ENCODING_CONFIG)
@@ -99,7 +167,7 @@ public class FileSystemInput implements BatchInput {
           .resolve("mode", CSV_MODE_CONFIG);
     }
 
-    if (config.getString(FORMAT_CONFIG).equals("input-format")) {
+    if (config.getString(FORMAT_CONFIG).equals(INPUT_FORMAT_FORMAT)) {
       if (!config.hasPath(INPUT_FORMAT_TYPE_CONFIG)) {
         throw new RuntimeException("Filesystem 'input-format' requires '" + INPUT_FORMAT_TYPE_CONFIG + "' config");
       }
@@ -124,22 +192,30 @@ public class FileSystemInput implements BatchInput {
     String format = config.getString(FORMAT_CONFIG);
     String path = config.getString(PATH_CONFIG);
 
-    Dataset<Row> fs = null;
+    Dataset<Row> fs;
 
     switch (format) {
-      case "parquet":
+      case PARQUET_FORMAT:
         LOG.debug("Reading Parquet: {}", path);
         fs = Contexts.getSparkSession().read().parquet(path);
         break;
-      case "json":
+      case JSON_FORMAT:
         LOG.debug("Reading JSON: {}", path);
-        fs = Contexts.getSparkSession().read().json(path);
+        if (null != schema) {
+          fs = Contexts.getSparkSession().read().schema(schema).json(path);
+        } else {
+          fs = Contexts.getSparkSession().read().json(path);
+        }
         break;
-      case "csv":
+      case CSV_FORMAT:
         LOG.debug("Reading CSV: {}", path);
-        fs = Contexts.getSparkSession().read().options(options).csv(path);
+        if (null != schema) {
+          fs = Contexts.getSparkSession().read().schema(schema).options(options).csv(path);
+        } else {
+          fs = Contexts.getSparkSession().read().options(options).csv(path);
+        }
         break;
-      case "input-format":
+      case INPUT_FORMAT_FORMAT:
         String inputType = config.getString(INPUT_FORMAT_TYPE_CONFIG);
         String keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
         String valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);

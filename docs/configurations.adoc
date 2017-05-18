@@ -130,6 +130,18 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |format
 |The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, `csv`, and `input-format`.
 
+|field.names
+|(csv, json) List of StructType field names of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For JSON, the field names must match the JSON data field names.
+
+|field.types
+|(csv, json) List of StructType field data types of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
+
+|avro-schema.literal
+|(csv, json) Inline Avro schema definition of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
+
+|avro-schema.file
+|(csv, json) A local (executor working directory) Avro schema file of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
+
 |separator
 |(csv) Spark option `sep`; sets the single character as a separator for each field and value. (default ,)
 
@@ -278,7 +290,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 |The list of fields to read from the Avro record.
 
 |field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 ||
 |`_delimited_`|
@@ -290,7 +302,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 |The list of fields to read from the Avro record.
 
 |field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 ||
 |`_kvp_`|
@@ -305,7 +317,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 |The list of key names that will be found in the messages.
 
 |field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 ||
 |`_morphline_`|
@@ -326,7 +338,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 |The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
 
 |field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 |===
 
@@ -360,7 +372,7 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 |The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
 
 |field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are `string`, `int`, `long`, `float`, `double`, `boolean`.
+|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 ||
 |`_nest_`|
@@ -710,3 +722,67 @@ Spark SQL user-defined functions (UDFs) are provided with a list of UDF specific
 |The fully qualified class name of the UDF implementation.
 
 |===
+
+== Data Type Support
+
+Envelope supports the following Spark data types when defining a StructType schema inline (commonly via the `field.types` parameter):
+
+* `string`
+* `int`
+* `long`
+* `float`
+* `double`
+* `boolean`
+
+When using an Avro schema to define the StructType, either via an inline Avro literal or a supporting Avro file, the following Spark data types are supported:
+
+.Avro to StructType
+|===
+|Avro Type |Data Type
+
+|record
+|StructType
+
+|array
+|Array
+
+|map
+|Map (note: keys must be Strings)
+
+|union
+|StructType (each column representing the union elements, named `memberN`)
+
+|bytes, fixed
+|Binary
+
+|string, enum
+|String
+
+|int
+|Integer
+
+|long
+|Long
+
+|float
+|Float
+
+|double
+|Double
+
+|boolean
+|Boolean
+
+|null
+|Null
+
+|date (LogicalType, as `long`)
+|Date
+
+|timestamp-millis (LogicalType, as `long`)
+|Timestamp
+
+|decimal (LogicalType, as `bytes`)
+|Decimal
+|===
+
