@@ -15,16 +15,16 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.derive.PassthroughDeriver;
 import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.RowUtils;
 import com.typesafe.config.Config;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 /**
  * A batch step is a data step that contains a single DataFrame.
@@ -32,6 +32,7 @@ import com.typesafe.config.Config;
 public class BatchStep extends DataStep {
   
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "repartition.partitions";
+  public static final String REPARTITION_COLUMNS_PROPERTY = "repartition.columns";
   public static final String COALESCE_NUM_PARTITIONS_PROPERTY = "coalesce.partitions";
 
   private static final String INPUT_PREFIX = "input.";
@@ -41,7 +42,9 @@ public class BatchStep extends DataStep {
     super(name, config);
     
     if ((config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
-         config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) &&
+         config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+         config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
+         config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY)) &&
         (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
          config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)))
     {
@@ -78,29 +81,49 @@ public class BatchStep extends DataStep {
   private boolean doesRepartition() {
     return config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
            config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+           config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
+           config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
            config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
            config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
   }
 
   private Dataset<Row> repartition(Dataset<Row> data) {
+    int numPartitions = 0;
+    List<String> colPartitions = null;
+
     if (config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
-      int numPartitions = config.getInt(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
-      data = data.repartition(numPartitions);
+      numPartitions = config.getInt(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
     }
     else if (config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
-      int numPartitions = config.getInt(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
+      numPartitions = config.getInt(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
+    }
+
+    if (config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY)) {
+      colPartitions = config.getStringList(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY);
+    }
+    else if (config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY)) {
+      colPartitions = config.getStringList(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY);
+    }
+
+    if (numPartitions > 0 && null != colPartitions) {
+      data = data.repartition(numPartitions, RowUtils.toColumnArray(colPartitions));
+    }
+    else if (numPartitions > 0) {
       data = data.repartition(numPartitions);
     }
-    else if (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
-      int numPartitions = config.getInt(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+    else if (null != colPartitions) {
+      data = data.repartition(RowUtils.toColumnArray(colPartitions));
+    }
+
+    if (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
+      numPartitions = config.getInt(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
       data = data.coalesce(numPartitions);
     }
     else if (config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
-      int numPartitions = config.getInt(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+      numPartitions = config.getInt(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
       data = data.coalesce(numPartitions);
     }
     
     return data;
   }
-
 }

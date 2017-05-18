@@ -15,6 +15,10 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -22,18 +26,13 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-
 public class DummyInput implements BatchInput {
   
   private int numPartitions;
   
   @Override
   public void configure(Config config) {
-    numPartitions = config.getInt("num.partitions");
+    numPartitions = config.getInt("starting.partitions");
   }
 
   @Override
@@ -43,8 +42,10 @@ public class DummyInput implements BatchInput {
         .repartition(numPartitions)
         .map(new LongToRowFunction(), 
             RowEncoder.apply(DataTypes.createStructType(
-                Lists.newArrayList(DataTypes.createStructField("value", DataTypes.LongType, true)))));
-    
+                Lists.newArrayList(
+                    DataTypes.createStructField("value", DataTypes.LongType, true),
+                    DataTypes.createStructField("modulo", DataTypes.LongType, true))
+                )));
     return df;
   }
   
@@ -52,7 +53,7 @@ public class DummyInput implements BatchInput {
   private static class LongToRowFunction implements MapFunction<Long, Row> {
     @Override
     public Row call(Long value) throws Exception {
-      return RowFactory.create(value);
+      return RowFactory.create(value, value % 5);
     }
   }
   

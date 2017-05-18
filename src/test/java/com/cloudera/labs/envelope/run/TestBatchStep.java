@@ -15,6 +15,8 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.spark.Contexts;
+import org.apache.spark.sql.AnalysisException;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
@@ -36,8 +38,8 @@ public class TestBatchStep {
   public void testInputRepartition() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
-    configMap.put("input.num.partitions", 5);
-    configMap.put("input.repartition.partitions", 10);
+    configMap.put("input.starting.partitions", 5);
+    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
     Config config = ConfigFactory.parseMap(configMap);
     
     BatchStep batchStep = new BatchStep("test", config);
@@ -47,12 +49,60 @@ public class TestBatchStep {
     
     assertEquals(numPartitions, 10);
   }
+
+  @Test
+  public void testInputRepartitionColumns() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put("input.type", DummyInput.class.getName());
+    configMap.put("input.starting.partitions", 10);
+    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
+    Config config = ConfigFactory.parseMap(configMap);
+
+    BatchStep batchStep = new BatchStep("test", config);
+    batchStep.runStep(Sets.<Step>newHashSet());
+    Dataset<Row> df = batchStep.getData();
+
+    int numPartitions = df.javaRDD().getNumPartitions();
+    assertEquals(Contexts.getSparkSession().sqlContext().getConf("spark.sql.shuffle.partitions"),
+        Integer.toString(numPartitions));
+  }
+
+  @Test
+  public void testInputRepartitionColumnsAndPartitionCount() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put("input.type", DummyInput.class.getName());
+    configMap.put("input.starting.partitions", 10);
+    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
+    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
+    Config config = ConfigFactory.parseMap(configMap);
+
+    BatchStep batchStep = new BatchStep("test", config);
+    batchStep.runStep(Sets.<Step>newHashSet());
+    Dataset<Row> df = batchStep.getData();
+
+    int numPartitions = df.javaRDD().getNumPartitions();
+    assertEquals(5, numPartitions);
+  }
+
+  @Test (expected = AnalysisException.class)
+  public void testInputRepartitionInvalidColumn() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put("input.type", DummyInput.class.getName());
+    configMap.put("input.starting.partitions", 10);
+    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo == 0"));
+    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
+    Config config = ConfigFactory.parseMap(configMap);
+
+    BatchStep batchStep = new BatchStep("test", config);
+    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.getData();
+  }
   
   @Test
   public void testInputCoalesce() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
-    configMap.put("input.num.partitions", 10);
+    configMap.put("input.starting.partitions", 10);
     configMap.put("input.repartition.partitions", 5);
     Config config = ConfigFactory.parseMap(configMap);
     
@@ -68,7 +118,7 @@ public class TestBatchStep {
   public void testDeriverRepartition() throws Exception {
     Map<String, Object> dependencyConfigMap = Maps.newHashMap();
     dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.num.partitions", 5);
+    dependencyConfigMap.put("input.starting.partitions", 5);
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
@@ -92,7 +142,7 @@ public class TestBatchStep {
   public void testDeriverCoalesce() throws Exception {
     Map<String, Object> dependencyConfigMap = Maps.newHashMap();
     dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.num.partitions", 10);
+    dependencyConfigMap.put("input.starting.partitions", 10);
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
@@ -117,7 +167,7 @@ public class TestBatchStep {
   public void testCantRepartitionAndCoalesceInputAtOnce() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
-    configMap.put("input.num.partitions", 5);
+    configMap.put("input.starting.partitions", 5);
     configMap.put("input.repartition.partitions", 10);
     configMap.put("input.coalesce.partitions", 3);
     Config config = ConfigFactory.parseMap(configMap);
@@ -130,7 +180,7 @@ public class TestBatchStep {
   public void testCantRepartitionAndCoalesceDeriverAtOnce() throws Exception {
     Map<String, Object> dependencyConfigMap = Maps.newHashMap();
     dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.num.partitions", 5);
+    dependencyConfigMap.put("input.starting.partitions", 5);
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);

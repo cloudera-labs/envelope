@@ -118,6 +118,9 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |repartition.partitions
 |The number of DataFrame partitions to repartition the input by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the input.
 
+|repartition.columns
+|(batch input only) A List of DataFrame columns to repartition the input by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the input. Per standard Spark convention, this function will repartition to the number of partitions defined by the Spark SQL configuration `spark.sql.shuffle.partitions` yet can be combined with the configuration `repartition.partitions` to change this default.  The list values must identify a DataFrame column name only; no expressions are evaluated.
+
 |coalesce.partitions
 |The number of DataFrame partitions to coalesce the input by. This configuration is only valid for batch inputs. In Spark this will run `DataFrame#coalesce`. If this configuration is not provided then Envelope will not coalesce the input.
 

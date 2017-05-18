@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.ArrayType;
@@ -766,6 +767,14 @@ public class RowUtils {
     } else {
       return 0;
     }
+  }
+
+  public static Column[] toColumnArray(List<String> columnList) {
+    Column[] columnArray = new Column[columnList.size()];
+    for (int i = 0; i < columnList.size(); i++) {
+      columnArray[i] = new Column(columnList.get(i));
+    }
+    return columnArray;
   }
 
 }
