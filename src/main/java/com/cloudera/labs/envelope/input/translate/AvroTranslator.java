@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -33,6 +32,7 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
@@ -45,6 +45,8 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
   private List<String> fieldTypes;
   private StructType schema;
   private Schema avroSchema;
+  private boolean doesAppendRaw;
+  private GenericDatumReader<GenericRecord> reader;
 
   public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
   public static final String FIELD_TYPES_CONFIG_NAME = "field.types";
@@ -53,18 +55,32 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
   public void configure(Config config) {
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
     avroSchema = schemaFor(fieldNames, fieldTypes);
+    reader = new GenericDatumReader<GenericRecord>(avroSchema);
+    
+    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
+    if (doesAppendRaw) {
+      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
+      fieldTypes.add("binary");
+      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
+      fieldTypes.add("binary");
+    }
+    
+    schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public Iterator<Row> translate(byte[] key, byte[] message) throws Exception {
-    GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(avroSchema);
-    Decoder decoder = DecoderFactory.get().binaryDecoder(message, null);
+  public Iterable<Row> translate(byte[] key, byte[] value) throws Exception {
+    Decoder decoder = DecoderFactory.get().binaryDecoder(value, null);
     GenericRecord record = reader.read(null, decoder);
     Row row = rowForRecord(record);
+    
+    if (doesAppendRaw) {
+      row = RowUtils.append(row, key);
+      row = RowUtils.append(row, value);
+    }
 
-    return Collections.singleton(row).iterator();
+    return Collections.singleton(row);
   }
 
   @Override
@@ -97,6 +113,9 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
           break;
         case "boolean":
           assembler = assembler.optionalBoolean(fieldName);
+          break;
+        case "binary":
+          assembler = assembler.optionalBytes(fieldName);
           break;
         default:
           throw new RuntimeException("Unsupported provided field type: " + fieldType);

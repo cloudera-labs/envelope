@@ -656,6 +656,13 @@ public class RowUtils {
 
     return replacedRow;
   }
+  
+  public static Row append(Row row, Object value) {
+    Object[] appendedValues = ObjectArrays.concat(valuesFor(row), value);
+    Row appendedRow = RowFactory.create(appendedValues);
+    
+    return appendedRow;
+  }
 
   public static Row append(Row row, String fieldName, DataType fieldType, Object value) {
     StructType appendedSchema = row.schema().add(fieldName, fieldType);
@@ -678,7 +685,7 @@ public class RowUtils {
   public static Object[] valuesFor(Row row) {
     Object[] values = new Object[row.length()];
 
-    for (int i = 0; i < row.schema().fields().length; i++) {
+    for (int i = 0; i < row.length(); i++) {
       values[i] = row.get(i);
     }
 
@@ -711,6 +718,9 @@ public class RowUtils {
           break;
         case "boolean":
           field = DataTypes.createStructField(fieldName, DataTypes.BooleanType, true);
+          break;
+        case "binary":
+          field = DataTypes.createStructField(fieldName, DataTypes.BinaryType, true);
           break;
         default:
           throw new RuntimeException("Unsupported provided field type: " + fieldType);

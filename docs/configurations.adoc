@@ -295,6 +295,15 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
+|append.raw.enabled
+|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+
+|append.raw.key.field.name
+|The name of the appended field that contains the raw input key. Default `_key`.
+
+|append.raw.value.field.name
+|The name of the appended field that contains the raw input value. Default `_value`.
+
 ||
 |`_delimited_`|
 
@@ -306,6 +315,15 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+
+|append.raw.enabled
+|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+
+|append.raw.key.field.name
+|The name of the appended field that contains the raw input key. Default `_key`.
+
+|append.raw.value.field.name
+|The name of the appended field that contains the raw input value. Default `_value`.
 
 ||
 |`_kvp_`|
@@ -321,6 +339,15 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+
+|append.raw.enabled
+|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+
+|append.raw.key.field.name
+|The name of the appended field that contains the raw input key. Default `_key`.
+
+|append.raw.value.field.name
+|The name of the appended field that contains the raw input value. Default `_value`.
 
 ||
 |`_morphline_`|
@@ -342,6 +369,15 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+
+|append.raw.enabled
+|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+
+|append.raw.key.field.name
+|The name of the appended field that contains the raw input key. Default `_key`.
+
+|append.raw.value.field.name
+|The name of the appended field that contains the raw input value. Default `_value`.
 
 |===
 

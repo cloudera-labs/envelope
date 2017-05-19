@@ -32,9 +32,9 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 
-import com.cloudera.labs.envelope.input.translate.TranslateFunction;
 import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -95,7 +95,7 @@ public class KafkaInput implements StreamInput {
                               ConsumerStrategies.<String, String>Subscribe(topicsSet, kafkaParams))
           .mapToPair(new UnwrapConsumerRecordFunction<String>());
       
-      dStream = stringDStream.flatMap(new TranslateFunction<String, String>(translatorConfig));
+      dStream = stringDStream.flatMap(new TranslatorUtils.TranslateFunction<String, String>(translatorConfig));
     }
     else if (encoding.equals("bytearray")) {
       JavaPairDStream<byte[], byte[]> byteArrayDStream = KafkaUtils
@@ -103,7 +103,7 @@ public class KafkaInput implements StreamInput {
                               ConsumerStrategies.<byte[], byte[]>Subscribe(topicsSet, kafkaParams))
           .mapToPair(new UnwrapConsumerRecordFunction<byte[]>());
 
-      dStream = byteArrayDStream.flatMap(new TranslateFunction<byte[], byte[]>(translatorConfig));
+      dStream = byteArrayDStream.flatMap(new TranslatorUtils.TranslateFunction<byte[], byte[]>(translatorConfig));
     }
     else {
       throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");

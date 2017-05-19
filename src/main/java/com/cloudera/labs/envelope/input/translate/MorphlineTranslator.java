@@ -15,7 +15,6 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.spark.sql.Row;
@@ -28,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
@@ -56,6 +56,7 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
   private String morphlineId;
   private StructType schema;
   private MorphlineUtils.Pipeline pipeline;
+  private boolean doesAppendRaw;
 
   @Override
   public void configure(Config config) {
@@ -76,6 +77,13 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
     // Construct the StructType schema for the Rows
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
     List<String> fieldTypes = config.getStringList(FIELD_TYPES);
+    this.doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
+    if (this.doesAppendRaw) {
+      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
+      fieldTypes.add("binary");
+      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
+      fieldTypes.add("binary");
+    }
     this.schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
@@ -85,8 +93,8 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
   }
 
   @Override
-  public Iterator<Row> translate(K key, V message) throws Exception {
-    LOG.debug("Translating {}[{}]", key, message);
+  public Iterable<Row> translate(K key, V value) throws Exception {
+    LOG.debug("Translating {}[{}]", key, value);
 
     // Get the Morphline Command pipeline
     if (null == this.pipeline) {
@@ -102,10 +110,10 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
     Record inputRecord = new Record();
 
     // Set up the message as _attachment_body (standard Morphline convention)
-    if (message instanceof String) {
-      inputRecord.put(Fields.ATTACHMENT_BODY, ((String) message).getBytes(this.messageEncoding));
+    if (value instanceof String) {
+      inputRecord.put(Fields.ATTACHMENT_BODY, ((String) value).getBytes(this.messageEncoding));
     } else {
-      inputRecord.put(Fields.ATTACHMENT_BODY, message);
+      inputRecord.put(Fields.ATTACHMENT_BODY, value);
     }
     inputRecord.put(Fields.ATTACHMENT_CHARSET, this.messageEncoding);
 
@@ -122,10 +130,22 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
     // Convert output to Rows
     List<Row> outputRows = Lists.newArrayListWithCapacity(outputRecords.size());
     for (Record output: outputRecords) {
-      outputRows.add(MorphlineUtils.convertToRow(this.schema, output));
+      Row outputRow = MorphlineUtils.convertToRow(this.schema, output);
+      
+      if (this.doesAppendRaw) {
+        outputRow = RowUtils.append(outputRow, key);
+        if (value instanceof String) {
+          outputRow = RowUtils.append(outputRow, ((String) value).getBytes(this.messageEncoding));
+        }
+        else {
+          outputRow = RowUtils.append(outputRow, value);
+        }
+      }
+      
+      outputRows.add(outputRow);
     }
 
-    return outputRows.iterator();
+    return outputRows;
   }
 
 }

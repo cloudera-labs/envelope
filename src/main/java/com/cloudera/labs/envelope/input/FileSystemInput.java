@@ -15,16 +15,10 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.input.translate.TranslateFunction;
-import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.AvroUtils;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -35,6 +29,14 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.AvroUtils;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.typesafe.config.Config;
 
 public class FileSystemInput implements BatchInput {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
@@ -234,7 +236,7 @@ public class FileSystemInput implements BatchInput {
         // NOTE: Suppressed unchecked warning
         // Look at https://books.google.com/books?id=zaoK0Z2STlkC&pg=PA28&lpg=PA28&dq=java+capture+%3C?%3E&source=bl&ots=6Yvmcb-2HP&sig=plvfyf16f7npvQ4IEanVAIqPsRg&hl=en&sa=X&ved=0ahUKEwjvh-62m-PTAhUBy2MKHeL8D-MQ6AEITDAG#v=onepage&q&f=false
         // for using a Wildcard Capture helper - might work here?
-        fs = Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslateFunction(translatorConfig)),
+        fs = Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslatorUtils.TranslateFunction(translatorConfig)),
             TranslatorFactory.create(translatorConfig).getSchema());
         break;
       default:

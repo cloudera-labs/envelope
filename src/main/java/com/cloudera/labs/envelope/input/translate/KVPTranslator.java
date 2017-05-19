@@ -16,18 +16,16 @@
 package com.cloudera.labs.envelope.input.translate;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -44,6 +42,7 @@ public class KVPTranslator implements Translator<String, String> {
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
   private Map<String, String> kvpMap = Maps.newHashMap();
+  private boolean doesAppendRaw;
 
   public static final String KVP_DELIMITER_CONFIG_NAME = "delimiter.kvp";
   public static final String FIELD_DELIMITER_CONFIG_NAME = "delimiter.field";
@@ -56,48 +55,67 @@ public class KVPTranslator implements Translator<String, String> {
     fieldDelimiter = resolveDelimiter(config.getString(FIELD_DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
+    
+    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
+    if (doesAppendRaw) {
+      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
+      fieldTypes.add("string");
+      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
+      fieldTypes.add("string");
+    }
+    
     schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public Iterator<Row> translate(String key, String message) {
+  public Iterable<Row> translate(String key, String value) {
     kvpMap.clear();
     values.clear();
 
-    String[] kvps = message.split(Pattern.quote(kvpDelimiter));
+    String[] kvps = value.split(Pattern.quote(kvpDelimiter));
     for (String kvp : kvps) {
       String[] components = kvp.split(Pattern.quote(fieldDelimiter));
       String kvpKey = components[0];
-      String kvpValue = components[1];
+      String kvpValue = components.length == 2 ? components[1] : null;
 
       kvpMap.put(kvpKey, kvpValue);
     }
+    
+    int numNonAppendedFields = fieldNames.size() - (doesAppendRaw ? 2 : 0);
 
-    for (StructField field : schema.fields()) {
-      String fieldName = field.name();
+    for (int fieldPos = 0; fieldPos < numNonAppendedFields; fieldPos++) {
+      String fieldName = fieldNames.get(fieldPos);
+      String fieldType = fieldTypes.get(fieldPos);
+      
       if (kvpMap.containsKey(fieldName)) {
         String kvpValue = kvpMap.get(fieldName);
-
-        if (field.dataType().equals(DataTypes.StringType)) {
-          values.add(kvpValue);
-        }
-        else if (field.dataType().equals(DataTypes.FloatType)) {
-          values.add(Float.parseFloat(kvpValue));
-        }
-        else if (field.dataType().equals(DataTypes.DoubleType)) {
-          values.add(Double.parseDouble(kvpValue));
-        }
-        else if (field.dataType().equals(DataTypes.IntegerType)) {
-          values.add(Integer.parseInt(kvpValue));
-        }
-        else if (field.dataType().equals(DataTypes.LongType)) {
-          values.add(Long.parseLong(kvpValue));
-        }
-        else if (field.dataType().equals(DataTypes.BooleanType)) {
-          values.add(Boolean.parseBoolean(kvpValue));
+        
+        if (kvpValue == null) {
+          values.add(null);
         }
         else {
-          throw new RuntimeException("Unsupported KVP field type: " + field.dataType());
+          switch (fieldType) {
+            case "string":
+              values.add(kvpValue);
+              break;
+            case "float":
+              values.add(Float.parseFloat(kvpValue));
+              break;
+            case "double":
+              values.add(Double.parseDouble(kvpValue));
+              break;
+            case "int":
+              values.add(Integer.parseInt(kvpValue));
+              break;
+            case "long":
+              values.add(Long.parseLong(kvpValue));
+              break;
+            case "boolean":
+              values.add(Boolean.parseBoolean(kvpValue));
+              break;
+            default:
+              throw new RuntimeException("Unsupported KVP field type: " + fieldType);
+          }
         }
       }
       else {
@@ -106,8 +124,13 @@ public class KVPTranslator implements Translator<String, String> {
     }
 
     Row row = RowFactory.create(values.toArray());
-
-    return Collections.singleton(row).iterator();
+    
+    if (doesAppendRaw) {
+      row = RowUtils.append(row, key);
+      row = RowUtils.append(row, value);
+    }
+    
+    return Collections.singleton(row);
   }
 
   @Override

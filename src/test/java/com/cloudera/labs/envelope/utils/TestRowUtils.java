@@ -167,7 +167,19 @@ public class TestRowUtils {
   }
 
   @Test
-  public void testAppend() {
+  public void testAppendWithoutSchema() {
+    Row row = RowFactory.create("hello", 1, true);
+    Row appendRow = RowUtils.append(row, -50.0);
+    
+    assertEquals(appendRow.length(), 4);
+    assertEquals(appendRow.get(0), "hello");
+    assertEquals(appendRow.get(1), 1);
+    assertEquals(appendRow.get(2), true);
+    assertEquals(appendRow.get(3), -50.0);
+  }
+  
+  @Test
+  public void testAppendWithSchema() {
     StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
     StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
     StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);

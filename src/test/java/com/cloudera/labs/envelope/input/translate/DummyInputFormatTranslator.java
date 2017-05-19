@@ -15,16 +15,17 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
 import java.util.Collections;
-import java.util.Iterator;
+
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 
 /**
  *
@@ -39,10 +40,8 @@ public class DummyInputFormatTranslator implements Translator<LongWritable, Text
   }
 
   @Override
-  public Iterator<Row> translate(LongWritable key, Text value) throws Exception {
-    return Collections.singletonList(
-        RowFactory.create(key.get(), value.toString())
-    ).iterator();
+  public Iterable<Row> translate(LongWritable key, Text value) throws Exception {
+    return Collections.singletonList(RowFactory.create(key.get(), value.toString()));
   }
 
   @Override

@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.input.translate;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -25,6 +24,7 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
@@ -38,6 +38,7 @@ public class DelimitedTranslator implements Translator<String, String> {
   private List<String> fieldTypes;
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
+  private boolean doesAppendRaw;
 
   public static final String DELIMITER_CONFIG_NAME = "delimiter";
   public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
@@ -48,44 +49,64 @@ public class DelimitedTranslator implements Translator<String, String> {
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
+    
+    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
+    if (doesAppendRaw) {
+      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
+      fieldTypes.add("string");
+      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
+      fieldTypes.add("string");
+    }
+    
     schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public Iterator<Row> translate(String key, String message) {
-    String[] stringValues = message.split(Pattern.quote(delimiter));
+  public Iterable<Row> translate(String key, String value) {
+    String[] stringValues = value.split(Pattern.quote(delimiter));
     values.clear();
 
     for (int valuePos = 0; valuePos < stringValues.length; valuePos++) {
       String fieldValue = stringValues[valuePos];
-
-      switch (fieldTypes.get(valuePos)) {
-        case "string":
-          values.add(fieldValue);
-          break;
-        case "float":
-          values.add(Float.parseFloat(fieldValue));
-          break;
-        case "double":
-          values.add(Double.parseDouble(fieldValue));
-          break;
-        case "int":
-          values.add(Integer.parseInt(fieldValue));
-          break;
-        case "long":
-          values.add(Long.parseLong(fieldValue));
-          break;
-        case "boolean":
-          values.add(Boolean.parseBoolean(fieldValue));
-          break;
-        default:
-          throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
+      
+      if (fieldValue.length() == 0) {
+        values.add(null);
       }
+      else {
+        switch (fieldTypes.get(valuePos)) {
+          case "string":
+            values.add(fieldValue);
+            break;
+          case "float":
+            values.add(Float.parseFloat(fieldValue));
+            break;
+          case "double":
+            values.add(Double.parseDouble(fieldValue));
+            break;
+          case "int":
+            values.add(Integer.parseInt(fieldValue));
+            break;
+          case "long":
+            values.add(Long.parseLong(fieldValue));
+            break;
+          case "boolean":
+            values.add(Boolean.parseBoolean(fieldValue));
+            break;
+          default:
+            throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
+        }
+      }
+
     }
 
     Row row = RowFactory.create(values.toArray());
+    
+    if (doesAppendRaw) {
+      row = RowUtils.append(row, key);
+      row = RowUtils.append(row, value);
+    }
 
-    return Collections.singleton(row).iterator();
+    return Collections.singleton(row);
   }
 
   @Override
