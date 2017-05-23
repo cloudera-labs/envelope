@@ -16,7 +16,9 @@
 package com.cloudera.labs.envelope.input;
 
 import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
+import com.cloudera.labs.envelope.input.translate.KVPTranslator;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.HashMap;
@@ -28,8 +30,11 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.spark.SparkException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 
 /**
@@ -37,8 +42,9 @@ import org.junit.Test;
  */
 public class TestFileSystemInput {
 
-  private static final String CSV_DATA = "/filesystem/sample-fs.txt";
+  private static final String CSV_DATA = "/filesystem/sample-fs.csv";
   private static final String JSON_DATA = "/filesystem/sample-fs.json";
+  private static final String TEXT_DATA = "/filesystem/sample-fs.txt";
 
   private Config config;
 
@@ -372,6 +378,45 @@ public class TestFileSystemInput {
     assertEquals("Invalid number of rows", 4, results.count());
     assertEquals("Invalid first row result", 0L, results.first().getLong(0));
     assertEquals("Invalid first row result", "One,Two,Three,Four", results.first().getString(1));
+  }
+  
+  @Test
+  public void readTextWithoutTranslator() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(FileSystemInput.FORMAT_CONFIG, FileSystemInput.TEXT_FORMAT);
+    configMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(TEXT_DATA).getPath());
+    config = ConfigFactory.parseMap(configMap);
+    
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+    
+    Dataset<Row> results = formatInput.read();
+    
+    assertEquals(2, results.count());
+    assertTrue(results.collectAsList().contains(RowFactory.create("a=1,b=hello,c=true")));
+    assertTrue(results.collectAsList().contains(RowFactory.create("a=2,b=world,c=false")));
+  }
+  
+  @Test
+  public void readTextWithTranslator() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(FileSystemInput.FORMAT_CONFIG, FileSystemInput.TEXT_FORMAT);
+    configMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(TEXT_DATA).getPath());
+    configMap.put("translator.type", KVPTranslator.class.getName());
+    configMap.put("translator.delimiter.kvp", ",");
+    configMap.put("translator.delimiter.field", "=");
+    configMap.put("translator.field.names", Lists.newArrayList("a", "b", "c"));
+    configMap.put("translator.field.types", Lists.newArrayList("int", "string", "boolean"));
+    config = ConfigFactory.parseMap(configMap);
+    
+    FileSystemInput formatInput = new FileSystemInput();
+    formatInput.configure(config);
+    
+    Dataset<Row> results = formatInput.read();
+    
+    assertEquals(2, results.count());
+    assertTrue(results.collectAsList().contains(RowFactory.create(1, "hello", true)));
+    assertTrue(results.collectAsList().contains(RowFactory.create(2, "world", false)));
   }
 
 }

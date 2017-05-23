@@ -131,7 +131,7 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |The Hadoop filesystem path to read as the input. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
 
 |format
-|The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, `csv`, and `input-format`.
+|The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, `csv`, `input-format`, `text`.
 
 |field.names
 |(csv, json) List of StructType field names of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For JSON, the field names must match the JSON data field names.
@@ -220,7 +220,7 @@ Input configurations have the `steps.[stepname].input.` prefix.
 |(input-format) The canonical class name for the InputFormat's values.
 
 |translator
-|(input-format) The Translator class to use to convert the InputFormat's Key/Value pairs into Dataset Rows. See <<Translators>> for details.
+|(input-format, text) The Translator class to use to convert the InputFormat's Key/Value pairs into Dataset Rows. See <<Translators>> for details. This is optional for `text`, and if it is omitted then the input will read the whole lines into a single string field named `value`.
 
 ||
 |`_hive_`|

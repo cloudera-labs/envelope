@@ -24,8 +24,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,8 @@ import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.typesafe.config.Config;
+
+import scala.Tuple2;
 
 public class FileSystemInput implements BatchInput {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
@@ -76,10 +81,11 @@ public class FileSystemInput implements BatchInput {
   public static final String INPUT_FORMAT_KEY_CONFIG = "key-class";
   public static final String INPUT_FORMAT_VALUE_CONFIG = "value-class";
 
-  private static final String CSV_FORMAT = "csv";
-  private static final String PARQUET_FORMAT = "parquet";
-  private static final String JSON_FORMAT = "json";
-  private static final String INPUT_FORMAT_FORMAT = "input-format";
+  public static final String CSV_FORMAT = "csv";
+  public static final String PARQUET_FORMAT = "parquet";
+  public static final String JSON_FORMAT = "json";
+  public static final String INPUT_FORMAT_FORMAT = "input-format";
+  public static final String TEXT_FORMAT = "text";
 
   private Config config;
   private ConfigUtils.OptionMap options;
@@ -188,7 +194,6 @@ public class FileSystemInput implements BatchInput {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Dataset<Row> read() throws Exception {
     String format = config.getString(FORMAT_CONFIG);
@@ -198,46 +203,19 @@ public class FileSystemInput implements BatchInput {
 
     switch (format) {
       case PARQUET_FORMAT:
-        LOG.debug("Reading Parquet: {}", path);
-        fs = Contexts.getSparkSession().read().parquet(path);
+        fs = readParquet(path);
         break;
       case JSON_FORMAT:
-        LOG.debug("Reading JSON: {}", path);
-        if (null != schema) {
-          fs = Contexts.getSparkSession().read().schema(schema).json(path);
-        } else {
-          fs = Contexts.getSparkSession().read().json(path);
-        }
+        fs = readJSON(path);
         break;
       case CSV_FORMAT:
-        LOG.debug("Reading CSV: {}", path);
-        if (null != schema) {
-          fs = Contexts.getSparkSession().read().schema(schema).options(options).csv(path);
-        } else {
-          fs = Contexts.getSparkSession().read().options(options).csv(path);
-        }
+        fs = readCSV(path);
         break;
       case INPUT_FORMAT_FORMAT:
-        String inputType = config.getString(INPUT_FORMAT_TYPE_CONFIG);
-        String keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
-        String valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);
-
-        Config translatorConfig = config.getConfig("translator");
-
-        LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
-
-        Class<? extends InputFormat> typeClazz = Class.forName(inputType).asSubclass(InputFormat.class);
-        Class<?> keyClazz = Class.forName(keyType);
-        Class<?> valueClazz = Class.forName(valueType);
-
-        JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
-        JavaPairRDD<?, ?> rdd = context.newAPIHadoopFile(path, typeClazz, keyClazz, valueClazz, new Configuration());
-
-        // NOTE: Suppressed unchecked warning
-        // Look at https://books.google.com/books?id=zaoK0Z2STlkC&pg=PA28&lpg=PA28&dq=java+capture+%3C?%3E&source=bl&ots=6Yvmcb-2HP&sig=plvfyf16f7npvQ4IEanVAIqPsRg&hl=en&sa=X&ved=0ahUKEwjvh-62m-PTAhUBy2MKHeL8D-MQ6AEITDAG#v=onepage&q&f=false
-        // for using a Wildcard Capture helper - might work here?
-        fs = Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslatorUtils.TranslateFunction(translatorConfig)),
-            TranslatorFactory.create(translatorConfig).getSchema());
+        fs = readInputFormat(path);
+        break;
+      case TEXT_FORMAT:
+        fs = readText(path);
         break;
       default:
         throw new RuntimeException("Filesystem input format not supported: " + format);
@@ -245,5 +223,80 @@ public class FileSystemInput implements BatchInput {
 
     return fs;
   }
+  
+  private Dataset<Row> readParquet(String path) {
+    LOG.debug("Reading Parquet: {}", path);
 
+    return Contexts.getSparkSession().read().parquet(path);
+  }
+  
+  private Dataset<Row> readJSON(String path) {
+    LOG.debug("Reading JSON: {}", path);
+
+    if (null != schema) {
+      return Contexts.getSparkSession().read().schema(schema).json(path);
+    } else {
+      return Contexts.getSparkSession().read().json(path);
+    }
+  }
+  
+  private Dataset<Row> readCSV(String path) {
+    LOG.debug("Reading CSV: {}", path);
+
+    if (null != schema) {
+      return Contexts.getSparkSession().read().schema(schema).options(options).csv(path);
+    } else {
+      return Contexts.getSparkSession().read().options(options).csv(path);
+    }
+  }
+  
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  private Dataset<Row> readInputFormat(String path) throws Exception {
+    String inputType = config.getString(INPUT_FORMAT_TYPE_CONFIG);
+    String keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
+    String valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);
+
+    Config translatorConfig = config.getConfig("translator");
+
+    LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
+
+    Class<? extends InputFormat> typeClazz = Class.forName(inputType).asSubclass(InputFormat.class);
+    Class<?> keyClazz = Class.forName(keyType);
+    Class<?> valueClazz = Class.forName(valueType);
+
+    @SuppressWarnings("resource")
+    JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
+    JavaPairRDD<?, ?> rdd = context.newAPIHadoopFile(path, typeClazz, keyClazz, valueClazz, new Configuration());
+
+    // NOTE: Suppressed unchecked warning
+    // Look at https://books.google.com/books?id=zaoK0Z2STlkC&pg=PA28&lpg=PA28&dq=java+capture+%3C?%3E&source=bl&ots=6Yvmcb-2HP&sig=plvfyf16f7npvQ4IEanVAIqPsRg&hl=en&sa=X&ved=0ahUKEwjvh-62m-PTAhUBy2MKHeL8D-MQ6AEITDAG#v=onepage&q&f=false
+    // for using a Wildcard Capture helper - might work here?
+    return Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslatorUtils.TranslateFunction(translatorConfig)),
+        TranslatorFactory.create(translatorConfig).getSchema());
+  }
+  
+  private Dataset<Row> readText(String path) throws Exception {
+    Dataset<Row> lines = Contexts.getSparkSession().read().text(path);
+
+    if (config.hasPath("translator")) {
+      Dataset<Tuple2<String, String>> keyedLines = lines.map(
+          new PrepareLineForTranslationFunction(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
+      
+      Config translatorConfig = config.getConfig("translator");
+      
+      return keyedLines.flatMap(new TranslatorUtils.TranslateFunction<String, String>(translatorConfig),
+          RowEncoder.apply(TranslatorFactory.create(translatorConfig).getSchema()));
+    }
+    else {
+      return lines;
+    }
+  }
+  
+  @SuppressWarnings("serial")
+  private static class PrepareLineForTranslationFunction implements MapFunction<Row, Tuple2<String, String>> {
+    @Override
+    public Tuple2<String, String> call(Row line) throws Exception {
+      return new Tuple2<String, String>(null, line.getString(0));
+    }
+  }
 }
