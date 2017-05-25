@@ -51,7 +51,7 @@ public enum Contexts {
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
 
   private Config config = ConfigFactory.empty();
-  private boolean isStreaming;
+  private ExecutionMode mode = ExecutionMode.UNIT_TEST;
   
   private SparkSession ss;
   private JavaStreamingContext jsc;
@@ -84,6 +84,7 @@ public enum Contexts {
     if (cleanupHiveMetastore) {
       FileUtils.deleteQuietly(new File("metastore_db"));
       FileUtils.deleteQuietly(new File("derby.log"));
+      FileUtils.deleteQuietly(new File("spark-warehouse"));
     }
   }
 
@@ -99,9 +100,9 @@ public enum Contexts {
     }
   }
 
-  public static void initialize(Config config, boolean isStreaming) {
+  public static void initialize(Config config, ExecutionMode mode) {
     INSTANCE.config = config;
-    INSTANCE.isStreaming = isStreaming;
+    INSTANCE.mode = mode;
   }
 
   private static void initializeStreamingJob() {
@@ -114,7 +115,7 @@ public enum Contexts {
   }
 
   private static void initializeBatchJob() {
-    SparkConf sparkConf = getSparkConfiguration(INSTANCE.config, INSTANCE.isStreaming);
+    SparkConf sparkConf = getSparkConfiguration(INSTANCE.config, INSTANCE.mode);
     
     if (!sparkConf.contains("spark.master")) {
       LOG.warn("Spark master not provided, instead using local mode");
@@ -125,12 +126,12 @@ public enum Contexts {
       sparkConf.setAppName("");
     }
 
-    SparkSession sparkSession = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate();
+    SparkSession sparkSession = SparkSession.builder().enableHiveSupport().config(sparkConf).getOrCreate();
 
     INSTANCE.ss = sparkSession;
   }
 
-  private static synchronized SparkConf getSparkConfiguration(Config config, boolean isStreaming) {
+  private static synchronized SparkConf getSparkConfiguration(Config config, ExecutionMode mode) {
     SparkConf sparkConf = new SparkConf();
     
     if (config.hasPath(APPLICATION_NAME_PROPERTY)) {
@@ -138,7 +139,7 @@ public enum Contexts {
       sparkConf.setAppName(applicationName);
     }
 
-    if (isStreaming) {
+    if (mode.equals(ExecutionMode.STREAMING)) {
       // Dynamic allocation should not be used for Spark Streaming jobs because the latencies
       // of the resource requests are too long.
       sparkConf.set("spark.dynamicAllocation.enabled", "false");
@@ -152,6 +153,11 @@ public enum Contexts {
       // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise
       // the default is typically 200 partitions, which is very high for micro-batches.
       sparkConf.set("spark.sql.shuffle.partitions", "2");
+    }
+    else if (mode.equals(ExecutionMode.UNIT_TEST)) {
+      sparkConf.set("spark.sql.catalogImplementation", "in-memory");
+      sparkConf.set("spark.sql.shuffle.partitions", "1");
+      sparkConf.set("spark.sql.warehouse.dir", "target/spark-warehouse");
     }
 
     if (config.hasPath(NUM_EXECUTORS_PROPERTY)) {
@@ -186,6 +192,12 @@ public enum Contexts {
     }
 
     return sparkConf;
+  }
+  
+  public enum ExecutionMode {
+    BATCH,
+    STREAMING,
+    UNIT_TEST
   }
 
 }

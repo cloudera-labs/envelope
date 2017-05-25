@@ -156,7 +156,7 @@ public class TestHBaseOutput {
     utility.startMiniCluster();
     connection = utility.getConnection();
 
-    Contexts.initialize(appConfig, false);
+    Contexts.initialize(appConfig, Contexts.ExecutionMode.UNIT_TEST);
   }
 
   @AfterClass

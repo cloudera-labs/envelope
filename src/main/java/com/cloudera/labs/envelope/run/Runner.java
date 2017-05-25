@@ -38,6 +38,7 @@ import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.Contexts.ExecutionMode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -63,7 +64,8 @@ public class Runner {
     Set<Step> steps = extractSteps(config);
     LOG.info("Steps instantiated");
 
-    Contexts.initialize(config, hasStreamingStep(steps));
+    ExecutionMode mode = hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
+    Contexts.initialize(config, mode);
     
     initializeAccumulators(steps);
     

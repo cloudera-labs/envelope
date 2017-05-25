@@ -37,7 +37,7 @@ public class TestContexts {
       this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-good.conf").getPath());
 
     Contexts.closeSparkSession(true);
-    Contexts.initialize(config, false);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
 
@@ -55,7 +55,7 @@ public class TestContexts {
     Config config = ConfigFactory.parseProperties(props);
     
     Contexts.closeSparkSession(true);
-    Contexts.initialize(config, false);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     
@@ -67,7 +67,7 @@ public class TestContexts {
     Config config = ConfigFactory.empty();
     
     Contexts.closeSparkSession(true);
-    Contexts.initialize(config, false);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     
@@ -79,12 +79,15 @@ public class TestContexts {
     Config config = ConfigFactory.empty();
     
     Contexts.closeSparkSession(true);
-    Contexts.initialize(config, false);
+    Contexts.initialize(config, Contexts.ExecutionMode.BATCH);
     
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     
     assertTrue(!sparkConf.contains("spark.dynamicAllocation.enabled"));
     assertTrue(!sparkConf.contains("spark.sql.shuffle.partitions"));
+    assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "hive");
+    
+    Contexts.closeSparkSession(true);
   }
   
   @Test
@@ -92,12 +95,30 @@ public class TestContexts {
     Config config = ConfigFactory.empty();
     
     Contexts.closeSparkSession(true);
-    Contexts.initialize(config, true);
+    Contexts.initialize(config, Contexts.ExecutionMode.STREAMING);
     
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     
     assertTrue(sparkConf.contains("spark.dynamicAllocation.enabled"));
     assertTrue(sparkConf.contains("spark.sql.shuffle.partitions"));
+    assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "hive");
+    
+    Contexts.closeSparkSession(true);
+  }
+  
+  @Test
+  public void testDefaultUnitTestConfiguration() {
+    Config config = ConfigFactory.empty();
+    
+    Contexts.closeSparkSession(true);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
+    
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
+    
+    assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "in-memory");
+    assertEquals(sparkConf.get("spark.sql.shuffle.partitions"), "1");
+    
+    Contexts.closeSparkSession(true);
   }
 
 }
