@@ -51,6 +51,9 @@ public class PlannerFactory {
       case "bitemporal":
         planner = new BitemporalHistoryPlanner();
         break;
+      case "delete":
+        planner = new DeletePlanner();
+        break;
       default:
         Class<?> clazz = Class.forName(plannerType);
         Constructor<?> constructor = clazz.getConstructor();

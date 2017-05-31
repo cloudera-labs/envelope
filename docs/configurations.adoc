@@ -465,7 +465,7 @@ Planner configurations have the `steps.[stepname].planner.` prefix.
 |Configuration suffix|Description
 
 |type
-|The planner type to be used. Envelope provides `append`, `bitemporal`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name of the `Planner` implementation class.
+|The planner type to be used. Envelope provides `append`, `bitemporal`, `delete`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name of the `Planner` implementation class.
 
 ||
 |`_append_`|
@@ -553,6 +553,9 @@ Planner configurations have the `steps.[stepname].planner.` prefix.
 
 ||
 |`_overwrite_`|_This deriver has no custom configurations_.
+
+||
+|`_delete_`|_This deriver has no custom configurations_.
 
 ||
 |`_upsert_`|
@@ -824,4 +827,3 @@ When using an Avro schema to define the StructType, either via an inline Avro li
 |decimal (LogicalType, as `bytes`)
 |Decimal
 |===
-

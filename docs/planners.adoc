@@ -50,6 +50,10 @@ Note that the definition of the UPSERT mutation type does not consider the times
 
 The `overwrite` planner simply takes all the arriving records and plans them collectively as an OVERWRITE. This is useful for indirectly doing updates to outputs that can not update records in place, but which can overwrite higher-level containers such as tables and partitions, such as `hive` and `filesystem`.
 
+### Delete
+
+The `delete` planner simply takes all the arriving records and plans them collectively as a DELETE. This is useful for removing data in cases such as cleaning up intermediate data, or for implementing a retention policy.
+
 ### Event-time upsert
 
 The `eventtimeupsert` planner considers the timestamp on the arriving record, and the timestamp on the existing record (if one exists), to plan the mutations that achieve an upsert in event time. This allows records to arrive out of order and the output to always contain the freshest (by event time) data. An existing record is defined by one with the same natural key (as provided to the planner configuration) as the arriving record.
@@ -259,7 +263,7 @@ And to query for what was at the previous system time our latest known state of 
 
 ## User-provided planners
 
-Custom developed planners can be provided by giving the fully-qualified class name of the planner to the `type` configuration. The class must implement `BulkPlanner`, `RandomPlanner`, or both.
+Custom developed planners can be provided by giving the fully-qualified class name of the planner to the `type` configuration. The class must implement `BulkPlanner` or `RandomPlanner`.
 
 ## Bulk vs random planners
 
@@ -275,6 +279,7 @@ A random planner applies individual mutation types to the mutations of the plan 
 |append|Bulk
 |upsert|Bulk
 |overwrite|Bulk
+|delete|Bulk
 |eventtimeupsert|Random
 |history|Random
 |bitemporal|Random
@@ -304,6 +309,7 @@ This table defines the mutation types that each provided planner can emit.
 |*append*|Yes||||
 |*upsert*|||Yes||
 |*overwrite*|||||Yes
+|*delete*||||Yes|
 |*eventtimeupsert*|Yes|Yes|||
 |*history*|Yes|Yes|||
 |*bitemporal*|Yes|Yes|||
@@ -322,6 +328,7 @@ This table defines the mutation types that each provided output can support.
 |*filesystem*|Yes||||Yes
 |*hive*|Yes||||Yes
 |*jdbc*|Yes||||
+|*hbase*|||Yes|Yes|
 |===
 
 ## Planner/output compatibility
@@ -330,11 +337,12 @@ This table defines which planners are compatible with each output. Attempting to
 
 [width="70%"]
 |===
-||*kudu*|*kafka*|*log*|*filesystem*|*hive*|*jdbc*
-|*append*|Yes|Yes|Yes|Yes|Yes|Yes
-|*upsert*|Yes|||||
-|*overwrite*||||Yes|Yes|
-|*eventtimeupsert*|Yes|||||
-|*history*|Yes|||||
-|*bitemporal*|Yes|||||
+||*kudu*|*kafka*|*log*|*filesystem*|*hive*|*jdbc*|*hbase*
+|*append*|Yes|Yes|Yes|Yes|Yes|Yes|
+|*upsert*|Yes||||||Yes
+|*overwrite*||||Yes|Yes||
+|*delete*|Yes||||||Yes
+|*eventtimeupsert*|Yes||||||
+|*history*|Yes||||||
+|*bitemporal*|Yes||||||
 |===
