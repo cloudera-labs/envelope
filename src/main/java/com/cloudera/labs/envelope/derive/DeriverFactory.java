@@ -45,6 +45,9 @@ public class DeriverFactory {
       case "morphline":
         deriver = new MorphlineDeriver();
         break;
+      case "pivot":
+        deriver = new PivotDeriver();
+        break;
       default:
         Class<?> clazz = Class.forName(deriverType);
         Constructor<?> constructor = clazz.getConstructor();

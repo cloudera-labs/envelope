@@ -1,0 +1,262 @@
+# Derivers guide
+
+Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
+
+Envelope provides five derivers out of the box and also allows custom derivers to be specified.
+
+## Provided derivers
+
+### SQL
+
+The `sql` deriver is used to run SQL to derive new data in the pipeline. Queries submitted to the deriver are executed by Spark SQL. The results of the SQL query then becomes the data of the step that contains the deriver.
+
+The query provided to the deriver can select from two types of sources:
+
+- From previous steps by referencing the previous step name as the table name
+- From the Hive metastore by referencing the Hive table name, and optionally with a Hive metastore database name prefix (i.e. `databasename.tablename`)
+
+A query can be provided to a SQL deriver instance in one of two ways:
+
+- The `query.literal` configuration is used to provide the SQL query directly in the pipeline configuration file. This is good for very short queries or for rapid development.
+- The `query.file` configuration is used to provide the path to an HDFS file that contains the SQL query to run. This is good for long queries or for where the development of the query is done separately to the pipeline.
+
+Note that the SQL deriver should only be used to run SELECT queries that derive new data. To write data outside of the pipeline the step should additionally specify a planner and output.
+
+For example, where `traffic` was a previous step in the pipeline:
+----
+deriver {
+  type = sql
+  query.literal = """
+    SELECT
+      UNIX_TIMESTAMP() * 1000 as_of_time
+    , ROUND(AVG(number_of_vehicles), 2) avg_num_veh
+    , MIN(number_of_vehicles) min_num_veh
+    , MAX(number_of_vehicles) max_num_veh
+    , MIN(measurement_time) first_meas_time
+    , MAX(measurement_time) last_meas_time
+    FROM traffic"""
+}
+----
+
+### Morphline
+
+The `morphline` deriver is used to run Morphline transformations over the records of the single dependency of the step.
+
+The Morphline transformation is provided to the Envelope pipeline by a local file to the Spark executors. The local file is retrieved from the location in the `morphline.file` configuration. The local file can be provided to the Spark executors from `spark2-submit` using the `--files` option.
+
+The ID of the specific transformation within the Morphline file is specified with the `morphline.id` configuration.
+
+The deriver requires the output schema of the Morphline transformation to be provided using the `field.names` and `field.types` configurations.
+
+### Nest
+
+The `nest` deriver is used to nest the data of one step within another by a common join key. This is useful for denormalizing a one-to-many relationship without repeating values on the one-cardinality side. This type of data modeling is known as a supernova schema.
+
+To configure the deriver to nest a one-to-many relationship, specify:
+
+- The one-cardinality step name in `nest.into`
+- The many-cardinality step name in `nest.from`
+- The join key field names in `key.field.names`
+- The name of the nested field on the derivation in `nested.field.name`
+
+#### Example
+
+Consider the following simple example where we have a customers table and an orders table (a one-to-many relationship because a customer can have many orders but an order can only belong to one customer) and we want to nest the orders for a customer on to the customer's record so that we can query across the two data sets without the cost of joining the two at runtime.
+
+`customers`:
+[options="header", width="30%"]
+|===
+|customer_id|name
+|10000|Jane
+|10001|Joe
+|===
+
+`orders`:
+[options="header", width="30%"]
+|===
+|order_id|product_name|customer_id
+|1000|Envelopes|10000
+|1001|Stamps|10000
+|1002|Pens|10000
+|1003|Paper|10001
+|===
+
+To nest the `orders` step into the `customers` step we could run a subsequent step with:
+
+----
+...
+steps {
+  customers {
+    ...
+  }
+  orders {
+    ...
+  }
+  customers_nested {
+    dependencies = [customers, orders]
+    deriver {
+      type = nest
+      nest.from = orders
+      nest.into = customers
+      key.field.names = [customer_id]
+      nested.field.name = customer_orders
+    }
+    ...
+  }
+  ...
+ }
+...
+----
+
+Which would produce the derived result:
+
+`customers_nested`:
+[options="header", cols="1,1,5a"]
+|===
+|customer_id|name|customer_orders
+|10000
+|Jane
+|
+[options="header"]
+!===
+! order_id ! product_name ! customer_id
+! 1000 ! Envelopes ! 10000
+! 1001 ! Stamps ! 10000
+! 1002 ! Pens ! 10000
+!===
+
+|10001
+|Joe
+|
+[options="header"]
+!===
+! order_id ! product_name ! customer_id
+! 1003 ! Paper ! 10001
+!===
+|===
+
+In Impala if was then written to a Parquet table the data could be queried with syntax like:
+
+  SELECT c.customer_name, COUNT(o.order_id) FROM customers_nested c, c.customer_orders o;
+
+For more information on querying nested tables using Impala, see the link:https://www.cloudera.com/documentation/enterprise/latest/topics/impala_complex_types.html#complex_types_using[complex types documentation].
+
+### Passthrough
+
+The `passthrough` deriver simply unions all of its dependencies together. All of the dependencies must have the same schema.
+
+### Pivot
+
+The `pivot` deriver is used to pivot (otherwise known as transpose) key-value-pair data where the derivation has a column per unique key. This can be useful when the source data model of the pipeline defines attributes for an entity via key-value-pairs but the transformed data model of the pipeline should have distinct columns per attribute for simpler and more efficient analytics querying.
+
+To configure the deriver to pivot a previous step that contains attributes for an entity defines as key-value-pairs, specify:
+
+- The name of the previous step to pivot with `step.name`
+- The fields that define the entity key with `entity.key.field.names`
+- The field that defines the key of the key-value-pairs with `pivot.key.field.name`
+- The field that defines the value of the key-value-pairs with `pivot.value.field.name`
+- The method to use for retrieving the entity attributes with `pivot.keys.source`. For the deriver to dynamically find the distinct keys of the key-value-pairs use `dynamic`. To provide a static list of keys use `static`.
+- The static list of keys with `pivot.keys.list`, when using the `static` method for retrieving pivot keys.
+
+#### Example
+
+Consider the following simple example where we have a key-value-pairs step that captures the attributes of each customer with one record per attribute per customer, and we want to derive a pivoted (transposed) step that captures the same attributes of each customer but with one record per customer.
+
+`customers_kvp`:
+[options="header", width="30%"]
+|===
+|customer_id|key|value
+|10000|name|Jane
+|10000|state|NY
+|10000|balance|50000.0
+|10001|name|Joe
+|10001|state|CA
+|10001|balance|30000.0
+|===
+
+To pivot the `customers_kvp` step we could run a subsequent step with:
+
+----
+...
+steps {
+  customers_kvp {
+    ...
+  }
+  customers_pivoted {
+    dependencies = [customers_kvp]
+    deriver {
+      type = pivot
+      step.name = customers_kvp
+      entity.key.field.names = [customer_id]
+      pivot.key.field.name = key
+      pivot.value.field.name = value
+      pivot.keys.source = dynamic
+    }
+    ...
+  }
+  ...
+ }
+...
+----
+
+Which would produce the derived result:
+
+`customers_kvp`:
+[options="header", width="30%"]
+|===
+|customer_id|name|state|balance
+|10000|Jane|NY|50000.0
+|10001|Joe|CA|30000.0
+|===
+
+## Custom derivers
+
+In cases that Envelope does not provide a deriver that meets the requirements for a particular derivation a custom deriver can be developed and provided instead.
+
+Envelope is pluggable so that Envelope itself does not need to be modified. Instead a separate jar that only contains the deriver(s) for the pipeline can be created.
+
+To create a new deriver, first start a new Java or Scala project that has a dependency on the Envelope version you are using. You do not need to include Envelope in the packaged jar.
+
+For example, if you are using Maven:
+
+----
+<dependency>
+  <groupId>com.cloudera.labs</groupId>
+  <artifactId>envelope</artifactId>
+  <version>0.4.0</version>
+  <scope>provided</scope>
+</dependency>
+----
+
+With the configured project you can develop the deriver by adding a class that implements the link:https://github.com/cloudera-labs/envelope/blob/master/src/main/java/com/cloudera/labs/envelope/derive/Deriver.java[Deriver] interface.
+
+The two methods in the interface are:
+
+- `configure` to receive the configurations of the `deriver` section of the step. This can be used to retrieve any custom configurations required by the deriver.
+- `derive` to run a derivation. The `dependencies` argument provides the name and Spark DataFrame for each of the dependencies of the step that contains the deriver. The return value is the DataFrame that represents the derivation. Access to the SparkSession object is available from the static method `Contexts#getSparkSession`.
+
+To reference the deriver in your pipeline simply use the deriver's fully qualified class name as the deriver type. For example:
+
+----
+...
+deriver {
+   type = com.yourcompany.envelope.deriver.CustomDeriver
+   customproperty1 = ...
+   ...
+}
+...
+----
+
+With the project compiled into a jar file the deriver can be submitted as part of the Envelope pipeline similarly to:
+
+  spark2-submit --jars customderiver.jar envelope-*.jar pipeline.conf
+
+The jar file can contain multiple derivers, and other pluggable classes such as custom inputs, outputs, etc.
+
+When developing a custom deriver keep in mind:
+
+- Derivers are only for deriving new data, and should not lead to side effects outside of the deriver, such as writing to an output or changing external metadata.
+- Derivers are often highly reusable, so avoid hard-coding values or field names into the deriver and have them be given at runtime through configuration instead.
+- Derivers are usually most efficient when they operate only on the Dataset/DataFrame API. If possible avoid converting to the RDD API and then back again.
+- You can look at the code of the provided derivers for hints as to how structure your own deriver.
+- There are utility classes in the .utils package that may already provide some of the functionality you need to put together your derivation logic.

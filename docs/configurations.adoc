@@ -390,7 +390,7 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
 
 |repartition.partitions
 |The number of DataFrame partitions to repartition the deriver results by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the deriver results.
@@ -440,6 +440,27 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 
 |query.file
 |The path to the file containing the query to be submitted to Spark SQL.
+
+||
+|`_pivot_`|
+
+|step.name
+|The name of the dependency step that will be pivoted.
+
+|entity.key.field.names
+|The list of field names that represents the entity key to group on. The derived DataFrame will contain one record per distinct entity key.
+
+|pivot.key.field.name
+|The field name of the key to pivot on. It is expected that there will only be one of each pivot key per entity key. The derived DataFrame will contain one additional column per distinct pivot key.
+
+|pivot.value.field.name
+|The field name of the value to be pivoted.
+
+|pivot.keys.source
+|The source of the keys to pivot into additional columns. If `static` then `pivot.keys.list` provides the list of keys. If `dynamic` then the list of keys is determined dynamically from the step, at the cost of additional computation time. Default is  `dynamic`.
+
+|pivot.keys.list
+|The list of keys to pivot into additional columns. Only used if `pivot.keys.source` is set to `static`.
 
 |===
 
