@@ -23,7 +23,7 @@ public class PlannerFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Planner create(Config plannerConfig) throws Exception {
+  public static Planner create(Config plannerConfig) {
     if (!plannerConfig.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Planner type not specified");
     }
@@ -55,9 +55,14 @@ public class PlannerFactory {
         planner = new DeletePlanner();
         break;
       default:
-        Class<?> clazz = Class.forName(plannerType);
-        Constructor<?> constructor = clazz.getConstructor();
-        planner = (Planner)constructor.newInstance();
+        try {
+          Class<?> clazz = Class.forName(plannerType);
+          Constructor<?> constructor = clazz.getConstructor();
+          planner = (Planner)constructor.newInstance();
+        }
+        catch (Exception e) {
+          throw new RuntimeException(e);
+        }
     }
 
     planner.configure(plannerConfig);

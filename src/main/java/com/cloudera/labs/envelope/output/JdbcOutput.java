@@ -31,7 +31,6 @@ import scala.Tuple2;
 
 public class JdbcOutput implements BulkOutput  {
 
-
   public static final String JDBC_CONFIG_URL = "url";
   public static final String JDBC_CONFIG_TABLENAME = "tablename";
   public static final String JDBC_CONFIG_USERNAME = "username";
@@ -67,7 +66,7 @@ public class JdbcOutput implements BulkOutput  {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
     String url = config.getString(JDBC_CONFIG_URL);
     String tablename = config.getString(JDBC_CONFIG_TABLENAME);
     String username = config.getString(JDBC_CONFIG_USERNAME);

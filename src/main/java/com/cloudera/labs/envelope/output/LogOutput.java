@@ -48,7 +48,7 @@ public class LogOutput implements BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
     for (Tuple2<MutationType, Dataset<Row>> mutation : planned) {
       MutationType mutationType = mutation._1();
       Dataset<Row> mutationDF = mutation._2();

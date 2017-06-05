@@ -38,7 +38,7 @@ public class BatchStep extends DataStep {
   private static final String INPUT_PREFIX = "input.";
   private static final String DERIVER_PREFIX = "deriver.";
   
-  public BatchStep(String name, Config config) throws Exception {
+  public BatchStep(String name, Config config) {
     super(name, config);
     
     if ((config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
@@ -52,21 +52,20 @@ public class BatchStep extends DataStep {
     }
   }
 
-  public void runStep(Set<Step> dependencySteps) throws Exception {
+  public void submit(Set<Step> dependencySteps) throws Exception {
     Contexts.getSparkSession().sparkContext().setJobDescription("Step: " + getName());
 
     Dataset<Row> data;
     if (hasInput()) {
-      data = ((BatchInput)input).read();
+      data = ((BatchInput)getInput()).read();
     }
     else if (hasDeriver()) {
       Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
-      data = deriver.derive(dependencies);
+      data = getDeriver().derive(dependencies);
     }
     else {
-      deriver = new PassthroughDeriver();
       Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
-      data = deriver.derive(dependencies);
+      data = new PassthroughDeriver().derive(dependencies);
     }
     
     if (doesRepartition()) {
@@ -75,7 +74,7 @@ public class BatchStep extends DataStep {
 
     setData(data);
 
-    setFinished(true);
+    setSubmitted(true);
   }
   
   private boolean doesRepartition() {
@@ -125,5 +124,18 @@ public class BatchStep extends DataStep {
     }
     
     return data;
+  }
+  
+  @Override
+  public Step copy() {
+    BatchStep copy = new BatchStep(name, config);
+    
+    copy.setSubmitted(hasSubmitted());
+    
+    if (hasSubmitted()) {
+      copy.setData(getData());
+    }
+    
+    return copy;
   }
 }

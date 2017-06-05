@@ -15,15 +15,20 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.ConfigValueType;
 
 public class ConfigUtils {
 
@@ -63,6 +68,7 @@ public class ConfigUtils {
     }
   }
 
+  @SuppressWarnings("serial")
   public static class OptionMap extends HashMap<String, String> {
     private Config config;
 
@@ -76,6 +82,36 @@ public class ConfigUtils {
       }
       return this;
     }
+  }
+  
+  public static Config findReplaceStringValues(Config config, String findRegex, Object replace) {
+    for (Map.Entry<String, ConfigValue> valueEntry : config.entrySet()) {
+      ConfigValueType valueType = valueEntry.getValue().valueType();
+      if (valueType.equals(ConfigValueType.OBJECT)) {
+        config = ConfigUtils.findReplaceStringValues(config.getConfig(valueEntry.getKey()), findRegex, replace);
+      }
+      else if (valueType.equals(ConfigValueType.LIST)) {
+        @SuppressWarnings("unchecked")
+        List<Object> valueList = (List<Object>)valueEntry.getValue().unwrapped();
+        if (valueList.size() > 0) {
+          if (valueList.get(0) instanceof String) {
+            for (int i = 0; i < valueList.size(); i++) {
+              String found = (String)valueList.get(0);
+              String replaced = found.replaceAll(findRegex, replace.toString());
+              valueList.set(i, replaced);
+            }
+          }
+        }
+        config = config.withValue(valueEntry.getKey(), ConfigValueFactory.fromAnyRef(valueList));
+      }
+      else if (valueType.equals(ConfigValueType.STRING)) {
+        String found = (String)valueEntry.getValue().unwrapped();
+        String replaced = found.replaceAll(findRegex, replace.toString());
+        config = config.withValue(valueEntry.getKey(), ConfigValueFactory.fromAnyRef(replaced));
+      }
+    }
+    
+    return config;
   }
 
 }

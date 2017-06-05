@@ -83,7 +83,7 @@ public class FileSystemOutput implements BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
       Dataset<Row> mutation = plan._2();

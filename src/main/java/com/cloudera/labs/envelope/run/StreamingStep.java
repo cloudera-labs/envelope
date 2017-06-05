@@ -29,12 +29,12 @@ public class StreamingStep extends DataStep {
 
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
 
-  public StreamingStep(String name, Config config) throws Exception {
+  public StreamingStep(String name, Config config) {
     super(name, config);
   }
 
   public JavaDStream<Row> getStream() throws Exception {
-    JavaDStream<Row> stream = ((StreamInput)input).getDStream();
+    JavaDStream<Row> stream = ((StreamInput)getInput()).getDStream();
 
     if (doesRepartition()) {
       stream = repartition(stream);
@@ -44,7 +44,7 @@ public class StreamingStep extends DataStep {
   }
 
   public StructType getSchema() throws Exception {
-    StructType schema = ((StreamInput)input).getSchema();
+    StructType schema = ((StreamInput)getInput()).getSchema();
 
     return schema;
   }
@@ -57,6 +57,19 @@ public class StreamingStep extends DataStep {
     int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
 
     return stream.repartition(numPartitions);
+  }
+
+  @Override
+  public Step copy() {
+    StreamingStep copy = new StreamingStep(name, config);
+    
+    copy.setSubmitted(hasSubmitted());
+    
+    if (hasSubmitted()) {
+      copy.setData(getData());
+    }
+    
+    return copy;
   }
 
 }

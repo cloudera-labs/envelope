@@ -6,7 +6,7 @@ This page specifies the configurations available in Envelope 0.4.
 
 == Example configuration
 
-As illustration, a typical Envelope batch application that reads HDFS Avro files, extracts a subset of data, and writes
+As illustration, a typical Envelope batch application that reads HDFS JSON files, extracts a subset of data, and writes
 the results to S3 in Parquet might have the following configuration.
 
 ----
@@ -20,7 +20,7 @@ steps {
     input {
       type = filesystem
       path = "hdfs://..."
-      format = avro
+      format = json
     }
   }
   exampleStep {
@@ -74,11 +74,8 @@ Application-level configurations have the `application.` prefix.
 |batch.milliseconds
 |The length of the micro-batch in milliseconds. Default is 1000. Ignored if the application does not have a streaming input.
 
-|checkpoint.enabled
-|Whether to use Spark checkpointing. Default is false. Ignored if the application does not have a streaming input.
-
-|checkpoint.path
-|The path for the Spark checkpoint. Ignored if checkpoint.enabled is not true.
+|pipeline.threads
+|The number of threads that Envelope will use to run pipeline steps. This is effectively a limit on the number of outputs that can be writing at once. Default is 20.
 
 |spark.conf.*
 |Used to pass configurations directly to Spark. The `spark.conf.` prefix is removed and the configuration is set in the SparkConf object used to create the Spark context.
@@ -87,14 +84,27 @@ Application-level configurations have the `application.` prefix.
 
 == Steps
 
-Step configurations have the `steps.[stepname].` prefix.
+Step configurations have the `steps.[stepname].` prefix. All steps can have the below configurations.
 
 [cols="2,8", options="header"]
 |===
 |Configuration suffix|Description
 
+|type
+|The step type. Envelope supports `data` and `loop`. Default `data`.
+
 |dependencies
 |The list of step names that Envelope will submit before submitting this step.
+
+|===
+
+=== Data steps
+
+Data steps can additionally have the below configurations.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |cache
 |If `true` then Envelope will cache the step's DataFrame at the `MEMORY_ONLY` storage level. Default `false`.
@@ -102,11 +112,51 @@ Step configurations have the `steps.[stepname].` prefix.
 |hint.small
 |If `true` then Envelope will mark the step's DataFrame as small enough to be used in broadcast joins. Default `false`.
 
+|print.schema.enabled
+|If `true` then Envelope will print the step's DataFrame's schema to the driver logs. This can be useful for debugging the schema of intermediate data. Default `false`.
+
+|print.data.enabled
+|If `true` then Envelope will print the step's DataFrame's data to the driver logs. This can be useful for debugging intermediate results. Default `false`.
+
+|print.data.limit
+|The maximum number of records to print when `print.data.enabled` is `true`. This can be useful for avoiding overloading the driver logs with too many printed records. Default unlimited.
+
+|===
+
+=== Loop steps
+
+Loop steps can additionally have the below configurations.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|mode
+|The mode for Envelope to run the iterations of the loop in. If `parallel` then Envelope will run all iterations of the loop in parallel. If `serial` then Envelope will run each iteration of the loop in serial order. Note that the order of the `step` source may not be guaranteed.
+
+|parameter
+|The parameter that Envelope will replace in strings in the configuration of the steps that are dependent on the loop step. For a parameter value `iteration_value` Envelope will replace the text `${iteration_value}` with the iteration value. If no parameter is given then Envelope will not perform parameter replacement.
+
+|source
+|The source of the iteration values for the loop. Envelope supports `range`, `list`, and `step`. `range` loops over an inclusive range of integers. `list` loops over an ordered list of values. `step` loops over values retrieved from the DataFrame of a previous data step.
+
+|range.start
+|If using the `range` source, the first integer of the range to loop over.
+
+|range.end
+|If using the `range` source, the last integer of the range to loop over.
+
+|list
+|If using the `list` source, the list of values to loop over.
+
+|step
+|If using the `step` source, the name of the previous data step to retrieve the values from. The previous data step must contain only one field, and must not contain more than 1000 values.
+
 |===
 
 === Inputs
 
-Input configurations have the `steps.[stepname].input.` prefix.
+Input configurations belong to data steps, and have the `steps.[stepname].input.` prefix.
 
 [cols="2,8", options="header"]
 |===
@@ -277,7 +327,7 @@ Input configurations have the `steps.[stepname].input.` prefix.
 
 === Translators
 
-Translator configurations have the `steps.[stepname].input.translator.` prefix.
+Translator configurations belong to data steps, and have the `steps.[stepname].input.translator.` prefix.
 
 [cols="2,8", options="header"]
 |===
@@ -383,7 +433,7 @@ Translator configurations have the `steps.[stepname].input.translator.` prefix.
 
 === Derivers
 
-Deriver configurations have the `steps.[stepname].deriver.` prefix.
+Deriver configurations belong to data steps, and have the `steps.[stepname].deriver.` prefix.
 
 [cols="2,8", options="header"]
 |===
@@ -466,7 +516,7 @@ Deriver configurations have the `steps.[stepname].deriver.` prefix.
 
 === Partitioners
 
-Partitioner configurations have the `steps.[stepname].partitioner.` prefix.
+Partitioner configurations belong to data steps, and have the `steps.[stepname].partitioner.` prefix.
 
 [cols="2,8", options="header"]
 |===
@@ -479,7 +529,7 @@ Partitioner configurations have the `steps.[stepname].partitioner.` prefix.
 
 === Planners
 
-Planner configurations have the `steps.[stepname].planner.` prefix.
+Planner configurations belong to data steps, and have the `steps.[stepname].planner.` prefix.
 
 [cols="2,8", options="header"]
 |===
@@ -588,7 +638,7 @@ Planner configurations have the `steps.[stepname].planner.` prefix.
 
 === Outputs
 
-Output configurations have the `steps.[stepname].output.` prefix.
+Output configurations belong to data steps, and have the `steps.[stepname].output.` prefix.
 
 [cols="2,8a", options="header"]
 |===

@@ -43,7 +43,7 @@ public class TestBatchStep {
     Config config = ConfigFactory.parseMap(configMap);
     
     BatchStep batchStep = new BatchStep("test", config);
-    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.submit(Sets.<Step>newHashSet());
     Dataset<Row> df = batchStep.getData();
     int numPartitions = df.javaRDD().getNumPartitions(); 
     
@@ -59,7 +59,7 @@ public class TestBatchStep {
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
-    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.submit(Sets.<Step>newHashSet());
     Dataset<Row> df = batchStep.getData();
 
     int numPartitions = df.javaRDD().getNumPartitions();
@@ -77,7 +77,7 @@ public class TestBatchStep {
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
-    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.submit(Sets.<Step>newHashSet());
     Dataset<Row> df = batchStep.getData();
 
     int numPartitions = df.javaRDD().getNumPartitions();
@@ -94,7 +94,7 @@ public class TestBatchStep {
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
-    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.submit(Sets.<Step>newHashSet());
     batchStep.getData();
   }
   
@@ -107,7 +107,7 @@ public class TestBatchStep {
     Config config = ConfigFactory.parseMap(configMap);
     
     BatchStep batchStep = new BatchStep("test", config);
-    batchStep.runStep(Sets.<Step>newHashSet());
+    batchStep.submit(Sets.<Step>newHashSet());
     Dataset<Row> df = batchStep.getData();
     int numPartitions = df.javaRDD().getNumPartitions(); 
     
@@ -122,7 +122,7 @@ public class TestBatchStep {
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.runStep(Sets.<Step>newHashSet());
+    dependencyStep.submit(Sets.<Step>newHashSet());
     
     Map<String, Object> dependentConfigMap = Maps.newHashMap();
     dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));
@@ -131,7 +131,7 @@ public class TestBatchStep {
     Config dependentConfig = ConfigFactory.parseMap(dependentConfigMap);
     
     BatchStep dependentStep = new BatchStep("world", dependentConfig);
-    dependentStep.runStep(Sets.<Step>newHashSet(dependencyStep));
+    dependentStep.submit(Sets.<Step>newHashSet(dependencyStep));
     Dataset<Row> df = dependentStep.getData();
     int numPartitions = df.javaRDD().getNumPartitions(); 
     
@@ -146,7 +146,7 @@ public class TestBatchStep {
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.runStep(Sets.<Step>newHashSet());
+    dependencyStep.submit(Sets.<Step>newHashSet());
     
     Map<String, Object> dependentConfigMap = Maps.newHashMap();
     dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));
@@ -155,7 +155,7 @@ public class TestBatchStep {
     Config dependentConfig = ConfigFactory.parseMap(dependentConfigMap);
     
     BatchStep dependentStep = new BatchStep("world", dependentConfig);
-    dependentStep.runStep(Sets.<Step>newHashSet(dependencyStep));
+    dependentStep.submit(Sets.<Step>newHashSet(dependencyStep));
     Dataset<Row> df = dependentStep.getData();
     int numPartitions = df.javaRDD().getNumPartitions(); 
     
@@ -184,7 +184,7 @@ public class TestBatchStep {
     Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
     
     BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.runStep(Sets.<Step>newHashSet());
+    dependencyStep.submit(Sets.<Step>newHashSet());
     
     Map<String, Object> dependentConfigMap = Maps.newHashMap();
     dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));

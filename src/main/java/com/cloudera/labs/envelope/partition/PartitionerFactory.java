@@ -36,7 +36,7 @@ public class PartitionerFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Partitioner create(Config config, JavaPairRDD<Row, Row> rdd) throws Exception {
+  public static Partitioner create(Config config, JavaPairRDD<Row, Row> rdd) {
     String partitionerType = config.getString(TYPE_CONFIG_NAME);
     
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
@@ -58,9 +58,14 @@ public class PartitionerFactory {
         partitioner = new UUIDPartitioner();
         break;
       default:
-        Class<?> clazz = Class.forName(partitionerType);
-        Constructor<?> constructor = clazz.getConstructor();
-        partitioner = (Partitioner)constructor.newInstance();
+        try {
+          Class<?> clazz = Class.forName(partitionerType);
+          Constructor<?> constructor = clazz.getConstructor();
+          partitioner = (Partitioner)constructor.newInstance();
+        }
+        catch (Exception e) {
+          throw new RuntimeException(e);
+        }
     }
 
     if (partitioner instanceof ConfigurablePartitioner) {

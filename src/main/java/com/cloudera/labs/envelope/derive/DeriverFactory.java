@@ -23,7 +23,7 @@ public class DeriverFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Deriver create(Config config) throws Exception {
+  public static Deriver create(Config config) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Deriver type not specified");
     }
@@ -49,9 +49,14 @@ public class DeriverFactory {
         deriver = new PivotDeriver();
         break;
       default:
-        Class<?> clazz = Class.forName(deriverType);
-        Constructor<?> constructor = clazz.getConstructor();
-        deriver = (Deriver) constructor.newInstance();
+        try {
+          Class<?> clazz = Class.forName(deriverType);
+          Constructor<?> constructor = clazz.getConstructor();
+          deriver = (Deriver) constructor.newInstance();
+        }
+        catch (Exception e) {
+          throw new RuntimeException(e);
+        }
     }
 
     deriver.configure(config);

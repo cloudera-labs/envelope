@@ -41,6 +41,6 @@ public interface BulkOutput extends Output {
    * mutation type and the mutation data as a DataFrame. The output must apply the mutations in
    * the same order as the list.
    */
-  void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception;
+  void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned);
 
 }

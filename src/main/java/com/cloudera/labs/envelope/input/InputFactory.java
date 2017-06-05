@@ -23,7 +23,7 @@ public class InputFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Input create(Config config) throws Exception {
+  public static Input create(Config config) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Input type not specified");
     }
@@ -49,9 +49,14 @@ public class InputFactory {
         input = new JdbcInput();
         break;
       default:
-        Class<?> clazz = Class.forName(inputType);
-        Constructor<?> constructor = clazz.getConstructor();
-        input = (Input)constructor.newInstance();
+        try {
+          Class<?> clazz = Class.forName(inputType);
+          Constructor<?> constructor = clazz.getConstructor();
+          input = (Input)constructor.newInstance();
+        }
+        catch (Exception e) {
+          throw new RuntimeException(e);
+        }
     }
 
     input.configure(config);

@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 public class TestConfigUtils {
 
@@ -90,6 +91,22 @@ public class TestConfigUtils {
 
     assertNull("Invalid option value", optionMap1.get("none"));
     assertNotSame("OptionMaps are the same", optionMap1.get("option"), optionMap2.get("option"));
+  }
+  
+  @Test
+  public void testFindReplaceStringValues() {
+    Config baseConfig = ConfigFactory.parseString("a: ${replaceme}, b: \"${replaceme}\", c: [${replaceme}, ${replaceme}], d: [\"${replaceme}\", \"${replaceme}\"], e: { f: \"${replaceme}\", g: [\"${replaceme}\"] }" );
+    Config resolvedConfig = baseConfig.resolveWith(ConfigFactory.empty().withValue("replaceme", ConfigValueFactory.fromAnyRef("REPLACED")));
+    Config replacedConfig = ConfigUtils.findReplaceStringValues(resolvedConfig, "\\$\\{replaceme\\}", "REPLACED");
+  
+    assertEquals(replacedConfig.getString("a"), "REPLACED");
+    assertEquals(replacedConfig.getString("b"), "REPLACED");
+    assertEquals(replacedConfig.getStringList("c").get(0), "REPLACED");
+    assertEquals(replacedConfig.getStringList("c").get(1), "REPLACED");
+    assertEquals(replacedConfig.getStringList("d").get(0), "REPLACED");
+    assertEquals(replacedConfig.getStringList("d").get(1), "REPLACED");
+    assertEquals(replacedConfig.getConfig("e").getString("f"), "REPLACED");
+    assertEquals(replacedConfig.getConfig("e").getStringList("g").get(0), "REPLACED");
   }
 
 }

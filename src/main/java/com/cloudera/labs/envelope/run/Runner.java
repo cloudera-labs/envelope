@@ -39,6 +39,7 @@ import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.Contexts.ExecutionMode;
+import com.cloudera.labs.envelope.utils.StepUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -54,6 +55,9 @@ import com.typesafe.config.ConfigValueType;
 @SuppressWarnings("serial")
 public class Runner {
 
+  public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
+  
+  private static ExecutorService threadPool;
   private static Logger LOG = LoggerFactory.getLogger(Runner.class);
 
   /**
@@ -64,127 +68,31 @@ public class Runner {
     Set<Step> steps = extractSteps(config);
     LOG.info("Steps instantiated");
 
-    ExecutionMode mode = hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
+    ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
     Contexts.initialize(config, mode);
     
     initializeAccumulators(steps);
     
     initializeUDFs(config);
 
-    if (hasStreamingStep(steps)) {
-      LOG.info("Streaming step(s) identified");
+    initializeThreadPool(config);
+
+    if (StepUtils.hasStreamingStep(steps)) {
+      LOG.debug("Streaming step(s) identified");
 
       runStreaming(steps);
     }
     else {
-      LOG.info("No streaming steps identified");
+      LOG.debug("No streaming steps identified");
 
       runBatch(steps);
     }
 
-    LOG.info("Runner finished");
+    LOG.debug("Runner finished");
   }
-
-  /**
-   * Run the Envelope pipeline as a Spark Streaming job.
-   * @param steps The full configuration of the Envelope pipeline
-   */
-  private static void runStreaming(final Set<Step> steps) throws Exception {
-    Set<Step> independentSteps = getIndependentSteps(steps);
-    runBatch(independentSteps);
-
-    Set<StreamingStep> streamingSteps = getStreamingSteps(steps);
-    for (final StreamingStep streamingStep : streamingSteps) {
-      LOG.info("Setting up streaming step: " + streamingStep.getName());
-
-      JavaDStream<Row> stream = streamingStep.getStream();
-
-      final StructType streamSchema = streamingStep.getSchema();
-      LOG.info("Stream schema: " + streamSchema);
-
-      stream.foreachRDD(new VoidFunction<JavaRDD<Row>>() {
-        @Override
-        public void call(JavaRDD<Row> batch) throws Exception {
-          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(batch, streamSchema);
-          streamingStep.setData(batchDF);
-          streamingStep.setFinished(true);
-
-          Set<Step> allDependentSteps = getAllDependentSteps(streamingStep, steps);
-          runBatch(allDependentSteps);
-
-          resetDataSteps(allDependentSteps);
-        };
-      });
-
-      LOG.info("Finished setting up streaming step: " + streamingStep.getName());
-    }
-
-    JavaStreamingContext jsc = Contexts.getJavaStreamingContext();
-    jsc.start();
-    LOG.info("Streaming context started");
-    jsc.awaitTermination();
-    LOG.info("Streaming context terminated");
-  }
-
-  /**
-   * Run the steps in dependency order.
-   * @param steps The steps to run, which may be the full Envelope pipeline, or a subset of it.
-   */
-  private static void runBatch(Set<? extends Step> steps) throws Exception {
-    LOG.info("Started batch for steps: {}", stepNamesAsString(steps));
-
-    ExecutorService threadPool = getNewThreadPool();
-    Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
-
-    // The essential logic is to loop through all of the steps until they have all been submitted.
-    // Steps will not be submitted until all of their dependency steps have been submitted first.
-    while (!allDataStepsFinished(steps)) {
-      LOG.info("Not all steps are finished");
-      for (final Step step : steps) {
-        LOG.info("Looking into step: " + step.getName());
-
-        if (step instanceof BatchStep) {
-          LOG.info("Step is batch");
-          BatchStep batchStep = (BatchStep)step;
-
-          if (!batchStep.hasFinished()) {
-            LOG.info("Step has not finished");
-
-            final Set<Step> dependencies = getDependencies(step, steps);
-
-            if (allDataStepsFinished(dependencies)) {
-              LOG.info("Step dependencies have finished, running step off main thread");
-              // Batch steps are run off the main thread so that if they contain outputs they will
-              // not block the parallel execution of independent steps.
-              Future<Void> offMainThreadStep = runStepOffMainThread(batchStep, dependencies, threadPool);
-              offMainThreadSteps.add(offMainThreadStep);
-            }
-            else {
-              LOG.info("Step dependencies have not finished");
-            }
-          }
-          else {
-            LOG.info("Step has finished");
-          }
-        }
-        else {
-          LOG.info("Step is not batch");
-        }
-
-        LOG.info("Finished looking into step: " + step.getName());
-      }
-
-      awaitAllOffMainThreadsFinished(offMainThreadSteps);
-      offMainThreadSteps.clear();
-    }
-    
-    threadPool.shutdown();
-
-    LOG.info("Finished batch for steps: {}", stepNamesAsString(steps));
-  }
-
+  
   private static Set<Step> extractSteps(Config config) throws Exception {
-    LOG.info("Starting getting steps");
+    LOG.debug("Starting getting steps");
 
     Set<Step> steps = Sets.newHashSet();
 
@@ -200,11 +108,11 @@ public class Runner {
           Input stepInput = InputFactory.create(stepInputConfig);
 
           if (stepInput instanceof BatchInput) {
-            LOG.info("Adding batch step: " + stepName);
+            LOG.debug("Adding batch step: " + stepName);
             step = new BatchStep(stepName, stepConfig);
           }
           else if (stepInput instanceof StreamInput) {
-            LOG.info("Adding streaming step: " + stepName);
+            LOG.debug("Adding streaming step: " + stepName);
             step = new StreamingStep(stepName, stepConfig);
           }
           else {
@@ -212,153 +120,175 @@ public class Runner {
           }
         }
         else {
-          LOG.info("Adding batch step: " + stepName);
+          LOG.debug("Adding batch step: " + stepName);
           step = new BatchStep(stepName, stepConfig);
         }
-
-        LOG.info("With configuration: " + stepConfig);
+      }
+      else if (stepConfig.getString("type").equals("loop")) {
+        LOG.debug("Adding loop step: " + stepName);
+        step = new LoopStep(stepName, stepConfig);
       }
       else {
         throw new RuntimeException("Unknown step type: " + stepConfig.getString("type"));
       }
+      
+      LOG.debug("With configuration: " + stepConfig);
 
       steps.add(step);
     }
 
-    LOG.info("Finished getting steps");
+    LOG.debug("Finished getting steps");
 
     return steps;
   }
 
-  private static boolean allDataStepsFinished(Set<? extends Step> steps) {
-    for (Step step : steps) {
-      if (step instanceof DataStep) {
-        if (!((DataStep)step).hasFinished()) {
-          return false;
+  /**
+   * Run the Envelope pipeline as a Spark Streaming job.
+   * @param steps The full configuration of the Envelope pipeline
+   */
+  private static void runStreaming(final Set<Step> steps) throws Exception {
+    Set<Step> independentNonStreamingSteps = StepUtils.getIndependentNonStreamingSteps(steps);
+    runBatch(independentNonStreamingSteps);
+
+    Set<StreamingStep> streamingSteps = StepUtils.getStreamingSteps(steps);
+    for (final StreamingStep streamingStep : streamingSteps) {
+      LOG.debug("Setting up streaming step: " + streamingStep.getName());
+
+      JavaDStream<Row> stream = streamingStep.getStream();
+
+      final StructType streamSchema = streamingStep.getSchema();
+      LOG.debug("Stream schema: " + streamSchema);
+
+      stream.foreachRDD(new VoidFunction<JavaRDD<Row>>() {
+        @Override
+        public void call(JavaRDD<Row> batch) throws Exception {
+          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(batch, streamSchema);
+          streamingStep.setData(batchDF);
+          streamingStep.setSubmitted(true);
+
+          Set<Step> allDependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
+          runBatch(allDependentSteps);
+
+          StepUtils.resetDataSteps(allDependentSteps);
+        };
+      });
+
+      LOG.debug("Finished setting up streaming step: " + streamingStep.getName());
+    }
+
+    JavaStreamingContext jsc = Contexts.getJavaStreamingContext();
+    jsc.start();
+    LOG.debug("Streaming context started");
+    jsc.awaitTermination();
+    LOG.debug("Streaming context terminated");
+  }
+
+  /**
+   * Run the steps in dependency order.
+   * @param steps The steps to run, which may be the full Envelope pipeline, or a subset of it.
+   */
+  private static void runBatch(Set<Step> steps) throws Exception {
+    LOG.debug("Started batch for steps: {}", StepUtils.stepNamesAsString(steps));
+
+    Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
+    Set<Step> refactoredSteps = null;
+
+    // The essential logic is to loop through all of the steps until they have all been submitted.
+    // Steps will not be submitted until all of their dependency steps have been submitted first.
+    while (!StepUtils.allStepsSubmitted(steps)) {
+      LOG.debug("Not all steps have been submitted");
+      
+      for (final Step step : steps) {
+        LOG.debug("Looking into step: " + step.getName());
+
+        if (step instanceof BatchStep) {
+          LOG.debug("Step is batch");
+          BatchStep batchStep = (BatchStep)step;
+
+          if (!batchStep.hasSubmitted()) {
+            LOG.debug("Step has not been submitted");
+
+            final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
+
+            if (StepUtils.allStepsSubmitted(dependencies)) {
+              LOG.debug("Step dependencies have finished, running step off main thread");
+              // Batch steps are run off the main thread so that if they contain outputs they will
+              // not block the parallel execution of independent steps.
+              Future<Void> offMainThreadStep = runStepOffMainThread(batchStep, dependencies, threadPool);
+              offMainThreadSteps.add(offMainThreadStep);
+            }
+            else {
+              LOG.debug("Step dependencies have not finished");
+            }
+          }
+          else {
+            LOG.debug("Step has been submitted");
+          }
         }
+        else if (step instanceof StreamingStep) {
+          LOG.debug("Step is streaming");
+        }
+        else if (step instanceof LoopStep) {
+          LOG.debug("Step is a loop");
+          
+          LoopStep loopStep = (LoopStep)step;
+          
+          if (!loopStep.hasSubmitted()) {
+            LOG.debug("Step has not been submitted");
+          
+            final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
+  
+            if (StepUtils.allStepsSubmitted(dependencies)) {
+              LOG.debug("Step dependencies have finished, unrolling loop");
+              refactoredSteps = loopStep.unrollLoop(steps);
+              LOG.debug("Loop unrolled");
+              // We can't mutate the steps while we are iterating over them, so we break out
+              // of the for-loop to then replace the steps with the loop step unrolled.
+              break;
+            }
+            else {
+              LOG.debug("Step dependencies have not been submitted");
+            }
+          }
+          else {
+            LOG.debug("Step has been submitted");
+          }
+        }
+        else {
+          throw new RuntimeException("Unknown step class type: " + step.getClass().getName());
+        }
+
+        LOG.debug("Finished looking into step: " + step.getName());
+      }
+
+      awaitAllOffMainThreadsFinished(offMainThreadSteps);
+      offMainThreadSteps.clear();
+      
+      if (refactoredSteps != null) {
+        steps = refactoredSteps;
+        refactoredSteps = null;
       }
     }
+    
+    threadPool.shutdown();
 
-    return true;
+    LOG.debug("Finished batch for steps: {}", StepUtils.stepNamesAsString(steps));
   }
 
-  private static Set<Step> getDependencies(Step step, Set<? extends Step> steps) {
-    Set<Step> dependencies = Sets.newHashSet();
-
-    Set<String> dependencyNames = step.getDependencyNames();
-    for (Step candidate : steps) {
-      String candidateName = candidate.getName();
-      if (dependencyNames.contains(candidateName)) {
-        dependencies.add(candidate);
-      }
+  private static void initializeThreadPool(Config config) {
+    if (config.hasPath(PIPELINE_THREADS_PROPERTY)) {
+      threadPool = Executors.newFixedThreadPool(config.getInt(PIPELINE_THREADS_PROPERTY));
     }
-
-    LOG.info("Dependencies of {} are: {}", step.getName(), stepNamesAsString(dependencies));
-
-    return dependencies;
-  }
-
-  private static boolean hasStreamingStep(Set<Step> steps) {
-    for (Step step : steps) {
-      if (step instanceof StreamingStep) {
-        return true;
-      }
+    else {
+      threadPool = Executors.newFixedThreadPool(20);
     }
-
-    return false;
-  }
-
-  private static Set<StreamingStep> getStreamingSteps(Set<Step> steps) throws Exception {
-    Set<StreamingStep> steamingSteps = Sets.newHashSet();
-
-    for (Step step : steps) {
-      if (step instanceof StreamingStep) {
-        steamingSteps.add((StreamingStep)step);
-      }
-    }
-
-    LOG.info("Streaming steps are: {}", stepNamesAsString(steamingSteps));
-
-    return steamingSteps;
-  }
-
-  private static Set<Step> getAllDependentSteps(Step rootStep, Set<Step> steps) {
-    Set<Step> dependencies = Sets.newHashSet();
-
-    dependencies.add(rootStep);
-
-    Set<BatchStep> immediateDependents = getImmediateDependentSteps(rootStep, steps);
-    for (BatchStep immediateDependent : immediateDependents) {
-      dependencies.addAll(getAllDependentSteps(immediateDependent, steps));
-    }
-
-    LOG.info("All dependent steps of {} are: {}", rootStep.getName(), stepNamesAsString(dependencies));
-
-    return dependencies;
-  }
-
-  private static Set<BatchStep> getImmediateDependentSteps(Step step, Set<Step> steps) {
-    Set<BatchStep> dependencies = Sets.newHashSet();
-
-    for (Step candidateStep : steps) {
-      if (candidateStep.getDependencyNames().contains(step.getName())) {
-        dependencies.add((BatchStep)candidateStep);
-      }
-    }
-
-    LOG.info("Immediate dependent steps of {} are: {}", step.getName(), stepNamesAsString(dependencies));
-
-    return dependencies;
-  }
-
-  private static Set<Step> getIndependentSteps(Set<Step> steps) {
-    Set<Step> independents = Sets.newHashSet();
-
-    for (Step step : steps) {
-      if (step instanceof BatchStep && step.getDependencyNames().isEmpty()) {
-        independents.add((BatchStep)step);
-      }
-    }
-
-    LOG.info("Independent steps are: {}", stepNamesAsString(independents));
-
-    return independents;
-  }
-
-  private static String stepNamesAsString(Set<? extends Step> steps) {
-    StringBuilder sb = new StringBuilder();
-
-    for (Step step : steps) {
-      sb.append(step.getName() + ", ");
-    }
-
-    if (sb.length() > 0) {
-      sb.setLength(sb.length() - ", ".length());
-    }
-
-    return sb.toString();
-  }
-
-  private static void resetDataSteps(Set<Step> steps) {
-    for (Step step : steps) {
-      if (step instanceof DataStep) {
-        ((DataStep)step).clearCache();
-        ((DataStep)step).setFinished(false);
-      }
-    }
-  }
-
-  private static ExecutorService getNewThreadPool() {
-    ExecutorService threadPool = Executors.newCachedThreadPool();
-
-    return threadPool;
   }
 
   private static Future<Void> runStepOffMainThread(final BatchStep step, final Set<Step> dependencies, final ExecutorService threadPool) {
     return threadPool.submit(new Callable<Void>() {
       @Override
       public Void call() throws Exception {
-        step.runStep(dependencies);
+        step.submit(dependencies);
         return null;
       }
     });
@@ -369,29 +299,18 @@ public class Runner {
       offMainThreadStep.get();
     }
   }
-  
-  private static Set<DataStep> getDataSteps(Set<Step> steps) {
-    Set<DataStep> dataSteps = Sets.newHashSet();
-    
-    for (Step step : steps) {
-      if (step instanceof DataStep) {
-        dataSteps.add((DataStep)step);
-      }
-    }
-    
-    return dataSteps;
-  }
+
   
   private static void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
     
-    for (DataStep dataStep : getDataSteps(steps)) {
+    for (DataStep dataStep : StepUtils.getDataSteps(steps)) {
       requests.addAll(dataStep.getAccumulatorRequests());
     }
     
     Accumulators accumulators = new Accumulators(requests);
     
-    for (DataStep dataStep : getDataSteps(steps)) {
+    for (DataStep dataStep : StepUtils.getDataSteps(steps)) {
       dataStep.receiveAccumulators(accumulators);
     }
   }

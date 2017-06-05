@@ -369,7 +369,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
     KuduContext kc = new KuduContext(config.getString(CONNECTION_CONFIG_NAME));
 
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {

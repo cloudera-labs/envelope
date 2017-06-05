@@ -78,52 +78,26 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   private static final String ACCUMULATOR_SECONDS_PLANNING = "Seconds spent random planning";
   private static final String ACCUMULATOR_SECONDS_APPLYING = "Seconds spent applying random mutations";
 
-  protected boolean finished = false;
-  protected Dataset<Row> data;
-  protected Input input;
-  protected Deriver deriver;
-  protected Planner planner;
-  protected Output output;
-  protected Accumulators accumulators;
+  private Dataset<Row> data;
+  private Input input;
+  private Deriver deriver;
+  private Planner planner;
+  private Output output;
+  private Accumulators accumulators;
 
-  public DataStep(String name, Config config) throws Exception {
+  public DataStep(String name, Config config) {
     super(name, config);
 
     if (hasInput() && hasDeriver()) {
       throw new RuntimeException("Steps can not have both an input and a deriver");
     }
-
-    if (hasInput()) {
-      Config inputConfig = config.getConfig("input");
-      input = InputFactory.create(inputConfig);
-    }
-    if (hasDeriver()) {
-      Config deriverConfig = config.getConfig("deriver");
-      deriver = DeriverFactory.create(deriverConfig);
-    }
-    if (hasPlanner()) {
-      Config plannerConfig = config.getConfig("planner");
-      planner = PlannerFactory.create(plannerConfig);
-    }
-    if (hasOutput()) {
-      Config outputConfig = config.getConfig("output");
-      output = OutputFactory.create(outputConfig);
-    }
-  }
-
-  public boolean hasFinished() {
-    return finished;
-  }
-
-  public void setFinished(boolean finished) {
-    this.finished = finished;
   }
 
   public Dataset<Row> getData() {
     return data;  
   }
 
-  public void setData(Dataset<Row> batchDF) throws Exception {
+  public void setData(Dataset<Row> batchDF) {
     this.data = batchDF;
 
     if (doesCache()) {
@@ -149,6 +123,50 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
   }
   
+  protected Input getInput() {
+    if (input == null) {
+      if (hasInput()) {
+        Config inputConfig = config.getConfig("input");
+        input = InputFactory.create(inputConfig);
+      }
+    }
+    
+    return input;
+  }
+  
+  protected Deriver getDeriver() {
+    if (deriver == null) {
+      if (hasDeriver()) {
+        Config deriverConfig = config.getConfig("deriver");
+        deriver = DeriverFactory.create(deriverConfig);
+      }
+    }
+    
+    return deriver;
+  }
+  
+  protected Planner getPlanner() {
+    if (planner == null) {
+      if (hasPlanner()) {
+        Config plannerConfig = config.getConfig("planner");
+        planner = PlannerFactory.create(plannerConfig);
+      }
+    }
+    
+    return planner;
+  }
+
+  protected Output getOutput() {
+    if (output == null) {
+      if (hasOutput()) {
+        Config outputConfig = config.getConfig("output");
+        output = OutputFactory.create(outputConfig);
+      }
+    }
+    
+    return output;
+  }
+
   private void registerStep() {
     data.createOrReplaceTempView(getName());
   }
@@ -221,17 +239,17 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public Set<AccumulatorRequest> getAccumulatorRequests() {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
     
-    if (hasInput() && input instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)input).getAccumulatorRequests());
+    if (hasInput() && getInput() instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getInput()).getAccumulatorRequests());
     }
-    if (hasDeriver() && deriver instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)deriver).getAccumulatorRequests());
+    if (hasDeriver() && getDeriver() instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getDeriver()).getAccumulatorRequests());
     }
-    if (hasPlanner() && planner instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)planner).getAccumulatorRequests());
+    if (hasPlanner() && getPlanner() instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getPlanner()).getAccumulatorRequests());
     }
-    if (hasOutput() && output instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)output).getAccumulatorRequests());
+    if (hasOutput() && getOutput() instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getOutput()).getAccumulatorRequests());
     }
     
     requests.add(new AccumulatorRequest(ACCUMULATOR_SECONDS_PLANNING, Double.class));
@@ -246,17 +264,17 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public void receiveAccumulators(Accumulators accumulators) {
     this.accumulators = accumulators;
     
-    if (hasInput() && input instanceof UsesAccumulators) {
-      ((UsesAccumulators)input).receiveAccumulators(accumulators);
+    if (hasInput() && getInput() instanceof UsesAccumulators) {
+      ((UsesAccumulators)getInput()).receiveAccumulators(accumulators);
     }
-    if (hasDeriver() && deriver instanceof UsesAccumulators) {
-      ((UsesAccumulators)deriver).receiveAccumulators(accumulators);
+    if (hasDeriver() && getDeriver() instanceof UsesAccumulators) {
+      ((UsesAccumulators)getDeriver()).receiveAccumulators(accumulators);
     }
-    if (hasPlanner() && planner instanceof UsesAccumulators) {
-      ((UsesAccumulators)planner).receiveAccumulators(accumulators);
+    if (hasPlanner() && getPlanner() instanceof UsesAccumulators) {
+      ((UsesAccumulators)getPlanner()).receiveAccumulators(accumulators);
     }
-    if (hasOutput() && output instanceof UsesAccumulators) {
-      ((UsesAccumulators)output).receiveAccumulators(accumulators);
+    if (hasOutput() && getOutput() instanceof UsesAccumulators) {
+      ((UsesAccumulators)getOutput()).receiveAccumulators(accumulators);
     }
   }
 
@@ -280,28 +298,28 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     return config.hasPath("output");
   }
 
-  private void writeOutput() throws Exception {
+  private void writeOutput() {
     Config plannerConfig = config.getConfig("planner");
-    validatePlannerOutputCompatibility(planner, output);
+    validatePlannerOutputCompatibility(getPlanner(), getOutput());
 
     // Plan the mutations, and then apply them to the output, based on the type of planner used
-    if (planner instanceof RandomPlanner) {      
-      RandomPlanner randomPlanner = (RandomPlanner)planner;
+    if (getPlanner() instanceof RandomPlanner) {      
+      RandomPlanner randomPlanner = (RandomPlanner)getPlanner();
       List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
       Config outputConfig = config.getConfig("output");
       JavaRDD<PlannedRow> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
 
       applyMutations(planned, outputConfig);
     }
-    else if (planner instanceof BulkPlanner) {
-      BulkPlanner bulkPlanner = (BulkPlanner)planner;
+    else if (getPlanner() instanceof BulkPlanner) {
+      BulkPlanner bulkPlanner = (BulkPlanner)getPlanner();
       List<Tuple2<MutationType, Dataset<Row>>> planned = bulkPlanner.planMutationsForSet(data);
 
-      BulkOutput bulkOutput = (BulkOutput)output;      
+      BulkOutput bulkOutput = (BulkOutput)getOutput();      
       bulkOutput.applyBulkMutations(planned);
     }
     else {
-      throw new RuntimeException("Unexpected output class: " + output.getClass().getName());
+      throw new RuntimeException("Unexpected output class: " + getOutput().getClass().getName());
     }
   }
 
@@ -344,7 +362,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
   
   // Group the arriving records by key, attach the existing records for each key, and plan
-  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) throws Exception  {
+  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
     JavaPairRDD<Row, Row> keyedArriving = 
         arriving.javaRDD().keyBy(new ExtractKeyFunction(keyFieldNames, accumulators));
 
@@ -388,7 +406,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
   }
   
-  private Partitioner getPartitioner(JavaPairRDD<Row, Row> keyedArriving) throws Exception {    
+  private Partitioner getPartitioner(JavaPairRDD<Row, Row> keyedArriving) {    
     if (hasPartitioner()) {
       Config partitionerConfig = config.getConfig("partitioner");      
       return PartitionerFactory.create(partitionerConfig, keyedArriving); 

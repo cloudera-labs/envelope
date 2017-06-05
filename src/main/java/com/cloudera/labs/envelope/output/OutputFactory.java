@@ -23,7 +23,7 @@ public class OutputFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Output create(Config config) throws Exception {
+  public static Output create(Config config) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Output type not specified");
     }
@@ -55,9 +55,14 @@ public class OutputFactory {
         output = new HBaseOutput();
         break;
       default:
-        Class<?> clazz = Class.forName(outputType);
-        Constructor<?> constructor = clazz.getConstructor();
-        output = (Output)constructor.newInstance();
+        try {
+          Class<?> clazz = Class.forName(outputType);
+          Constructor<?> constructor = clazz.getConstructor();
+          output = (Output)constructor.newInstance();
+        }
+        catch (Exception e) {
+          throw new RuntimeException(e);
+        }
     }
 
     output.configure(config);

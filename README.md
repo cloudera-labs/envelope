@@ -48,4 +48,5 @@ If you are ready for more, dive in:
 * [User Guide](docs/userguide.adoc) - details on the design, operations, configuration, and usage of Envelope
 * [Configuration Guide](docs/configurations.adoc) - a deep-dive into the parameters and options of Envelope
 * [Planners Guide](docs/planners.adoc) - directions and details on when, why, and how to use planners and associated outputs
+* [Looping Guide](docs/looping.adoc) - information and an example for defining loops in an Envelope pipeline
 * [Contributing to Envelope](docs/contributing.adoc) - guidelines and best practices for both developing and sharing Envelope components and applications

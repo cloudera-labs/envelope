@@ -27,24 +27,59 @@ public abstract class Step {
 
   protected String name;
   protected Config config;
-
-  public Step(String name, Config config) throws Exception {
+  
+  private boolean submitted = false;
+  private Set<String> dependencyNames;
+  
+  public Step(String name, Config config) {
     this.name = name;
     this.config = config;
+    
+    if (config.hasPath("dependencies")) {
+      dependencyNames = Sets.newHashSet(config.getStringList("dependencies"));
+    }
+    else {
+      dependencyNames = Sets.newHashSet();
+    }
   }
 
   public String getName() {
     return name;
   }
 
+  public void setName(String name) {
+    this.name = name;
+  }
+  
+  public Config getConfig() {
+    return config;
+  }
+  
+  public void setConfig(Config config) {
+    this.config = config;
+  }
+
+  public boolean hasSubmitted() {
+    return submitted;
+  }
+
+  public void setSubmitted(boolean submitted) {
+    this.submitted = submitted;
+  }
+
   public Set<String> getDependencyNames() {
-    if (!config.hasPath("dependencies")) {
-      return Sets.newHashSet();
-    }
-
-    Set<String> dependencyNames = Sets.newHashSet(config.getStringList("dependencies"));
-
     return dependencyNames;
+  }
+  
+  public void setDependencyNames(Set<String> dependencyNames) {
+    this.dependencyNames = dependencyNames;
+  }
+  
+  public abstract Step copy();
+  
+  @Override
+  public String toString() {
+    return getName() + " " + getDependencyNames() + " " + hasSubmitted();
   }
 
 }

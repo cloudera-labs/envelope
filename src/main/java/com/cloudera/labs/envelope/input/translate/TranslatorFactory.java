@@ -23,7 +23,7 @@ public class TranslatorFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Translator<?, ?> create(Config config) throws Exception {
+  public static Translator<?, ?> create(Config config) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Translator type not specified");
     }
@@ -45,9 +45,14 @@ public class TranslatorFactory {
       translator = new MorphlineTranslator<>();
     }
     else {
-      Class<?> clazz = Class.forName(translatorType);
-      Constructor<?> constructor = clazz.getConstructor();
-      translator = (Translator<?, ?>)constructor.newInstance();
+      try {
+        Class<?> clazz = Class.forName(translatorType);
+        Constructor<?> constructor = clazz.getConstructor();
+        translator = (Translator<?, ?>)constructor.newInstance();
+      }
+      catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
 
     translator.configure(config);

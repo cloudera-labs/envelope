@@ -197,7 +197,7 @@ public class HBaseOutput implements RandomOutput, BulkOutput {
   }
 
   @Override
-  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) throws Exception {
+  public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
     for (Tuple2<MutationType, Dataset<Row>> mutationDataset : planned) {
       BulkHBaseMutatorFunction mutatorFunction;
       switch (mutationDataset._1()) {
@@ -214,6 +214,7 @@ public class HBaseOutput implements RandomOutput, BulkOutput {
     }
   }
 
+  @SuppressWarnings("serial")
   public static class BulkHBaseMutatorFunction implements ForeachPartitionFunction<Row> {
 
     private Config _config;
