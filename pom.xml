@@ -314,6 +314,8 @@
             <exclude>**/*.grok</exclude>
             <exclude>**/*.md</exclude>
             <exclude>**/*.adoc</exclude>
+            <exclude>**/*.avsc</exclude>
+            <exclude>**/*.csv</exclude>
           </excludes>
         </configuration>
         <executions>
@@ -342,6 +344,8 @@
             <exclude>**/*.grok</exclude>
             <exclude>**/*.md</exclude>
             <exclude>**/*.adoc</exclude>
+            <exclude>**/*.avsc</exclude>
+            <exclude>**/*.csv</exclude>
           </excludes>
         </configuration>
         <executions>
