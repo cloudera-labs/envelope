@@ -15,13 +15,11 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
-import com.cloudera.labs.envelope.utils.hbase.HBaseUtils;
-import com.cloudera.labs.envelope.utils.hbase.HBaseSerde;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.Connection;
@@ -35,12 +33,16 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.plan.PlannedRow;
+import com.cloudera.labs.envelope.utils.hbase.HBaseSerde;
+import com.cloudera.labs.envelope.utils.hbase.HBaseUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+
+import scala.Tuple2;
 
 /**
  * HBase output implementing the RandomOutput and BulkOutput APIs.

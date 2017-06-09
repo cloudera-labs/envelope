@@ -15,6 +15,8 @@
  */
 package com.cloudera.labs.envelope.plan;
 
+import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -29,8 +31,6 @@ import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-
-import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
 
 /**
  * A planner implementation for storing all versions of the values of a key (its history) using

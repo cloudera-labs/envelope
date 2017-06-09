@@ -302,6 +302,9 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |topics
 |The list of Kafka topics to be consumed.
 
+|group.id
+|The Kafka consumer group ID for the input. When offset management is enabled use a unique group ID for each pipeline so that Envelope can track one execution of the pipeline to the next. If not provided Envelope will use a random UUID for each pipeline execution.
+
 |encoding
 |The encoding of the messages in the Kafka topics, either `string` or `bytearray`. This must match the required encoding of the Envelope translator.
 
@@ -310,6 +313,12 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 
 |window.milliseconds
 |The duration in milliseconds of the Spark Streaming window for the input.
+
+|offsets.manage
+|If `true` then Envelope will manage the Kafka offsets that have been processed so that application restarts will continue where in the topic that they left off. Default `false`.
+
+|offsets.output
+|If `offsets.manage` is `true` then this is the output specification for where Envelope will store and retrieve the latest offsets that have been successfully processed. The output must be support random upsert mutations (e.g. Kudu, HBase).
 
 |parameter.*
 |Used to pass configurations directly to Kafka. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the Kafka direct stream.

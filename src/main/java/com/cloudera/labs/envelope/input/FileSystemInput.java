@@ -33,12 +33,11 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
+import com.cloudera.labs.envelope.input.translate.TranslateFunction;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.typesafe.config.Config;
 
 import scala.Tuple2;
@@ -256,8 +255,6 @@ public class FileSystemInput implements BatchInput {
     String keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
     String valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);
 
-    Config translatorConfig = config.getConfig("translator");
-
     LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
 
     Class<? extends InputFormat> typeClazz = Class.forName(inputType).asSubclass(InputFormat.class);
@@ -267,12 +264,10 @@ public class FileSystemInput implements BatchInput {
     @SuppressWarnings("resource")
     JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
     JavaPairRDD<?, ?> rdd = context.newAPIHadoopFile(path, typeClazz, keyClazz, valueClazz, new Configuration());
+    
+    TranslateFunction translateFunction = new TranslateFunction(config.getConfig("translator"));
 
-    // NOTE: Suppressed unchecked warning
-    // Look at https://books.google.com/books?id=zaoK0Z2STlkC&pg=PA28&lpg=PA28&dq=java+capture+%3C?%3E&source=bl&ots=6Yvmcb-2HP&sig=plvfyf16f7npvQ4IEanVAIqPsRg&hl=en&sa=X&ved=0ahUKEwjvh-62m-PTAhUBy2MKHeL8D-MQ6AEITDAG#v=onepage&q&f=false
-    // for using a Wildcard Capture helper - might work here?
-    return Contexts.getSparkSession().createDataFrame(rdd.flatMap(new TranslatorUtils.TranslateFunction(translatorConfig)),
-        TranslatorFactory.create(translatorConfig).getSchema());
+    return Contexts.getSparkSession().createDataFrame(rdd.flatMap(translateFunction), translateFunction.getSchema());
   }
   
   private Dataset<Row> readText(String path) throws Exception {
@@ -282,10 +277,9 @@ public class FileSystemInput implements BatchInput {
       Dataset<Tuple2<String, String>> keyedLines = lines.map(
           new PrepareLineForTranslationFunction(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
       
-      Config translatorConfig = config.getConfig("translator");
+      TranslateFunction<String, String> translateFunction = new TranslateFunction<>(config.getConfig("translator"));
       
-      return keyedLines.flatMap(new TranslatorUtils.TranslateFunction<String, String>(translatorConfig),
-          RowEncoder.apply(TranslatorFactory.create(translatorConfig).getSchema()));
+      return keyedLines.flatMap(translateFunction, RowEncoder.apply(translateFunction.getSchema()));
     }
     else {
       return lines;

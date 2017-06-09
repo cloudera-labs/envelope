@@ -87,6 +87,8 @@ public class Runner {
 
       runBatch(steps);
     }
+    
+    shutdownThreadPool();
 
     LOG.debug("Runner finished");
   }
@@ -146,6 +148,7 @@ public class Runner {
    * Run the Envelope pipeline as a Spark Streaming job.
    * @param steps The full configuration of the Envelope pipeline
    */
+  @SuppressWarnings("unchecked")
   private static void runStreaming(final Set<Step> steps) throws Exception {
     Set<Step> independentNonStreamingSteps = StepUtils.getIndependentNonStreamingSteps(steps);
     runBatch(independentNonStreamingSteps);
@@ -154,15 +157,20 @@ public class Runner {
     for (final StreamingStep streamingStep : streamingSteps) {
       LOG.debug("Setting up streaming step: " + streamingStep.getName());
 
-      JavaDStream<Row> stream = streamingStep.getStream();
+      @SuppressWarnings("rawtypes")
+      JavaDStream stream = streamingStep.getStream();
 
       final StructType streamSchema = streamingStep.getSchema();
       LOG.debug("Stream schema: " + streamSchema);
 
-      stream.foreachRDD(new VoidFunction<JavaRDD<Row>>() {
+      stream.foreachRDD(new VoidFunction<JavaRDD<?>>() {
         @Override
-        public void call(JavaRDD<Row> batch) throws Exception {
-          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(batch, streamSchema);
+        public void call(JavaRDD<?> raw) throws Exception {
+          streamingStep.stageProgress(raw);
+          
+          JavaRDD<Row> translated = streamingStep.translate(raw);
+          
+          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(translated, streamSchema);
           streamingStep.setData(batchDF);
           streamingStep.setSubmitted(true);
 
@@ -170,6 +178,8 @@ public class Runner {
           runBatch(allDependentSteps);
 
           StepUtils.resetDataSteps(allDependentSteps);
+          
+          streamingStep.recordProgress();
         };
       });
 
@@ -189,7 +199,7 @@ public class Runner {
    */
   private static void runBatch(Set<Step> steps) throws Exception {
     LOG.debug("Started batch for steps: {}", StepUtils.stepNamesAsString(steps));
-
+    
     Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
     Set<Step> refactoredSteps = null;
 
@@ -269,8 +279,6 @@ public class Runner {
         refactoredSteps = null;
       }
     }
-    
-    threadPool.shutdown();
 
     LOG.debug("Finished batch for steps: {}", StepUtils.stepNamesAsString(steps));
   }
@@ -300,6 +308,9 @@ public class Runner {
     }
   }
 
+  private static void shutdownThreadPool() {
+    threadPool.shutdown();
+  }
   
   private static void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();

@@ -16,11 +16,18 @@
 package com.cloudera.labs.envelope.plan;
 
 import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
-import static com.cloudera.labs.envelope.utils.RowUtils.*;
+import static com.cloudera.labs.envelope.utils.RowUtils.after;
+import static com.cloudera.labs.envelope.utils.RowUtils.append;
+import static com.cloudera.labs.envelope.utils.RowUtils.before;
+import static com.cloudera.labs.envelope.utils.RowUtils.compareTimestamp;
+import static com.cloudera.labs.envelope.utils.RowUtils.different;
+import static com.cloudera.labs.envelope.utils.RowUtils.get;
+import static com.cloudera.labs.envelope.utils.RowUtils.precedingTimestamp;
+import static com.cloudera.labs.envelope.utils.RowUtils.set;
+import static com.cloudera.labs.envelope.utils.RowUtils.simultaneous;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 

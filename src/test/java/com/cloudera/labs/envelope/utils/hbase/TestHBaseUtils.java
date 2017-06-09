@@ -15,9 +15,15 @@
  */
 package com.cloudera.labs.envelope.utils.hbase;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.spark.sql.types.DataType;
@@ -26,14 +32,9 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
 
 public class TestHBaseUtils {
 

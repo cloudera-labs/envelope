@@ -15,18 +15,7 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import java.util.Iterator;
-
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.input.translate.Translator;
-import com.cloudera.labs.envelope.input.translate.TranslatorFactory;
 import com.typesafe.config.Config;
-
-import scala.Tuple2;
 
 public class TranslatorUtils {
 
@@ -55,32 +44,6 @@ public class TranslatorUtils {
     }
     else {
       return APPEND_RAW_DEFAULT_VALUE_FIELD_NAME;
-    }
-  }
-  
-  @SuppressWarnings("serial")
-  public static class TranslateFunction<K, V> implements FlatMapFunction<Tuple2<K, V>, Row> {
-    private Config config;
-    private Translator<K, V> translator;
-
-    private static Logger LOG = LoggerFactory.getLogger(TranslateFunction.class);
-
-    public TranslateFunction(Config config) {
-      this.config = config;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public Iterator<Row> call(Tuple2<K, V> keyAndValue) throws Exception {
-      K key = keyAndValue._1;
-      V value = keyAndValue._2;
-
-      if (translator == null) {
-        translator = (Translator<K, V>) TranslatorFactory.create(config);
-        LOG.info("Translator created: " + translator.getClass().getName());
-      }
-
-      return translator.translate(key, value).iterator();
     }
   }
   

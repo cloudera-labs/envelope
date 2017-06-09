@@ -15,18 +15,21 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+
 import scala.Tuple2;
 
 public class FileSystemOutput implements BulkOutput {

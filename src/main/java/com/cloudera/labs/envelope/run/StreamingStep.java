@@ -15,48 +15,72 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
+import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.input.translate.TranslateFunction;
 import com.typesafe.config.Config;
 
 /**
  * A streaming step is a data step that provides a DataFrame per Spark Streaming micro-batch.
  */
-public class StreamingStep extends DataStep {
+public class StreamingStep extends DataStep implements CanRecordProgress {
 
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
+  
+  @SuppressWarnings("rawtypes")
+  private TranslateFunction translateFunction;
 
   public StreamingStep(String name, Config config) {
     super(name, config);
+    
+    if (!config.hasPath("input.translator")) {
+      throw new RuntimeException("Stream input '" + name + "' must have a translator");
+    }
+    
+    translateFunction = new TranslateFunction<>(config.getConfig("input.translator"));
   }
 
-  public JavaDStream<Row> getStream() throws Exception {
-    JavaDStream<Row> stream = ((StreamInput)getInput()).getDStream();
-
+  @SuppressWarnings("rawtypes")
+  public JavaDStream<?> getStream() throws Exception {
+    JavaDStream stream = ((StreamInput)getInput()).getDStream();
+    
     if (doesRepartition()) {
       stream = repartition(stream);
     }
 
     return stream;
   }
-
-  public StructType getSchema() throws Exception {
-    StructType schema = ((StreamInput)getInput()).getSchema();
-
-    return schema;
+  
+  public StructType getSchema() {
+    return translateFunction.getSchema();
   }
-
-  private boolean doesRepartition() {
-    return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY);
+  
+  @Override
+  public void stageProgress(JavaRDD<?> batch) {
+    if (((StreamInput)getInput()) instanceof CanRecordProgress) {
+      ((CanRecordProgress)getInput()).stageProgress(batch);
+    }
   }
-
-  private <T> JavaDStream<T> repartition(JavaDStream<T> stream) {
-    int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
-
-    return stream.repartition(numPartitions);
+  
+  @Override
+  public void recordProgress() throws Exception {
+    if (((StreamInput)getInput()) instanceof CanRecordProgress) {
+      ((CanRecordProgress)getInput()).recordProgress();
+    }
+  }
+  
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  public JavaRDD<Row> translate(JavaRDD raw) {
+    JavaPairRDD<?, ?> prepared = raw.mapToPair(((StreamInput)getInput()).getPrepareFunction());
+    JavaRDD<Row> translated = prepared.flatMap(translateFunction);
+    
+    return translated;
   }
 
   @Override
@@ -70,6 +94,16 @@ public class StreamingStep extends DataStep {
     }
     
     return copy;
+  }
+
+  private boolean doesRepartition() {
+    return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY);
+  }
+
+  private JavaDStream<?> repartition(JavaDStream<?> stream) {
+    int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
+
+    return stream.repartition(numPartitions);
   }
 
 }

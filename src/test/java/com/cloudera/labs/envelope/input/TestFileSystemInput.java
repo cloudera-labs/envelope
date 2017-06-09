@@ -15,14 +15,12 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
-import com.cloudera.labs.envelope.input.translate.KVPTranslator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
@@ -32,10 +30,14 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
+
+import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
+import com.cloudera.labs.envelope.input.translate.KVPTranslator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  *

@@ -133,7 +133,9 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
       }
     }
     long endTime = System.nanoTime();
-    accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_SCANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+    if (hasAccumulators()) {
+      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_SCANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+    }
 
     return existingForFilters;
   }
@@ -245,8 +247,14 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
       throw new RuntimeException("Kudu existing filter was not provided.");
     }
     
-    accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_SCANNERS).add(1);
-    accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED).add(filtersList.size());
+    if (filtersList.get(0).schema() == null) {
+      throw new RuntimeException("Kudu existing filter did not contain a schema.");
+    }
+    
+    if (hasAccumulators()) {
+      accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_SCANNERS).add(1);
+      accumulators.getLongAccumulators().get(ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED).add(filtersList.size());
+    }
     
     KuduScannerBuilder builder = client.newScannerBuilder(table);
 
@@ -394,6 +402,10 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
           throw new RuntimeException("Kudu bulk output does not support mutation type: " + mutationType);
       }
     }
+  }
+  
+  private boolean hasAccumulators() {
+    return accumulators != null;
   }
 
   @Override

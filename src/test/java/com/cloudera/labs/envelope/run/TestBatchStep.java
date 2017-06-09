@@ -15,17 +15,17 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import org.apache.spark.sql.AnalysisException;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Test;
 
 import com.cloudera.labs.envelope.derive.PassthroughDeriver;
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;

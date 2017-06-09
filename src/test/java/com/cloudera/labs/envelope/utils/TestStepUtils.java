@@ -92,7 +92,8 @@ public class TestStepUtils {
   public void testHasStreamingStep() {
     Set<Step> steps = Sets.newHashSet();
     BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    StreamingStep step2 = new StreamingStep("step2", ConfigFactory.empty());
+    StreamingStep step2 = new StreamingStep("step2", 
+        ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     steps.add(step1);
     steps.add(step2);
     
@@ -114,7 +115,8 @@ public class TestStepUtils {
   public void testGetStreamingSteps() {
     Set<Step> steps = Sets.newHashSet();
     BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    StreamingStep step2 = new StreamingStep("step2", ConfigFactory.empty());
+    StreamingStep step2 = new StreamingStep("step2", 
+        ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     
     steps.add(step1);
     assertEquals(StepUtils.getStreamingSteps(steps), Sets.newHashSet());
@@ -189,10 +191,12 @@ public class TestStepUtils {
   public void testGetIndependentNonStreamingSteps() {
     Step step1 = new BatchStep("step1", ConfigFactory.empty().withValue("dependencies", 
         ConfigValueFactory.fromIterable(Sets.newHashSet("step3"))));
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("dependencies", 
-        ConfigValueFactory.fromIterable(Sets.newHashSet("step4"))));
+    Step step2 = new StreamingStep("step2", ConfigFactory.empty()
+        .withValue("dependencies", ConfigValueFactory.fromIterable(Sets.newHashSet("step4")))
+        .withValue("input.translator", ConfigFactory.empty().root()));
     Step step3 = new BatchStep("step3", ConfigFactory.empty());
-    Step step4 = new StreamingStep("step4", ConfigFactory.empty());
+    Step step4 = new StreamingStep("step4", 
+        ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4);
     
     assertEquals(StepUtils.getIndependentNonStreamingSteps(steps), Sets.newHashSet(step3));
@@ -239,7 +243,7 @@ public class TestStepUtils {
   @Test
   public void testGetDataSteps() {
     Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty());
+    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     Step step3 = new LoopStep("step3", ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
@@ -249,7 +253,7 @@ public class TestStepUtils {
   @Test
   public void testGetStepForName() {
     Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty());
+    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     Step step3 = new LoopStep("step3", ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
@@ -261,7 +265,7 @@ public class TestStepUtils {
   @Test
   public void testCopySteps() {
     Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty());
+    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     Step step3 = new LoopStep("step3", ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     

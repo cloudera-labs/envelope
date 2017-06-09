@@ -15,8 +15,7 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
 /**
@@ -26,20 +25,16 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 public interface StreamInput extends Input {
 
   /**
-   * Read the external stream source.
-   * @return The Spark distributed stream of Spark SQL Rows.
-   * It is the responsibility of the StreamInput to translate its source into Row objects. The
-   * Translator interface can assist with this.
-   * @throws Exception
+   * Provide the JavaDStream for the input stream. If the stream contains a key and message
+   * they should be wrapped together in a single object.
    */
-  JavaDStream<Row> getDStream() throws Exception;
-
+  JavaDStream<?> getDStream() throws Exception;
+  
   /**
-   * Get the schema of the input rows. This is used by Envelope to turn the stream
-   * micro-batches into DataFrames.
-   * @return The Spark SQL schema of the input rows.
-   * @throws Exception
+   * Provide a Spark pair function that prepares an object from the JavaDStream for
+   * translation by turning it into a key and value.
+   * @return
    */
-  StructType getSchema() throws Exception;
+  PairFunction<?, ?, ?> getPrepareFunction();
 
 }
