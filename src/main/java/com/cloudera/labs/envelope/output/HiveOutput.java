@@ -15,33 +15,55 @@
  */
 package com.cloudera.labs.envelope.output;
 
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-
 import org.apache.kudu.client.shaded.com.google.common.collect.Sets;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
-
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
 public class HiveOutput implements BulkOutput {
 
-  public final static String TABLE_CONFIG_NAME = "table";
-  public final static String PARTITION_BY_CONFIG_NAME = "partition.by";
+  public final static String TABLE_CONFIG = "table";
+  public final static String PARTITION_BY_CONFIG = "partition.by";
+  public final static String LOCATION_CONFIG = "location";
+  public final static String OPTIONS_CONFIG = "options";
 
   private Config config;
+  private ConfigUtils.OptionMap options;
 
   @Override
   public void configure(Config config) {
     this.config = config;
 
-    if (!config.hasPath(TABLE_CONFIG_NAME)) {
-      throw new RuntimeException("Hive output requires '" + TABLE_CONFIG_NAME + "' property");
+    if (!config.hasPath(TABLE_CONFIG)) {
+      throw new RuntimeException("Hive output requires '" + TABLE_CONFIG + "' property");
+    }
+
+    if (config.hasPath(LOCATION_CONFIG) || config.hasPath(OPTIONS_CONFIG)) {
+      options = new ConfigUtils.OptionMap(config);
+
+      if (config.hasPath(LOCATION_CONFIG)) {
+        options.resolve("path", LOCATION_CONFIG);
+      }
+
+      if (config.hasPath(OPTIONS_CONFIG)) {
+        Config optionsConfig = config.getConfig(OPTIONS_CONFIG);
+        for (Map.Entry<String, ConfigValue> entry : optionsConfig.entrySet()) {
+          String param = entry.getKey();
+          String value = entry.getValue().unwrapped().toString();
+          if (value != null) {
+            options.put(param, value);
+          }
+        }
+      }
     }
   }
 
@@ -54,6 +76,10 @@ public class HiveOutput implements BulkOutput {
 
       if (hasPartitionColumns()) {
         writer = writer.partitionBy(getPartitionColumns());
+      }
+
+      if (hasOptions()) {
+        writer = writer.options(options);
       }
 
       switch (mutationType) {
@@ -77,16 +103,20 @@ public class HiveOutput implements BulkOutput {
   }
 
   private boolean hasPartitionColumns() {
-    return config.hasPath(PARTITION_BY_CONFIG_NAME);
+    return config.hasPath(PARTITION_BY_CONFIG);
+  }
+
+  private boolean hasOptions() {
+    return options != null;
   }
 
   private String[] getPartitionColumns() {
-    List<String> colNames = config.getStringList(PARTITION_BY_CONFIG_NAME);
+    List<String> colNames = config.getStringList(PARTITION_BY_CONFIG);
     return colNames.toArray(new String[colNames.size()]) ;
   }
 
   private String getTableName() {
-    return config.getString(TABLE_CONFIG_NAME);
+    return config.getString(TABLE_CONFIG);
   }
 
 }

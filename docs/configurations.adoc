@@ -702,10 +702,16 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |`_hive_`|
 
 |table
-|The name of the Hive table to write to.
+|The name of the Hive table targeted for write. The name can include the database prefix, e.g. `example.SampleTableName`. If the table does not exist, Envelope will create a Parquet-formatted table. If the table has been created outside of Envelope, the format is determined and managed by Hive itself, i.e. any Hive SerDe.
+
+|location
+|Optional. The HDFS location for the underlying files of a table. Typically only defined during table creation, during which the table is created as `EXTERNAL`, otherwise the table is created in the default Hive warehouse and set to `MANAGED`.
 
 |partition.by
-|The list of Hive table partition names to dynamically partition the write by. Optional.
+|Optional. The list of Hive table partition names to dynamically partition the write by.
+
+|options
+|Used to pass additional configuration parameters. The parameters are set as a Map object and passed directly to the Spark DataFrameWriter.
 
 ||
 |`_jdbc_`|
