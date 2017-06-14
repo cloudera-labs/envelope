@@ -48,6 +48,9 @@ public class DeriverFactory {
       case "pivot":
         deriver = new PivotDeriver();
         break;
+      case "exclude":
+        deriver = new ExcludeDeriver();
+        break;
       default:
         try {
           Class<?> clazz = Class.forName(deriverType);

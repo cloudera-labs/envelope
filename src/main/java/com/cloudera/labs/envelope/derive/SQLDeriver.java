@@ -31,7 +31,7 @@ import com.google.common.io.CharStreams;
 import com.typesafe.config.Config;
 
 /**
- * An input implementaton for Spark SQL.
+ * Execute Spark SQL on Datasets.
  */
 public class SQLDeriver implements Deriver {
 

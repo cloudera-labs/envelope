@@ -1,12 +1,12 @@
-# Derivers guide
+= Derivers Guide
 
 Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
 
 Envelope provides five derivers out of the box and also allows custom derivers to be specified.
 
-## Provided derivers
+== Provided derivers
 
-### SQL
+=== SQL
 
 The `sql` deriver is used to run SQL to derive new data in the pipeline. Queries submitted to the deriver are executed by Spark SQL. The results of the SQL query then becomes the data of the step that contains the deriver.
 
@@ -38,7 +38,7 @@ deriver {
 }
 ----
 
-### Morphline
+=== Morphline
 
 The `morphline` deriver is used to run Morphline transformations over the records of the single dependency of the step.
 
@@ -48,7 +48,7 @@ The ID of the specific transformation within the Morphline file is specified wit
 
 The deriver requires the output schema of the Morphline transformation to be provided using the `field.names` and `field.types` configurations.
 
-### Nest
+=== Nest
 
 The `nest` deriver is used to nest the data of one step within another by a common join key. This is useful for denormalizing a one-to-many relationship without repeating values on the one-cardinality side. This type of data modeling is known as a supernova schema.
 
@@ -59,7 +59,7 @@ To configure the deriver to nest a one-to-many relationship, specify:
 - The join key field names in `key.field.names`
 - The name of the nested field on the derivation in `nested.field.name`
 
-#### Example
+==== Example
 
 Consider the following simple example where we have a customers table and an orders table (a one-to-many relationship because a customer can have many orders but an order can only belong to one customer) and we want to nest the orders for a customer on to the customer's record so that we can query across the two data sets without the cost of joining the two at runtime.
 
@@ -141,11 +141,11 @@ In Impala if was then written to a Parquet table the data could be queried with 
 
 For more information on querying nested tables using Impala, see the link:https://www.cloudera.com/documentation/enterprise/latest/topics/impala_complex_types.html#complex_types_using[complex types documentation].
 
-### Passthrough
+=== Passthrough
 
 The `passthrough` deriver simply unions all of its dependencies together. All of the dependencies must have the same schema.
 
-### Pivot
+=== Pivot
 
 The `pivot` deriver is used to pivot (otherwise known as transpose) key-value-pair data where the derivation has a column per unique key. This can be useful when the source data model of the pipeline defines attributes for an entity via key-value-pairs but the transformed data model of the pipeline should have distinct columns per attribute for simpler and more efficient analytics querying.
 
@@ -158,7 +158,7 @@ To configure the deriver to pivot a previous step that contains attributes for a
 - The method to use for retrieving the entity attributes with `pivot.keys.source`. For the deriver to dynamically find the distinct keys of the key-value-pairs use `dynamic`. To provide a static list of keys use `static`.
 - The static list of keys with `pivot.keys.list`, when using the `static` method for retrieving pivot keys.
 
-#### Example
+==== Example
 
 Consider the following simple example where we have a key-value-pairs step that captures the attributes of each customer with one record per attribute per customer, and we want to derive a pivoted (transposed) step that captures the same attributes of each customer but with one record per customer.
 
@@ -209,7 +209,17 @@ Which would produce the derived result:
 |10001|Joe|CA|30000.0
 |===
 
-## Custom derivers
+=== Exclude
+
+The `exclude` deriver executes a `LEFT ANTI JOIN` on two designated dependencies on a set of common fields between the two. Commonly, this deriver is used for easy de-duplication within a pipeline.
+
+The equivalent SQL statement would read:
+
+----
+SELECT Left.* FROM Left LEFT ANTI JOIN Right USING (field1, field2)
+----
+
+== Custom derivers
 
 In cases that Envelope does not provide a deriver that meets the requirements for a particular derivation a custom deriver can be developed and provided instead.
 
