@@ -460,6 +460,9 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 ||
 |`_morphline_`|
 
+|step.name
+|The name of the dependency step whose records will be run through the Morphline pipeline.
+
 |morphline.file
 |The filename of the Morphline configuration found in the local directory of the executor. See the `--files` option for `spark-submit`.
 

@@ -38,12 +38,13 @@ public class MorphlineDeriver implements Deriver {
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineDeriver.class);
 
+  public static final String STEP_NAME_CONFIG = "step.name";
   public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
-  public static final String PRODUCTION_MODE = "production.mode";
   public static final String FIELD_NAMES = "field.names";
   public static final String FIELD_TYPES = "field.types";
 
+  private String stepName;
   private StructType schema;
   private String morphlineFile;
   private String morphlineId;
@@ -51,6 +52,13 @@ public class MorphlineDeriver implements Deriver {
   @Override
   public void configure(Config config) {
     LOG.trace("Configuring Morphline Deriver");
+
+    // Designate which dependency step to act upon
+    if (!config.hasPath(STEP_NAME_CONFIG) || config.getString(STEP_NAME_CONFIG).trim().isEmpty()) {
+      throw new RuntimeException("Missing parameter, " + STEP_NAME_CONFIG);
+    } else {
+      this.stepName = config.getString(STEP_NAME_CONFIG);
+    }
 
     // Set up the Morphline configuration, the file must be located on the local file system
     this.morphlineFile = config.getString(MORPHLINE);
@@ -68,16 +76,14 @@ public class MorphlineDeriver implements Deriver {
 
   @Override
   public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-    LOG.debug("Executing on Dependencies {}", dependencies.keySet());
-
-    // Get the DF
-    if (dependencies.size() != 1) {
-      throw new RuntimeException("MorphlineDeriver must have only one dependency");
+    if (!dependencies.containsKey(stepName)) {
+      throw new RuntimeException("Step not found in the dependencies list");
     }
-    Dataset<Row> inputDF = dependencies.values().iterator().next();
+
+    Dataset<Row> sourceStep = dependencies.get(stepName);
 
     // For each partition in the DataFrame / RDD
-    JavaRDD<Row> outputRDD = inputDF.toJavaRDD().flatMap(
+    JavaRDD<Row> outputRDD = sourceStep.toJavaRDD().flatMap(
         MorphlineUtils.morphlineMapper(this.morphlineFile, this.morphlineId, getSchema()));
 
     // Convert all the Rows into a new DataFrame

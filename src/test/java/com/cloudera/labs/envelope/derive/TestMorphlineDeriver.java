@@ -15,32 +15,29 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.kitesdk.morphline.api.MorphlineCompilationException;
-
-import com.cloudera.labs.envelope.input.translate.MorphlineTranslator;
 import com.cloudera.labs.envelope.input.translate.TestMorphlineTranslator;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
-
+import com.typesafe.config.ConfigFactory;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.kitesdk.morphline.api.MorphlineCompilationException;
 
 /**
  *
@@ -55,17 +52,15 @@ public class TestMorphlineDeriver {
   }
 
   @Test
-  public void getSchema(
-      final @Mocked Config config
-  ) throws Exception {
+  public void getSchema() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
+    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("foo", "bar"));
+    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int", "string"));
+    final Config config = ConfigFactory.parseMap(paramMap);
 
-    new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar", "foo");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string");
-    }};
-
-    // Relies on RowUtils.structTypeFor()
     MorphlineDeriver deriver = new MorphlineDeriver();
     deriver.configure(config);
     StructType schema = deriver.getSchema();
@@ -76,75 +71,100 @@ public class TestMorphlineDeriver {
   }
 
   @Test (expected = RuntimeException.class)
-  public void getSchemaInvalidDataType(
-      final @Mocked Config config
-  ) throws Exception {
+  public void getSchemaInvalidDataType() throws Exception {
 
-    new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar", "foo");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "boom");
-    }};
-
-    // Relies on RowUtils.structTypeFor()
-    Deriver deriver = new MorphlineDeriver();
-    deriver.configure(config);
-  }
-
-  @Test (expected = RuntimeException.class)
-  public void deriveEmptyMorphlineConfig(
-      final @Mocked Config config
-  ) throws Exception {
-
-    new Expectations() {{
-      config.getString(MorphlineDeriver.MORPHLINE); result = null;
-    }};
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
+    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("boom"));
+    final Config config = ConfigFactory.parseMap(paramMap);
 
     Deriver deriver = new MorphlineDeriver();
     deriver.configure(config);
   }
 
   @Test (expected = RuntimeException.class)
-  public void deriveBlankMorphlineConfig(
-      final @Mocked Config config
-  ) throws Exception {
+  public void deriveEmptyMorphlineConfig() throws Exception {
 
-    new Expectations() {{
-      config.getString(MorphlineDeriver.MORPHLINE); result = "";
-    }};
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, null);
+    final Config config = ConfigFactory.parseMap(paramMap);
 
     Deriver deriver = new MorphlineDeriver();
     deriver.configure(config);
   }
 
   @Test (expected = RuntimeException.class)
-  public void deriveNoDependencies() throws Exception {
-    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+  public void deriveBlankMorphlineConfig() throws Exception {
+
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, "");
+    final Config config = ConfigFactory.parseMap(paramMap);
 
     Deriver deriver = new MorphlineDeriver();
-    deriver.derive(dependencies);
+    deriver.configure(config);
   }
 
   @Test (expected = RuntimeException.class)
-  public void deriveMultipleDependencies() throws Exception {
+  public void deriveMissingStepName() throws Exception {
+
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, null);
+    final Config config = ConfigFactory.parseMap(paramMap);
+
+    Deriver deriver = new MorphlineDeriver();
+    deriver.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void deriveBlankStepName() throws Exception {
+
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "");
+    final Config config = ConfigFactory.parseMap(paramMap);
+
+    Deriver deriver = new MorphlineDeriver();
+    deriver.configure(config);
+  }
+
+  @Test (expected = RuntimeException.class)
+  public void deriveMissingStepDependency() throws Exception {
+
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "nope");
+    paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
+    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int"));
+    final Config config = ConfigFactory.parseMap(paramMap);
+
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("dep1", null);
     dependencies.put("dep2", null);
 
     Deriver deriver = new MorphlineDeriver();
+    deriver.configure(config);
     deriver.derive(dependencies);
   }
 
   @Test (expected = RuntimeException.class)
   public void deriveMorphlineMapperFunctionError(
-      final @Mocked Config config,
       final @Mocked MorphlineUtils utils
   ) throws Exception {
 
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, "morphline");
+    paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
+    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int"));
+    final Config config = ConfigFactory.parseMap(paramMap);
+
     new Expectations() {{
-      config.getString(MorphlineDeriver.MORPHLINE); result = "doesn't matter";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int");
       MorphlineUtils.morphlineMapper(anyString, anyString, (StructType) any); result =
           new MorphlineCompilationException("Compile exception", config);
     }};
@@ -164,16 +184,15 @@ public class TestMorphlineDeriver {
   }
 
   @Test
-  public void deriveIntegrationTest(
-      final @Mocked Config config
-  ) throws Exception {
+  public void deriveIntegrationTest() throws Exception {
 
-    new Expectations() {{
-      config.getString(MorphlineDeriver.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineDeriver.MORPHLINE_ID); result = "deriver";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("foo", "bar", "baz");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("string", "int", "int");
-    }};
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
+    paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    paramMap.put(MorphlineDeriver.MORPHLINE_ID, "deriver");
+    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("foo", "bar", "baz"));
+    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("string", "int", "int"));
+    final Config config = ConfigFactory.parseMap(paramMap);
 
     Dataset<Row> dataFrame = Contexts.getSparkSession().createDataFrame(
         Lists.newArrayList(RowFactory.create(987, "string value")),

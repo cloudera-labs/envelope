@@ -40,7 +40,7 @@ deriver {
 
 === Morphline
 
-The `morphline` deriver is used to run Morphline transformations over the records of the single dependency of the step.
+The `morphline` deriver is used to run Morphline transformations over the records of a single dependency of the step defined by the `step.name` parameter.
 
 The Morphline transformation is provided to the Envelope pipeline by a local file to the Spark executors. The local file is retrieved from the location in the `morphline.file` configuration. The local file can be provided to the Spark executors from `spark2-submit` using the `--files` option.
 
