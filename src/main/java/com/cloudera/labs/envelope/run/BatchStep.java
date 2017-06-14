@@ -15,18 +15,20 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.derive.PassthroughDeriver;
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.repetition.RepetitionFactory;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigObject;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-
-import com.cloudera.labs.envelope.derive.PassthroughDeriver;
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
 
 /**
  * A batch step is a data step that contains a single DataFrame.
@@ -39,6 +41,7 @@ public class BatchStep extends DataStep {
 
   private static final String INPUT_PREFIX = "input.";
   private static final String DERIVER_PREFIX = "deriver.";
+  private static final String REPETITION_PREFIX = "repetitions";
   
   public BatchStep(String name, Config config) {
     super(name, config);
@@ -51,6 +54,13 @@ public class BatchStep extends DataStep {
          config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)))
     {
       throw new RuntimeException("Step " + getName() + " can not both repartition and coalesce.");
+    }
+
+    if (config.hasPath(REPETITION_PREFIX)) {
+      ConfigObject repConfig = config.getObject(REPETITION_PREFIX);
+      for (String rep : repConfig.keySet()) {
+        RepetitionFactory.create(this, rep, config.getConfig(REPETITION_PREFIX).getConfig(rep));
+      }
     }
   }
 

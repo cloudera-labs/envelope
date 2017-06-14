@@ -17,13 +17,18 @@ package com.cloudera.labs.envelope.utils;
 
 import java.util.Set;
 
+import com.cloudera.labs.envelope.repetition.Repetitions;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.Step;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StepUtils {
+
+  private static final Logger LOG = LoggerFactory.getLogger(StepUtils.class);
   
   public static boolean allStepsSubmitted(Set<Step> steps) {
     for (Step step : steps) {
@@ -111,7 +116,8 @@ public class StepUtils {
     StringBuilder sb = new StringBuilder();
 
     for (Step step : steps) {
-      sb.append(step.getName() + ", ");
+      sb.append(step.getName());
+      sb.append(", ");
     }
 
     if (sb.length() > 0) {
@@ -124,10 +130,25 @@ public class StepUtils {
   public static void resetDataSteps(Set<Step> steps) {
     for (Step step : steps) {
       if (step instanceof DataStep) {
-        ((DataStep)step).clearCache();
-        ((DataStep)step).setSubmitted(false);
+        if (step.hasSubmitted()) {
+          LOG.debug("Resetting step [{}]", step.getName());
+          ((DataStep) step).clearCache();
+          step.setSubmitted(false);
+        }
       }
     }
+  }
+
+  public static void resetRepeatingSteps(Set<Step> allSteps) {
+    // Get all DataSteps that need to be reset
+    Set<Step> resetSteps = Sets.newHashSet();
+    Set<DataStep> repeatingSteps = Repetitions.get().getAndClearRepeatingSteps();
+    LOG.info("Resetting {} repeating steps and their dependents", repeatingSteps.size());
+    for (DataStep step : repeatingSteps) {
+      resetSteps.add(step);
+      resetSteps.addAll(getAllDependentSteps(step, allSteps));
+    }
+    resetDataSteps(resetSteps);
   }
   
   public static Set<DataStep> getDataSteps(Set<Step> steps) {
@@ -161,5 +182,5 @@ public class StepUtils {
     
     return stepsCopy;
   }
-  
+
 }

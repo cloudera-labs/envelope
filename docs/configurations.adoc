@@ -847,6 +847,51 @@ cell sizes you may want to reduce this number or increase the relevant client bu
 
 |===
 
+=== Repetitions
+
+The general configuration parameters for repetitions are:
+
+[cols="2,8a", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|Required. The repetition type to be used. Envelope provides `scheduled` and `flagfile`. To use a custom repetition, specify the fully qualified name of the `Repetition` implementation class.
+
+|min-repeat-interval
+|Optional. To prevent steps being reloaded too frequently, this represents the minimum interval between repetitions. The value is interpreted as a
+Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw milliseconds, e.g. `3600000`. Defaults to 60s.
+
+||
+|`_scheduled_`|
+
+|every
+|Required. The interval between repetitions. The value is interpreted as a
+Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw milliseconds, e.g. `3600000`. No default.
+
+||
+|`_flagfile_`|
+
+|file
+|Required. The path to the flag file. Accepts a fully qualified URI (recommended). If not qualified with a filesystem scheme,
+the default filesystem implementation will be used (usually HDFS).
+
+|trigger
+|Optional. The mode of the trigger functionality. Can either be `present` or `modified`. With `present`, as soon as the file
+is detected a repetition is triggered and the flag file is deleted. In `modified` mode, the file is checked for presence
+or a modification time greater than the last time the step was loaded. The file is not deleted in `modified` mode. Defaults
+to `present`.
+
+|poll-interval
+|Optional. How often the flag file will be checked. The value is interpreted as a
+Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw milliseconds, e.g. `3600000`.Defaults to 10s.
+
+|fail-after
+|To prevent intermittent failures to contact the filesystem from killing the job, the repetition will only raise an exception
+after this many consecutive failures. Defaults to 10.
+
+|===
+
 == User-defined functions
 
 Spark SQL user-defined functions (UDFs) are provided with a list of UDF specifications under `udfs`, where each specification has the following:

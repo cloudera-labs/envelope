@@ -35,6 +35,7 @@ import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.repetition.Repetitions;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -150,7 +151,7 @@ public class Runner {
    */
   @SuppressWarnings("unchecked")
   private static void runStreaming(final Set<Step> steps) throws Exception {
-    Set<Step> independentNonStreamingSteps = StepUtils.getIndependentNonStreamingSteps(steps);
+    final Set<Step> independentNonStreamingSteps = StepUtils.getIndependentNonStreamingSteps(steps);
     runBatch(independentNonStreamingSteps);
 
     Set<StreamingStep> streamingSteps = StepUtils.getStreamingSteps(steps);
@@ -166,6 +167,11 @@ public class Runner {
       stream.foreachRDD(new VoidFunction<JavaRDD<?>>() {
         @Override
         public void call(JavaRDD<?> raw) throws Exception {
+          // Some independent steps might be repeating steps that have been flagged for reload
+          StepUtils.resetRepeatingSteps(steps);
+          // This will run any batch steps (and dependents) that are not submitted
+          runBatch(independentNonStreamingSteps);
+          
           streamingStep.stageProgress(raw);
           
           JavaRDD<Row> translated = streamingStep.translate(raw);
@@ -180,7 +186,7 @@ public class Runner {
           StepUtils.resetDataSteps(allDependentSteps);
           
           streamingStep.recordProgress();
-        };
+        }
       });
 
       LOG.debug("Finished setting up streaming step: " + streamingStep.getName());
