@@ -95,6 +95,46 @@ public class TestRowUtils {
 
     assertEquals(subset.fields().length, 0);
   }
+  
+  @Test
+  public void testSubtractSchemaSomeFields() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+
+    StructType subset = RowUtils.subtractSchema(schema, Lists.newArrayList("field1", "field3"));
+
+    assertEquals(subset.fields().length, 1);
+    assertEquals(subset.fields()[0].name(), "field2");
+  }
+  
+  @Test
+  public void testSubtractSchemaAllFields() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+
+    StructType subset = RowUtils.subtractSchema(schema, Lists.newArrayList("field1", "field2", "field3"));
+
+    assertEquals(subset.fields().length, 0);
+  }
+  
+  @Test
+  public void testSubtractSchemaNoFields() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+
+    StructType subset = RowUtils.subtractSchema(schema, Lists.<String>newArrayList());
+
+    assertEquals(subset.fields().length, 3);
+    assertEquals(subset.fields()[0].name(), "field1");
+    assertEquals(subset.fields()[1].name(), "field2");
+    assertEquals(subset.fields()[2].name(), "field3");
+  }
 
   @Test
   public void testSubsetRowAllFields() {

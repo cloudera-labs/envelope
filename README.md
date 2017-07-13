@@ -27,7 +27,7 @@ This will create `envelope-0.4.0.jar` in the target directory.
 
 ### Finding examples
 
-Envelope provides four example pipelines that you can run for yourself:
+Envelope provides three example pipelines that you can run for yourself:
 
 - [FIX](examples/fix/): simulates receiving financial orders and executions and tracking the history of the orders over time.
     - This example includes a [walkthrough](examples/fix/README.adoc#walkthrough) that explains in detail how it meets the requirements.

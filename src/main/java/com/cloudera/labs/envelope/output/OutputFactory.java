@@ -54,6 +54,9 @@ public class OutputFactory {
       case "hbase":
         output = new HBaseOutput();
         break;
+      case "zookeeper":
+        output = new ZooKeeperOutput();
+        break;
       default:
         try {
           Class<?> clazz = Class.forName(outputType);

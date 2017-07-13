@@ -621,6 +621,20 @@ public class RowUtils {
 
     return subset;
   }
+  
+  public static StructType subtractSchema(StructType schema, List<String> subtractFieldNames) {
+    List<String> fieldNames = Lists.newArrayList();
+    
+    for (StructField schemaField : schema.fields()) {
+      if (!subtractFieldNames.contains(schemaField.name())) {
+        fieldNames.add(schemaField.name());
+      }
+    }
+    
+    StructType subtracted = subsetSchema(schema, fieldNames);
+    
+    return subtracted;
+  }
 
   public static Row subsetRow(Row row, StructType subsetSchema) {
     Object[] values = new Object[subsetSchema.length()];

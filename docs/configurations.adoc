@@ -669,7 +669,7 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |Configuration suffix|Description
 
 |type
-|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log` and `hbase`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
+|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`, `hbase`, `zookeeper`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
 
 ||
 |`_filesystem_`|
@@ -847,6 +847,27 @@ mapping.columns {
 |batch.size
 |Optional. An integer value with default 1000. The number of mutations to accumulate before making an HBase RPC call. For larger
 cell sizes you may want to reduce this number or increase the relevant client buffers.
+
+||
+|`_zookeeper_`|
+
+|connection
+|The ZooKeeper quorum to connect to, in the format `host1:port1,...`.
+
+|field.names
+|The list of field names for the schema of this output.
+
+|field.types
+|The list of field types for the schema of this output, in the same order as `field.names`. For details, see the available options defined in <<Data Type Support>>.
+
+|key.field.names
+|The list of field names that constitute the unique key of the output. Must be a subset of `field.names`. Must always be provided in the same order across pipeline executions.
+
+|znode.prefix
+|The znode path prefix that the data will be stored under. Used to isolate the use of the output from other uses of the output, and from non-Envelope paths in ZooKeeper. Default `/envelope`.
+
+|session.timeout.millis
+|The client session timeout in milliseconds. Default `1000`.
 
 |===
 

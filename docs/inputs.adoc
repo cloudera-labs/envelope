@@ -55,7 +55,13 @@ The `encoding` determines how Envelope should read the messages from the topic. 
 
 To enable Spark Streaming's windowing support, which allows each micro-batch to contain a window of its previous micro-batches, set `window.enable` to `true` and set `window.milliseconds` to the duration of the window.
 
-The input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topic between runs. To enable the offset management set `offset.manage` to `true`, and then provide an output to store the offsets in with `offset.output`. The output must be support random upsert mutations (i.e. implement `RandomOutput` and support the UPSERT mutation type) and must contain the four fields `group_id` (string), `topic` (string), `partition` (int) and `offset` (long).
+#### Offset management
+
+The Kafka input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topic between runs.
+
+To enable the offset management set `offset.manage` to `true`, and then provide an output to store the offsets in with `offset.output`.
+
+The output must be support random upsert mutations (i.e. implement `RandomOutput` and support the UPSERT mutation type) and must contain the four fields `group_id` (string), `topic` (string), `partition` (int) and `offset` (long). If the output requires the key fields to be specified (e.g. HBase, ZooKeeper) then provide the fields `group_id`, `topic`, `partition`.
 
 #### Example
 

@@ -39,11 +39,13 @@
     <hbase.version>1.2.0-cdh5.7.0</hbase.version>
     <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
     <kite-sdk.version>1.0.0-cdh5.7.0</kite-sdk.version>
+    <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
     <guava.version>16.0.1</guava.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
     <junit.version>4.10</junit.version>
     <jmockit.version>1.22</jmockit.version>
     <h2.version>1.4.193</h2.version>
+    <curator.version>2.12.0</curator.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
@@ -140,6 +142,12 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.zookeeper</groupId>
+      <artifactId>zookeeper</artifactId>
+      <version>${zookeeper.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
@@ -174,8 +182,6 @@
       <version>${h2.version}</version>
       <scope>test</scope>
     </dependency>
-
-    <!-- HBase Test Dependencies -->
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-server</artifactId>
@@ -225,6 +231,12 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-minicluster</artifactId>
       <version>${hadoop.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-test</artifactId>
+      <version>${curator.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
