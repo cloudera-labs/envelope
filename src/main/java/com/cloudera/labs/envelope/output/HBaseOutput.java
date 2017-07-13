@@ -25,7 +25,9 @@ import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Query;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.spark.api.java.function.ForeachPartitionFunction;
 import org.apache.spark.api.java.function.Function;
@@ -127,23 +129,34 @@ public class HBaseOutput implements RandomOutput, BulkOutput {
     LOG.debug("Fetching filter rows from table: {}", tableName.toString());
     List<Row> filterResults = Lists.newArrayList();
     try (Table table = getConnection(config).getTable(tableName)) {
-      // Options here: iterate over filters and produce a sub-set of HBase requests using
-      // MultiRowRangeFilter (harder), or issue one request per filter (easier). In the
-      // initial
-      // case go with the naïve approach but in the future look for optimizations based on
-      // combining row key ranges and column filters.
-
-      // TODO support more advanced scans based on filters
       List<Get> gets = Lists.newArrayList();
+      List<Scan> scans = Lists.newArrayList();
 
       for (Row filter : filters) {
         // Construct row key from key columns
-        Get get = getSerde(config).convertToGet(filter);
-        LOG.debug("Adding filter: {}", get);
-        gets.add(get);
+        Query query = getSerde(config).convertToQuery(filter);
+        LOG.debug("Adding filter: {}", query);
+        
+        if (query instanceof Get) {
+          gets.add((Get)query);
+        }
+        else if (query instanceof Scan) {
+          scans.add((Scan)query);
+        }
+        else {
+          throw new RuntimeException("Unsupported HBase query class: " + query.getClass().getName());
+        }
       }
-
-      Result[] results = table.get(gets);
+      
+      List<Result> results = Lists.newArrayList();
+      if (gets.size() > 0) {
+        results.addAll(Lists.newArrayList(table.get(gets)));
+      }
+      if (scans.size() > 0) {
+        Scan mergedScan = HBaseUtils.mergeRangeScans(scans);
+        results.addAll(Lists.newArrayList(table.getScanner(mergedScan)));
+      }
+      
       filterResults.addAll(getSerde(config).convertFromResults(results));
     }
 

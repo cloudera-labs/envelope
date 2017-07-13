@@ -20,7 +20,9 @@ import java.util.List;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Query;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
 
@@ -85,19 +87,19 @@ public interface HBaseSerde {
   }
 
   /**
-   * Function to convert from {@link Row} to {@link Get}
+   * Function to convert from {@link Row} to {@link Query}
    */
-  class RowToGet implements Function<Row, Get> {
+  class RowToQuery implements Function<Row, Query> {
 
     private HBaseSerde serde;
 
-    public RowToGet(HBaseSerde serde) {
+    public RowToQuery(HBaseSerde serde) {
       this.serde = serde;
     }
 
     @Override
-    public Get call(Row row) throws Exception {
-      return serde.convertToGet(row);
+    public Query call(Row row) throws Exception {
+      return serde.convertToQuery(row);
     }
 
   }
@@ -110,11 +112,11 @@ public interface HBaseSerde {
   void configure(Config config);
 
   /**
-   * Convert the given {@link Row} to a {@link Get}
+   * Convert the given {@link Row} to a {@link Query}
    * @param row
-   * @return a {@link Get}
+   * @return a {@link Query}
    */
-  Get convertToGet(Row row);
+  Query convertToQuery(Row row);
 
   /**
    * Convert the given HBase {@link Result} to a {@link Row}
@@ -140,11 +142,11 @@ public interface HBaseSerde {
   Delete convertToDelete(Row row);
 
   /**
-   * Convert an array of {@link Result} objects to a list of {@link Row}s
+   * Convert an iterable of {@link Result} objects to a list of {@link Row}s
    * @param results
    * @return a list of {@link Row}
    */
-  List<Row> convertFromResults(Result[] results);
+  List<Row> convertFromResults(Iterable<Result> results);
 
   /**
    * Convert a list of {@link Row}s to a list of {@link Put}s

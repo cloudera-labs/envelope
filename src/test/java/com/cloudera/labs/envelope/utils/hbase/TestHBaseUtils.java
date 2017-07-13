@@ -26,11 +26,16 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
+import org.spark_project.guava.collect.Lists;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Maps;
@@ -178,6 +183,32 @@ public class TestHBaseUtils {
 
     batchSize = HBaseUtils.batchSizeFor(goodConfigWithBatchSize);
     assertEquals(100, batchSize);
+  }
+  
+  @Test
+  public void testMergePrefixScans() throws IOException {
+    List<Scan> scans = Lists.newArrayList();
+    
+    byte[] startRow1 = Bytes.toBytes("hello");
+    byte[] stopRow1 = Bytes.toBytes("hellp");
+    Scan scan1 = new Scan(startRow1, stopRow1);
+    scans.add(scan1);
+    
+    byte[] startRow2 = Bytes.toBytes("world");
+    byte[] stopRow2 = Bytes.toBytes("worle");
+    Scan scan2 = new Scan(startRow2, stopRow2);
+    scans.add(scan2);
+    
+    Scan merged = HBaseUtils.mergeRangeScans(scans);
+    
+    assertEquals(MultiRowRangeFilter.class, merged.getFilter().getClass());
+    MultiRowRangeFilter mergedFilter = (MultiRowRangeFilter)merged.getFilter();
+    List<RowRange> ranges = mergedFilter.getRowRanges();
+    assertEquals(2, ranges.size());
+    assertTrue(ranges.get(0).getStartRow().equals(startRow1));
+    assertTrue(ranges.get(0).getStopRow().equals(stopRow1));
+    assertTrue(ranges.get(1).getStartRow().equals(startRow2));
+    assertTrue(ranges.get(1).getStopRow().equals(stopRow2));
   }
 
 }

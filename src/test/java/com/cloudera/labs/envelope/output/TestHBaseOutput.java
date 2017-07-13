@@ -219,6 +219,30 @@ public class TestHBaseOutput {
     assertEquals(0, (int) row2.get(row2.fieldIndex("leavesqty")));
     assertEquals(0, (int) row2.get(row2.fieldIndex("cumqty")));
   }
+  
+  @Test
+  public void testGetPartialKey() throws Exception {
+    addEntriesToHBase();
+    Table table = connection.getTable(TableName.valueOf(TABLE));
+    scanAndCountTable(table, INPUT_ROWS * 4);
+
+    Config config = ConfigUtils.configFromResource("/hbase/hbase-output-test.conf").getConfig("output");
+    config = config.withValue("zookeeper",
+        ConfigValueFactory.fromAnyRef("localhost:" + utility.getZkCluster().getClientPort()));
+
+    HBaseOutput output = new HBaseOutput();
+    output.configure(config);
+
+    StructType partialKeySchema = new StructType(new StructField[] {
+        new StructField("symbol", DataTypes.StringType, false, null)
+    });
+    List<Row> filters = Lists.newArrayList();
+    filters.add(new RowWithSchema(partialKeySchema, "AAPL"));
+    filters.add(new RowWithSchema(partialKeySchema, "GOOG"));
+
+    Iterable<Row> filtered = output.getExistingForFilters(filters);
+    assertEquals(25, Iterables.size(filtered));
+  }
 
   @Test
   public void testApplyPlannedMutations() throws Exception {

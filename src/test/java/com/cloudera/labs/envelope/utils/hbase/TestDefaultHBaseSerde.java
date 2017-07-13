@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
@@ -65,6 +66,12 @@ public class TestDefaultHBaseSerde {
           new StructField("clordid", DataTypes.StringType, false, Metadata.empty())
       }
   );
+  
+  private StructType filterSchemaPrefix = new StructType(
+      new StructField[]{
+          new StructField("symbol", DataTypes.StringType, false, Metadata.empty())
+      }
+  );
 
   private StructType fullSchema = new StructType(
       new StructField[]{
@@ -89,15 +96,14 @@ public class TestDefaultHBaseSerde {
   @Test
   public void testConvertToGetRowKeyColumns() {
     Row filterRow = new RowWithSchema(filterSchema1, "GOOG", 1_000_000_000L);
-    Get get = serde.convertToGet(filterRow);
+    Get get = (Get)serde.convertToQuery(filterRow);
 
     byte[] row = get.getRow();
     assertEquals("Row Key should contain symbol and transacttime separated by :",
         "GOOG:" + new String(Bytes.toBytes(1_000_000_000L)), new String(row));
 
     Set<byte[]> families = get.familySet();
-    assertEquals("Should be one column family", 1, families.size());
-    assertTrue("Column family should be cf1", families.contains("cf1".getBytes()));
+    assertEquals("Should be zero column families", 0, families.size());
 
     Filter filter = get.getFilter();
     assertNull("No filters", filter);
@@ -106,7 +112,7 @@ public class TestDefaultHBaseSerde {
   @Test
   public void testConvertToGetRowKeyAndColumnFilters() {
     Row filterRow = new RowWithSchema(filterSchema2, "GOOG", 1_000_000_000L, "abcd");
-    Get get = serde.convertToGet(filterRow);
+    Get get = (Get)serde.convertToQuery(filterRow);
 
     byte[] row = get.getRow();
     assertEquals("Row Key should contain symbol and transacttime separated by :",
@@ -121,6 +127,15 @@ public class TestDefaultHBaseSerde {
     assertArrayEquals("Filtering for cf1:clordid = abcd", ((SingleColumnValueFilter)filter.getFilters().get(0)).getFamily(), "cf1".getBytes());
     assertArrayEquals("Filtering for cf1:clordid = abcd", ((SingleColumnValueFilter)filter.getFilters().get(0)).getQualifier(), "clordid".getBytes());
     assertArrayEquals("Filtering for cf1:clordid = abcd", ((SingleColumnValueFilter)filter.getFilters().get(0)).getComparator().getValue(), "abcd".getBytes());
+  }
+  
+  @Test
+  public void testConvertToScanPrefixKey() {
+    Row filterRow = new RowWithSchema(filterSchemaPrefix, "AAPL");
+    Scan scan = (Scan)serde.convertToQuery(filterRow);
+    
+    assertEquals("Should be start row 'AAPL'", "AAPL", Bytes.toString(scan.getStartRow()));
+    assertEquals("Should be stop row 'AAPM'", "AAPM", Bytes.toString(scan.getStopRow()));
   }
 
   @Test
@@ -172,7 +187,7 @@ public class TestDefaultHBaseSerde {
     );
     Result result2 = Result.create(cells2);
 
-    List<Row> rows = serde.convertFromResults(new Result[]{ result1, result2 });
+    List<Row> rows = serde.convertFromResults(Lists.newArrayList(result1, result2));
 
     assertEquals("Two Rows should be returned", 2, rows.size());
     assertEquals("Symbol should be GOOG", "GOOG", RowUtils.getAs(String.class, rows.get(0), "symbol"));

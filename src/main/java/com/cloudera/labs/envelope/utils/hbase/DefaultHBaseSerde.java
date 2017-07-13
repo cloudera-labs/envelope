@@ -15,17 +15,22 @@
  */
 package com.cloudera.labs.envelope.utils.hbase;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Query;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.FilterList.Operator;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.spark.sql.Row;
@@ -43,14 +48,14 @@ public class DefaultHBaseSerde implements HBaseSerde {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultHBaseSerde.class);
 
-  private List<String> rowColumns;
+  private List<String> keyColumns;
   private Map<String, ColumnDef> columns;
   private StructType schema;
   private byte[] keySeparator;
 
   public void configure(Config config) {
     if (HBaseUtils.validateConfig(config)) {
-      rowColumns = HBaseUtils.rowKeyFor(config);
+      keyColumns = HBaseUtils.rowKeyFor(config);
       columns = HBaseUtils.columnsFor(config);
       schema = HBaseUtils.buildSchema(columns);
       keySeparator = HBaseUtils.rowKeySeparatorFor(config);
@@ -61,34 +66,16 @@ public class DefaultHBaseSerde implements HBaseSerde {
   }
 
   @Override
-  public Get convertToGet(Row row) {
-    Get get = new Get(buildRowKey(row));
-    FilterList filterList = new FilterList();
-    Set<String> filterColumnNames = Sets.newHashSet(row.schema().fieldNames());
-    for (Map.Entry<String, ColumnDef> column : columns.entrySet()) {
-      if (!column.getValue().cf.equals("rowkey")) {
-        // We want to get all the defined columns in our declared schema
-        get.addColumn(Bytes.toBytes(column.getValue().cf), Bytes.toBytes(column.getValue().name));
-
-        if (filterColumnNames.contains(column.getKey())) {
-          // But we also want to filter by the column values in the supplied filter Row if it is not null
-          byte[] value = getColumnValueAsBytes(column.getValue().name, column.getValue().type, row);
-          if (value != null) {
-            SingleColumnValueFilter columnValueFilter = new SingleColumnValueFilter(
-                Bytes.toBytes(column.getValue().cf),
-                Bytes.toBytes(column.getValue().name),
-                CompareFilter.CompareOp.EQUAL,
-                value
-            );
-            filterList.addFilter(columnValueFilter);
-          }
-        }
-      }
+  public Query convertToQuery(Row row) {
+    if (filtersEntireRowKey(row)) {
+      return convertToGet(row);
     }
-    if (!filterList.getFilters().isEmpty()) {
-      get.setFilter(filterList);
+    else if (filtersRowKeyPrefix(row)) {
+      return convertToScan(row);
     }
-    return get;
+    else {
+      throw new RuntimeException("Default HBase serde only supports full row key or prefix row key reads.");
+    }
   }
 
   @Override
@@ -101,11 +88,11 @@ public class DefaultHBaseSerde implements HBaseSerde {
     // Get row key fields
     byte[] rowKey = result.getRow();
     int index = 0;
-    for (int i = 0; i < rowColumns.size(); i++) {
-      ColumnDef def = columns.get(rowColumns.get(i));
+    for (int i = 0; i < keyColumns.size(); i++) {
+      ColumnDef def = columns.get(keyColumns.get(i));
       index += addColumnValue(rowKey, index, rowKey.length, values,
-          def.type, schema.fieldIndex(def.name), keySeparator, i == rowColumns.size() - 1);
-      if (i < rowColumns.size() - 1) {
+          def.type, schema.fieldIndex(def.name), keySeparator, i == keyColumns.size() - 1);
+      if (i < keyColumns.size() - 1) {
         // increment by delimiter length
         index += keySeparator.length;
       }
@@ -124,7 +111,7 @@ public class DefaultHBaseSerde implements HBaseSerde {
   }
 
   @Override
-  public List<Row> convertFromResults(Result[] results) {
+  public List<Row> convertFromResults(Iterable<Result> results) {
     List<Row> rows = Lists.newArrayList();
     for (Result result : results) {
       rows.add(convertFromResult(result));
@@ -181,18 +168,57 @@ public class DefaultHBaseSerde implements HBaseSerde {
 
   //// Utility methods
 
+  private Get convertToGet(Row row) {
+    Get get = new Get(buildRowKey(row));
+    for (String family : getColumnFamilies(row)) {
+      get.addFamily(Bytes.toBytes(family));
+    }
+
+    FilterList filters = getColumnValueFilters(row);
+    if (!filters.getFilters().isEmpty()) {
+      get.setFilter(filters);
+    }
+    
+    return get;
+  }
+  
+  private Scan convertToScan(Row row) {
+    byte[] startRow = buildRowKey(row);
+    byte[] stopRow = exclusiveStopRow(startRow);
+    Scan scan = new Scan(startRow, stopRow);
+    
+    return scan;
+  }
+  
+  private boolean filtersEntireRowKey(Row row) {
+    for (String keyColumn : keyColumns) {
+      if (!Arrays.asList(row.schema().fieldNames()).contains(keyColumn)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  private boolean filtersRowKeyPrefix(Row row) {
+    Set<String> rowColumnNames = Sets.newHashSet(row.schema().fieldNames());
+    Set<String> prefixColumnNames = Sets.newHashSet(keyColumns.subList(0, rowColumnNames.size()));
+    
+    return rowColumnNames.equals(prefixColumnNames);
+  }
+  
   private byte[] buildRowKey(Row row) {
     List<byte[]> keyComponents = Lists.newArrayList();
     int totalSize = 0;
-    try {
-      for (String rowCol : rowColumns) {
-        ColumnDef def = columns.get(rowCol);
-        byte[] asBytes = getColumnValueAsBytes(def.name, def.type, row);
-        keyComponents.add(asBytes);
-        totalSize += asBytes.length;
+    List<String> rowColumns = Arrays.asList(row.schema().fieldNames());
+    for (String keyColumn : keyColumns) {
+      if (!rowColumns.contains(keyColumn)) {
+        break;
       }
-    } catch (IllegalArgumentException e) {
-      LOG.error("Row does not contain all columns for row key");
+      ColumnDef def = columns.get(keyColumn);
+      byte[] asBytes = getColumnValueAsBytes(def.name, def.type, row);
+      keyComponents.add(asBytes);
+      totalSize += asBytes.length;
     }
 
     byte[] fullRow = new byte[totalSize + ((keyComponents.size() - 1) * keySeparator.length)];
@@ -208,6 +234,36 @@ public class DefaultHBaseSerde implements HBaseSerde {
     }
 
     return fullRow;
+  }
+  
+  private byte[] exclusiveStopRow(byte[] startRow) {
+    byte[] stopRow = startRow.clone();
+     
+    for (int i = stopRow.length - 1; i >= 0; i--) {
+      if (stopRow[i] < 255) {
+        stopRow[i] += 1;
+        return stopRow;
+      }
+      stopRow[i] = 0;
+      if (i == 0) {
+        return HConstants.EMPTY_BYTE_ARRAY;
+      }
+    }
+    
+    return stopRow;
+  }
+  
+  private Set<String> getColumnFamilies(Row row) {
+    Set<String> families = Sets.newHashSet();
+    
+    for (String fieldName : row.schema().fieldNames()) {
+      ColumnDef def = columns.get(fieldName);
+      if (!def.cf.equals("rowkey")) {
+        families.add(def.cf);
+      }
+    }
+    
+    return families;
   }
 
   private static Object getColumnValue(byte[] source, int offset, int length, String type) {
@@ -319,6 +375,29 @@ public class DefaultHBaseSerde implements HBaseSerde {
       throw e;
     }
   }
-
+  
+  private FilterList getColumnValueFilters(Row row) {
+    FilterList filterList = new FilterList(Operator.MUST_PASS_ALL);
+    Set<String> filterColumnNames = Sets.newHashSet(row.schema().fieldNames());
+    
+    for (Map.Entry<String, ColumnDef> column : columns.entrySet()) {
+      if (!column.getValue().cf.equals("rowkey")) {
+        if (filterColumnNames.contains(column.getKey())) {
+          byte[] value = getColumnValueAsBytes(column.getValue().name, column.getValue().type, row);
+          if (value != null) {
+            SingleColumnValueFilter columnValueFilter = new SingleColumnValueFilter(
+                Bytes.toBytes(column.getValue().cf),
+                Bytes.toBytes(column.getValue().name),
+                CompareFilter.CompareOp.EQUAL,
+                value
+            );
+            filterList.addFilter(columnValueFilter);
+          }
+        }
+      }
+    }
+    
+    return filterList;
+  }
 
 }

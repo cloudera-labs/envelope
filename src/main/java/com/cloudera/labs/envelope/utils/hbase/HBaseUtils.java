@@ -27,6 +27,9 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,6 +227,26 @@ public class HBaseUtils {
     }
 
     return RowUtils.structTypeFor(fieldNames, fieldTypes);
+  }
+  
+  public static Scan mergeRangeScans(List<Scan> rangeScans) {
+    List<RowRange> ranges = Lists.newArrayList();
+    
+    for (Scan rangeScan : rangeScans) {
+      byte[] startRow = rangeScan.getStartRow();
+      byte[] stopRow = rangeScan.getStopRow();
+      
+      ranges.add(new RowRange(startRow, true, stopRow, false));
+    }
+    
+    Scan mergedScan = new Scan();
+    try {
+      mergedScan.setFilter(new MultiRowRangeFilter(ranges));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    
+    return mergedScan;
   }
 
 }
