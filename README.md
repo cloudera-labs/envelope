@@ -15,7 +15,11 @@ Some examples of what you can easily do with Envelope:
 
 ### Requirements
 
-Envelope requires a CDH5.7+ cluster with Cloudera's distributions of Spark 2.1 (and Kafka 0.10 and Kudu 1.3, if connecting to those components).
+Envelope requires a CDH5.7+ cluster with:
+
+- Cloudera's distribution of Apache Spark 2.1.0, or above
+- Cloudera's distribution of Apache Kafka 2.1.0 (based on Apache Kafka 0.10) or above, if using that component
+- Cloudera's distribution of Apache Kudu 1.3.0, if using that component
 
 ### Compiling Envelope
 
@@ -42,14 +46,14 @@ You can run Envelope by submitting it to Spark with the configuration file for y
 
 A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI, which can be found in Cloudera Manager by navigating to the YARN service and then to the ResourceManager Web UI link.
 
-## Get involved
+## More information
 
 If you are ready for more, dive in:
+
 * [User Guide](docs/userguide.adoc) - details on the design, operations, configuration, and usage of Envelope
-* [Configuration Guide](docs/configurations.adoc) - a deep-dive into the parameters and options of Envelope
+* [Configuration Specification](docs/configurations.adoc) - a deep-dive into the configuration options of Envelope
 * [Inputs Guide](docs/inputs.adoc) - detailed information on each provided input, and how to write custom inputs
 * [Derivers Guide](docs/derivers.adoc) - detailed information on each provided deriver, and how to write custom derivers
 * [Planners Guide](docs/planners.adoc) - directions and details on when, why, and how to use planners and associated outputs
 * [Looping Guide](docs/looping.adoc) - information and an example for defining loops in an Envelope pipeline
 * [Decisions Guide](docs/decisions.adoc) - information on using decisions to dynamically choose which parts of the pipeline to run
-* [Contributing to Envelope](docs/contributing.adoc) - guidelines and best practices for both developing and sharing Envelope components and applications
