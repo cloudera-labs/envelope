@@ -33,7 +33,7 @@ import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
-public class LoopStep extends Step {
+public class LoopStep extends RefactorStep {
   
   public static final String MODE_PROPERTY = "mode";
   public static final String MODE_SERIAL = "serial";
@@ -57,7 +57,8 @@ public class LoopStep extends Step {
   // Envelope runs loops by unrolling the loop when the loop step is run. This means
   // that the iterations of the loop must be known when the loop step runs, either from
   // static values in the configuration or from dynamic values provided by previous steps.
-  public Set<Step> unrollLoop(Set<Step> steps) {
+  @Override
+  public Set<Step> refactor(Set<Step> steps) {
     // The values that the loop iterates over
     List<Object> values = getValues(steps);
     

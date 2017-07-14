@@ -51,4 +51,5 @@ If you are ready for more, dive in:
 * [Derivers Guide](docs/derivers.adoc) - detailed information on each provided deriver, and how to write custom derivers
 * [Planners Guide](docs/planners.adoc) - directions and details on when, why, and how to use planners and associated outputs
 * [Looping Guide](docs/looping.adoc) - information and an example for defining loops in an Envelope pipeline
+* [Decisions Guide](docs/decisions.adoc) - information on using decisions to dynamically choose which parts of the pipeline to run
 * [Contributing to Envelope](docs/contributing.adoc) - guidelines and best practices for both developing and sharing Envelope components and applications

@@ -52,7 +52,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -61,7 +61,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -85,7 +85,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.SOURCE_PROPERTY, LoopStep.SOURCE_LIST);
     loopStepConfigMap.put(LoopStep.LIST_PROPERTY, Lists.newArrayList(1, 10, 100));
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -94,7 +94,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -113,7 +113,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.SOURCE_PROPERTY, LoopStep.SOURCE_LIST);
     loopStepConfigMap.put(LoopStep.LIST_PROPERTY, Lists.newArrayList("hello", "world", "bloop", "gloop"));
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -122,7 +122,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 5);
     
@@ -151,7 +151,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.SOURCE_PROPERTY, LoopStep.SOURCE_STEP);
     loopStepConfigMap.put(LoopStep.STEP_PROPERTY, "source_step");
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -160,7 +160,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 5);
     
@@ -181,7 +181,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 5);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -190,7 +190,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 2);
     
@@ -208,7 +208,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 100);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 100);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -241,7 +241,7 @@ public class TestLoopStep {
     Step step5 = new BatchStep("step5", step5Config);
     steps.add(step5);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 6);
     
@@ -263,7 +263,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -272,7 +272,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -292,7 +292,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 100);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 102);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -325,7 +325,7 @@ public class TestLoopStep {
     Step step5 = new BatchStep("step5", step5Config);
     steps.add(step5);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 16);
     
@@ -357,7 +357,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -366,7 +366,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -386,7 +386,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -395,7 +395,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -415,7 +415,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -436,7 +436,7 @@ public class TestLoopStep {
     Step afterAfterLoop = new BatchStep("after_after_loop", afterAfterLoopConfig);
     steps.add(afterAfterLoop);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 6);
     
@@ -458,7 +458,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_START_PROPERTY, 5);
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 5);
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -467,7 +467,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 2);
     
@@ -486,7 +486,7 @@ public class TestLoopStep {
     loopStepConfigMap.put(LoopStep.RANGE_END_PROPERTY, 7);
     loopStepConfigMap.put(LoopStep.PARAMETER_PROPERTY, "loop_value");
     Config loopStepConfig = ConfigFactory.parseMap(loopStepConfigMap);
-    LoopStep loopStep = new LoopStep("loop_step", loopStepConfig);
+    RefactorStep loopStep = new LoopStep("loop_step", loopStepConfig);
     steps.add(loopStep);
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
@@ -498,7 +498,7 @@ public class TestLoopStep {
     Step step1 = new BatchStep("step1", step1Config);
     steps.add(step1);
     
-    Set<Step> unrolled = loopStep.unrollLoop(steps);
+    Set<Step> unrolled = loopStep.refactor(steps);
     
     assertEquals(unrolled.size(), 4);
     
@@ -528,7 +528,7 @@ public class TestLoopStep {
     step1ConfigMap.put(LoopStep.RANGE_START_PROPERTY, 10);
     step1ConfigMap.put(LoopStep.RANGE_END_PROPERTY, 11);
     Config step1Config = ConfigFactory.parseMap(step1ConfigMap);
-    LoopStep step1 = new LoopStep("loop_step1", step1Config);
+    RefactorStep step1 = new LoopStep("loop_step1", step1Config);
     
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
     step2ConfigMap.put("dependencies", Lists.newArrayList("loop_step1"));
@@ -542,7 +542,7 @@ public class TestLoopStep {
     step3ConfigMap.put(LoopStep.RANGE_START_PROPERTY, 12);
     step3ConfigMap.put(LoopStep.RANGE_END_PROPERTY, 13);
     Config step3Config = ConfigFactory.parseMap(step3ConfigMap);
-    LoopStep step3 = new LoopStep("loop_step3", step3Config);
+    RefactorStep step3 = new LoopStep("loop_step3", step3Config);
     
     Map<String, Object> step4ConfigMap = Maps.newHashMap();
     step4ConfigMap.put("dependencies", Lists.newArrayList("loop_step1", "loop_step3"));
@@ -562,17 +562,17 @@ public class TestLoopStep {
     Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4, step5, step6);
     
     // Unroll the top level loop
-    Set<Step> unrolled = step1.unrollLoop(steps);
+    Set<Step> unrolled = step1.refactor(steps);
     // Unroll the unrolled two bottom level loops
     for (Step unrolledStep : unrolled) {
       if (unrolledStep instanceof LoopStep && !unrolledStep.hasSubmitted()) {
-        unrolled = ((LoopStep)unrolledStep).unrollLoop(unrolled);
+        unrolled = ((LoopStep)unrolledStep).refactor(unrolled);
         break;
       }
     }
     for (Step unrolledStep : unrolled) {
       if (unrolledStep instanceof LoopStep && !unrolledStep.hasSubmitted()) {
-        unrolled = ((LoopStep)unrolledStep).unrollLoop(unrolled);
+        unrolled = ((LoopStep)unrolledStep).refactor(unrolled);
         break;
       }
     }

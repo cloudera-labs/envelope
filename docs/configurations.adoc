@@ -91,7 +91,7 @@ Step configurations have the `steps.[stepname].` prefix. All steps can have the 
 |Configuration suffix|Description
 
 |type
-|The step type. Envelope supports `data` and `loop`. Default `data`.
+|The step type. Envelope supports `data`, `loop`, and `decision`. Default `data`.
 
 |dependencies
 |The list of step names that Envelope will submit before submitting this step.
@@ -100,7 +100,7 @@ Step configurations have the `steps.[stepname].` prefix. All steps can have the 
 
 === Data steps
 
-Data steps can additionally have the below configurations.
+Data steps can, additionally to the step configurations, have the below configurations.
 
 [cols="2,8", options="header"]
 |===
@@ -125,7 +125,7 @@ Data steps can additionally have the below configurations.
 
 === Loop steps
 
-Loop steps can additionally have the below configurations.
+Loop steps can, additionally to the step configurations, have the below configurations. For more information on loop steps see the link:looping.adoc[looping guide].
 
 [cols="2,8", options="header"]
 |===
@@ -154,9 +154,34 @@ Loop steps can additionally have the below configurations.
 
 |===
 
+=== Decision steps
+
+Decision steps can, additionally to the step configurations, have the below configurations. For more information on decision steps see the link:decisions.adoc[decisions guide].
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|if-true-steps
+|Required. The list of dependent step names that will be kept if the decision result is true. The steps listed must directly depend on the decision step. The remaining directly dependent steps of the decision step will be kept if the decision result is false. Any steps subsequently dependent on the removed steps will also be removed.
+
+|method
+|Required. The method by which the decision step will make the decision. Envelope supports `literal`, `step_by_key`, `step_by_value`.
+
+|result
+|Required if `method` is `literal`. The true or false result for the decision.
+
+|step
+|Required if `method` is `step_by_key` or `step_by_value`. The name of the previous step from which to extract the decision result.
+
+|key
+|Required if `method` is `step_by_key`. The specific key of the previous step to look up the boolean result by.
+
+|===
+
 === Inputs
 
-Input configurations belong to data steps, and have the `steps.[stepname].input.` prefix.
+Input configurations belong to data steps, and have the `steps.[stepname].input.` prefix. For more information on inputs see the link:inputs.adoc[inputs guide].
 
 [cols="2,8", options="header"]
 |===
@@ -442,7 +467,7 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 
 === Derivers
 
-Deriver configurations belong to data steps, and have the `steps.[stepname].deriver.` prefix.
+Deriver configurations belong to data steps, and have the `steps.[stepname].deriver.` prefix. For more information on derivers see the link:derivers.adoc[derivers guide].
 
 [cols="2,8", options="header"]
 |===
@@ -629,7 +654,7 @@ Partitioner configurations belong to data steps, and have the `steps.[stepname].
 
 === Planners
 
-Planner configurations belong to data steps, and have the `steps.[stepname].planner.` prefix.
+Planner configurations belong to data steps, and have the `steps.[stepname].planner.` prefix. For more information on planners see the link:planners.adoc[planners guide].
 
 [cols="2,8", options="header"]
 |===
@@ -951,6 +976,8 @@ cell sizes you may want to reduce this number or increase the relevant client bu
 |===
 
 === Repetitions
+
+For more information on repetitions see the link:repetitions.adoc[repetitions guide].
 
 The general configuration parameters for repetitions are:
 

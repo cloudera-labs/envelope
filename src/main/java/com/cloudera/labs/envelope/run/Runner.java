@@ -35,7 +35,6 @@ import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.repetition.Repetitions;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -56,6 +55,10 @@ import com.typesafe.config.ConfigValueType;
 @SuppressWarnings("serial")
 public class Runner {
 
+  public static final String TYPE_PROPERTY = "type";
+  public static final String DATA_TYPE = "data";
+  public static final String LOOP_TYPE = "loop";
+  public static final String DECISION_TYPE = "decision";
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
   
   private static ExecutorService threadPool;
@@ -105,7 +108,7 @@ public class Runner {
 
       Step step;
 
-      if (!stepConfig.hasPath("type") || stepConfig.getString("type").equals("data")) {
+      if (!stepConfig.hasPath(TYPE_PROPERTY) || stepConfig.getString(TYPE_PROPERTY).equals(DATA_TYPE)) {
         if (stepConfig.hasPath("input")) {
           Config stepInputConfig = stepConfig.getConfig("input");
           Input stepInput = InputFactory.create(stepInputConfig);
@@ -127,12 +130,16 @@ public class Runner {
           step = new BatchStep(stepName, stepConfig);
         }
       }
-      else if (stepConfig.getString("type").equals("loop")) {
+      else if (stepConfig.getString(TYPE_PROPERTY).equals(LOOP_TYPE)) {
         LOG.debug("Adding loop step: " + stepName);
         step = new LoopStep(stepName, stepConfig);
       }
+      else if (stepConfig.getString(TYPE_PROPERTY).equals(DECISION_TYPE)) {
+        LOG.debug("Adding decision step: " + stepName);
+        step = new DecisionStep(stepName, stepConfig);
+      }
       else {
-        throw new RuntimeException("Unknown step type: " + stepConfig.getString("type"));
+        throw new RuntimeException("Unknown step type: " + stepConfig.getString(TYPE_PROPERTY));
       }
       
       LOG.debug("With configuration: " + stepConfig);
@@ -227,14 +234,14 @@ public class Runner {
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
 
             if (StepUtils.allStepsSubmitted(dependencies)) {
-              LOG.debug("Step dependencies have finished, running step off main thread");
+              LOG.debug("Step dependencies have been submitted, running step off main thread");
               // Batch steps are run off the main thread so that if they contain outputs they will
               // not block the parallel execution of independent steps.
               Future<Void> offMainThreadStep = runStepOffMainThread(batchStep, dependencies, threadPool);
               offMainThreadSteps.add(offMainThreadStep);
             }
             else {
-              LOG.debug("Step dependencies have not finished");
+              LOG.debug("Step dependencies have not been submitted");
             }
           }
           else {
@@ -244,22 +251,20 @@ public class Runner {
         else if (step instanceof StreamingStep) {
           LOG.debug("Step is streaming");
         }
-        else if (step instanceof LoopStep) {
-          LOG.debug("Step is a loop");
+        else if (step instanceof RefactorStep) {
+          LOG.debug("Step is a refactor step");
           
-          LoopStep loopStep = (LoopStep)step;
+          RefactorStep refactorStep = (RefactorStep)step;
           
-          if (!loopStep.hasSubmitted()) {
+          if (!refactorStep.hasSubmitted()) {
             LOG.debug("Step has not been submitted");
           
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
   
             if (StepUtils.allStepsSubmitted(dependencies)) {
-              LOG.debug("Step dependencies have finished, unrolling loop");
-              refactoredSteps = loopStep.unrollLoop(steps);
-              LOG.debug("Loop unrolled");
-              // We can't mutate the steps while we are iterating over them, so we break out
-              // of the for-loop to then replace the steps with the loop step unrolled.
+              LOG.debug("Step dependencies have submitted, refactoring steps");
+              refactoredSteps = refactorStep.refactor(steps);
+              LOG.debug("Steps refactored");
               break;
             }
             else {
