@@ -42,7 +42,10 @@ import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
 
+import scala.Predef;
+import scala.Tuple2;
 import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
@@ -654,7 +657,7 @@ public class RowUtils {
     return row.get(row.fieldIndex(fieldName));
   }
 
-  public static <T> T getAs(Class<T> clazz, Row row, String fieldName) {
+  public static <T> T getAs(Row row, String fieldName) {
     return row.getAs(row.fieldIndex(fieldName));
   }
 

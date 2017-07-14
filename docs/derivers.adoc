@@ -219,6 +219,159 @@ The equivalent SQL statement would read:
 SELECT Left.* FROM Left LEFT ANTI JOIN Right USING (field1, field2)
 ----
 
+=== Data Quality
+
+The `dq` deriver can be used to perform data quality checks on a dataset using a set of user-defined
+rules. Rules can be applied at two scopes: at dataset or row level. For dataset scope, the rules are
+evaluated against the dataset as a whole and the derived result is a dataset containing one row per rule indicating a pass or fail. The
+schema of the dataset is `name: String, result: Boolean`. For
+example, the result might be:
+
+[options="header", width="30%"]
+|===
+|name|result
+|namecheck|true
+|agerange|false
+|===
+
+Row level scope takes the list of rules and applies them to every row for the defined input dependency.
+The results of the checks are appended to the rows as a field of type `map<string, boolean>` called
+`results` by default. The results would look something like:
+
+[options="header", width="50%"]
+|===
+|name|age|results
+|Ian|null|{"namenotnull":true,"agerange":false}
+|Webster|21|{"namenotnull":true,"agerange":true}
+|===
+
+Envelope has a number of built-in rules (see below) but allows for custom user-defined rules via fully-qualified
+class name. See the link:configurations.adoc[config guide] for specific configuration parameters.
+
+==== Row Scope Rules
+
+The following row-level rules are provided:
+
+* `checknulls` - check for the null values in one or more fields in a row
+* `enum` - check one or more fields against a list of allowed values (non-floating point numerics and strings)
+* `range` - check one or more numeric fields is between upper and lower bounds (inclusive)
+* `regex` - check one or more string fields against an allowed pattern
+
+==== Dataset Scope Rules
+
+The following rules are defined at the dataset scope:
+
+* `count` - ensure the dataset has an expected count. The count may either statically defined or
+loaded as a dependency from another step. If the latter, the Dataset must contain a single row with
+a single field of type long.
+* `checkschema` - ensure the dataset matches the schema. Currently only supports primitive types.
+
+In addition, any defined row-level rule can be applied at the dataset scope. In this case, the deriver simply logically
+ANDs the individual results from each row check into a single boolean result for the rule.
+
+If specifying multiple dependencies, the user must specify to which dependency the dataset-level rules
+should be applied using the `dataset` configuration parameter.
+
+If using multiple dataset level checks on the same dataset it is recommended to employ the `cache` hint
+on the dependency containing the data to be checked.
+
+==== Example Configuration
+
+An example configuration containing both dataset and row-level DQ derivers is as follows:
+
+```
+...
+
+steps {
+  dqparams {
+    input {
+      type = filesystem
+      format = json
+      path = "hdfs:///tmp/dqparams"
+    }
+  }
+
+  mydata {
+    input {
+      type = filesystem
+      format = json
+      path = "hdfs:///tmp/data"
+    }
+  }
+
+  checkmydata {
+    dependencies = [mydata,dqparams]
+    deriver {
+      type = dq
+      scope = dataset
+      dataset = mydata
+      rules {
+        r1 {
+          type = count
+          expected.dependency = dqparams
+        }
+        r2 {
+          type = checkschema
+          fields = [
+            { name = "name", type = "string" },
+            { name = "address", type = "string },
+            { name = "age", type = "age" }
+          ]
+        }
+        r3 {
+          // row-level rule being run in dataset scope
+          type = regex
+          fields = ["name"]
+          regex = "[a-zA-Z' ]{1,}"
+        }
+        r4 {
+          // row-level rule beingf run in dataset scope
+          type = enum
+          fields = ["name"]
+          values = ["Ian","Jeremy","Webster"]
+          fieldtype = string
+          case-sensitive = false
+        }
+      }
+    }
+  }
+
+  checkrows {
+    dependencies = [mydata]
+    deriver {
+      type = dq
+      scope = row
+      rules {
+        r1 {
+          type = checknulls
+          fields = [ "name", "address", "age" ]
+        }
+        r2 {
+          type = regex
+          fields = ["name"]
+          regex = "[a-zA-Z' ]{1,}"
+        }
+        r3 {
+          type = range
+          fields = ["age"]
+          fieldtype = "int"
+          range = [0,150]
+        }
+      }
+    }
+  }
+}
+...
+```
+
+==== Developing Custom Rules
+
+Users wishing to specify custom rules can extend either the `RowRule` or `DatasetRule` interface. Row
+level rules should implement a `check(Row row)` method returning a boolean result. Dataset
+scope rules should implement a `check(Dataset<Row> dataset, Map<String, Dataset<Row>> stepDependencies)`
+method which returns a Dataset with a row per rule with the schema `name: String, result: Boolean`.
+Row level rules are automatically wrapped in `DatasetRowRuleWrapper` when used in a dataset scope.
+
 == Custom derivers
 
 In cases that Envelope does not provide a deriver that meets the requirements for a particular derivation a custom deriver can be developed and provided instead.

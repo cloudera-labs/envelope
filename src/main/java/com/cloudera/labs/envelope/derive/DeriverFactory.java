@@ -51,6 +51,9 @@ public class DeriverFactory {
       case "exclude":
         deriver = new ExcludeDeriver();
         break;
+      case "dq":
+        deriver = new DataQualityDeriver();
+        break;
       default:
         try {
           Class<?> clazz = Class.forName(deriverType);

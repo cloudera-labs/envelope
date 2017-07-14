@@ -449,7 +449,7 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, and `exclude`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude` and `dq`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
 
 |repartition.partitions
 |The number of DataFrame partitions to repartition the deriver results by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the deriver results.
@@ -535,6 +535,82 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 
 |field.names
 |The name of the fields used to match between the two datasets. The field names must be identical in name and type. A row is excluded if all of the fields are equal between the datasets.
+
+||
+|`_dq_`|
+
+|scope
+|Required. The scope at which to apply the DQ deriver. `dataset` or `row`.
+
+|rules
+|Required. A nested object of rules. Each defined object should contain a field `type`, which defines the type of the DQ rule, either a built-in or a fully-qualified classname. Type specific configs are listed below.
+
+||
+|_checknulls_|
+
+|fields
+|Required. The list of fields to check. The contents should be a list of strings.
+
+||
+|_enum_|
+
+|fields
+|Required. String list of field names.
+
+|fieldtype
+|Optional. Type of the field to check for defined values: must be `string`, `long`, `int`, or `decimal`. Defaults to `string`.
+
+|values
+|Required. List of values. For strings and decimals define the values using string literals. For integral types use number literals.
+
+|case-sensitive
+|Optional. For string values, whether the value matches should be case-sensitive. Defaults to true.
+
+||
+|_range_|
+
+|fields
+|Required. List of field names on which to apply the range checks.
+
+|fieldtype
+|Optional. The field type to use when doing range checks. Range values will be interpreted as this type. Must be numeric: allowed values are
+`int`, `long`, `double`, `float`, `decimal`. Take care when using floating point values as exact boundary matches may not behave as expected - use
+`decimal` if exact boundaries are required. Defaults to `long`.
+
+|range
+|Required. Two element list of numeric literals, e.g. `[1,10]` or `[1.5,10.45]`. Both boundaries are inclusive.
+
+||
+|_regex_|
+
+|fields
+|Required. String list of field names, which should all have type `string`.
+
+|regex
+|Required. Regular expression with which to match field values. Note that extra escape parameters are not required. For example to match any number up to 999 you could use: `\d{1,3}`.
+
+||
+|_count_|
+
+|expected.literal
+|Either this or `expected.dependency` required. A `long` literal with the expected number of rows in the dataset.
+
+|expected.dependency
+|Either this or `expected.literal` required. A string indicating the dependency in which the expected
+count is defined. It must be a dataframe with a single field of type `long`.
+
+||
+|_checkschema_|
+
+|fields
+|Required. A list of fields and types that are required to be in the dataset. List elements should be objects with
+two fields: `name` and `type`. Valid types are: `string`, `byte`, `short`, `int`, `long`, `float`, `decimal`,
+`boolean`, `binary`, `date`, `timestamp`. For `decimal`, two additional int fields are required: `scale` and `precision`.
+
+|exactmatch
+|Optional. Whether the schema of the Rows must exactly match the specified schema. If false the actual row can contain
+other fields not specified in the `fields` configuration. Those that are specified must match both name and type. Defaults
+to false.
 
 |===
 
