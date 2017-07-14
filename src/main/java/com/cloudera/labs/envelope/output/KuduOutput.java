@@ -57,7 +57,8 @@ import scala.Tuple2;
 public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
-  public static final String TABLE_CONFIG_NAME = "table.name"; 
+  public static final String TABLE_CONFIG_NAME = "table.name";
+  public static final String INSERT_IGNORE_CONFIG_NAME = "insert.ignore";
   
   private static final String ACCUMULATOR_NUMBER_OF_SCANNERS = "Number of Kudu scanners";
   private static final String ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED = "Number of filters scanned in Kudu";
@@ -150,6 +151,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
       session = client.newSession();
       session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
       session.setMutationBufferSpace(10000);
+      session.setIgnoreAllDuplicateRows(isInsertIgnore());
 
       LOG.info("Connection to Kudu established");
     }
@@ -390,7 +392,11 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
           kc.deleteRows(mutation, tableName);
           break;
         case INSERT:
-          kc.insertRows(mutation, tableName);
+          if (isInsertIgnore()) {
+            kc.insertIgnoreRows(mutation, tableName);
+          } else {
+            kc.insertRows(mutation, tableName);
+          }
           break;
         case UPDATE:
           kc.updateRows(mutation, tableName);
@@ -402,6 +408,13 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
           throw new RuntimeException("Kudu bulk output does not support mutation type: " + mutationType);
       }
     }
+  }
+
+  /**
+   * Returns whether or not we should ignore duplicate rows
+   */
+  private boolean isInsertIgnore() {
+    return config.hasPath(INSERT_IGNORE_CONFIG_NAME) && config.getBoolean(INSERT_IGNORE_CONFIG_NAME);
   }
   
   private boolean hasAccumulators() {

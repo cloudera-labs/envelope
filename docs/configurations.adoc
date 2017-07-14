@@ -764,6 +764,9 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |table.name
 |The name of the Kudu table to write to.
 
+|insert.ignore
+|Ignore duplicate rows in Kudu (default: false)
+
 ||
 |`_log_`|
 
