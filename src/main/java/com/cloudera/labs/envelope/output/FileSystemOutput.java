@@ -24,11 +24,13 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.spark.sql.*;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.databricks.spark.avro.*;
 
 import scala.Tuple2;
 
@@ -122,6 +124,10 @@ public class FileSystemOutput implements BulkOutput {
           LOG.debug("Writing CSV: {}", path);
           writer.options(options).csv(path);
           break;
+        case "avro":
+            LOG.debug("Writing avrofile: {}", path);
+            writer.format("com.databricks.spark.avro").save(path);;
+            break;
         default:
           throw new RuntimeException("Filesystem output does not support file format: " + format);
       }
@@ -134,3 +140,4 @@ public class FileSystemOutput implements BulkOutput {
   }
 
 }
+
