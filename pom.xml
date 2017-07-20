@@ -214,6 +214,13 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.databricks/spark-avro_2.10 -->
+<dependency>
+    <groupId>com.databricks</groupId>
+    <artifactId>spark-avro_2.11</artifactId>
+    <version>3.2.0</version>
+</dependency>
+    
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-hadoop2-compat</artifactId>
@@ -372,3 +379,4 @@
     </plugins>
   </build>
 </project>
+
