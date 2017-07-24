@@ -50,6 +50,7 @@ public enum Contexts {
   public static final String NUM_EXECUTOR_CORES_PROPERTY = "application.executor.cores";
   public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
+  public static final String SPARK_SESSION_ENABLE_HIVE_SUPPORT = "application.hive.enabled";
 
   private Config config = ConfigFactory.empty();
   private ExecutionMode mode = ExecutionMode.UNIT_TEST;
@@ -127,9 +128,13 @@ public enum Contexts {
       sparkConf.setAppName("");
     }
 
-    SparkSession sparkSession = SparkSession.builder().enableHiveSupport().config(sparkConf).getOrCreate();
+    SparkSession.Builder sparkSessionBuilder = SparkSession.builder();
+    if (!INSTANCE.config.hasPath(SPARK_SESSION_ENABLE_HIVE_SUPPORT) ||
+        INSTANCE.config.getBoolean(SPARK_SESSION_ENABLE_HIVE_SUPPORT)) {
+      sparkSessionBuilder.enableHiveSupport();
+    }
 
-    INSTANCE.ss = sparkSession;
+    INSTANCE.ss = sparkSessionBuilder.config(sparkConf).getOrCreate();
   }
 
   private static synchronized SparkConf getSparkConfiguration(Config config, ExecutionMode mode) {

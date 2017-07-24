@@ -80,6 +80,9 @@ Application-level configurations have the `application.` prefix.
 |spark.conf.*
 |Used to pass configurations directly to Spark. The `spark.conf.` prefix is removed and the configuration is set in the SparkConf object used to create the Spark context.
 
+|hive.enabled
+|Enables hive support. Default is true. Must be enabled before reading and writing data stored in Apache Hive. Setting the value to false when Hive integration is not required avoids the associated overhead.
+
 |===
 
 == Steps

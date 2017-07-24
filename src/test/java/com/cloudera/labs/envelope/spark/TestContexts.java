@@ -18,9 +18,13 @@ package com.cloudera.labs.envelope.spark;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.AnalysisException;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -31,19 +35,19 @@ public class TestContexts {
 
   private static final String RESOURCES_PATH = "/spark";
 
+  @Before
+  public void setup() {
+    Contexts.closeSparkSession(true);
+  }
+
   @Test
   public void testSparkPassthroughGood() {
     Config config = ConfigUtils.configFromPath(
       this.getClass().getResource(RESOURCES_PATH + "/spark-passthrough-good.conf").getPath());
-
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-
     assertTrue(sparkConf.contains("spark.driver.allowMultipleContexts"));
     assertEquals("true", sparkConf.get("spark.driver.allowMultipleContexts"));
-
     assertTrue(sparkConf.contains("spark.master"));
     assertEquals("local[1]", sparkConf.get("spark.master"));
   }
@@ -53,72 +57,77 @@ public class TestContexts {
     Properties props = new Properties();
     props.setProperty("application.name", "test");
     Config config = ConfigFactory.parseProperties(props);
-    
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-    
     assertEquals(sparkConf.get("spark.app.name"), "test");
   }
   
   @Test
   public void testApplicationNameNotProvided() {
     Config config = ConfigFactory.empty();
-    
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-    
     assertEquals(sparkConf.get("spark.app.name"), "");
   }
   
   @Test
   public void testDefaultBatchConfiguration() {
     Config config = ConfigFactory.empty();
-    
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.BATCH);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-    
     assertTrue(!sparkConf.contains("spark.dynamicAllocation.enabled"));
     assertTrue(!sparkConf.contains("spark.sql.shuffle.partitions"));
     assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "hive");
-    
-    Contexts.closeSparkSession(true);
   }
   
   @Test
   public void testDefaultStreamingConfiguration() {
     Config config = ConfigFactory.empty();
-    
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.STREAMING);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-    
     assertTrue(sparkConf.contains("spark.dynamicAllocation.enabled"));
     assertTrue(sparkConf.contains("spark.sql.shuffle.partitions"));
     assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "hive");
-    
-    Contexts.closeSparkSession(true);
   }
   
   @Test
   public void testDefaultUnitTestConfiguration() {
     Config config = ConfigFactory.empty();
-    
-    Contexts.closeSparkSession(true);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
-    
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
-    
     assertEquals(sparkConf.get("spark.sql.catalogImplementation"), "in-memory");
     assertEquals(sparkConf.get("spark.sql.shuffle.partitions"), "1");
-    
-    Contexts.closeSparkSession(true);
   }
 
+  @Test (expected = AnalysisException.class)
+  public void testHiveDisabledConfiguration() throws Exception {
+    Map<String, Object> sparamMap = new HashMap<>();
+    sparamMap.put(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, "false");
+    sparamMap.put(Contexts.SPARK_CONF_PROPERTY_PREFIX + "spark.sql.warehouse.dir",
+        "target/spark-warehouse");
+    Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
+    Contexts.getSparkSession().sql("CREATE TABLE testHiveDisabled(d int)");
+    try {
+      Contexts.getSparkSession().sql("SELECT count(*) from testHiveDisabled");
+    } finally {
+      Contexts.getSparkSession().sql("DROP TABLE testHiveDisabled");
+    }
+  }
+
+  @Test
+  public void testHiveEnabledConfiguration() throws Exception {
+    Map<String, Object> sparamMap = new HashMap<>();
+    sparamMap.put(Contexts.SPARK_CONF_PROPERTY_PREFIX + "spark.sql.warehouse.dir",
+        "target/spark-warehouse");
+    Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
+    Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
+    Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
+    Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
+
+    sparamMap.put(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, "true");
+    Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
+    Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
+    Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
+    Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
+  }
 }
