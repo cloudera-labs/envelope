@@ -782,7 +782,7 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |The Hadoop filesystem path to write as the output. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
 
 |format
-|The file format for the files of the output directory. Envelope supports formats `parquet` and `csv`.
+|The file format for the files of the output directory. Envelope supports formats `parquet`, `csv` and `json`.
 
 |partition.by
 |The list of columns to partition the write output. Optional.

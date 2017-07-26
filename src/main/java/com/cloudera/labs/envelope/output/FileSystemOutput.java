@@ -122,6 +122,10 @@ public class FileSystemOutput implements BulkOutput {
           LOG.debug("Writing CSV: {}", path);
           writer.options(options).csv(path);
           break;
+        case "json":
+          LOG.debug("Writing JSON: {}", path);
+          writer.json(path);
+          break;
         default:
           throw new RuntimeException("Filesystem output does not support file format: " + format);
       }

@@ -182,6 +182,30 @@ public class TestFileSystemOutput {
     assertEquals("Invalid header", "field1,field2,field3,field4", line);
   }
 
+  @Test
+  public void writeJsonNoOptions() throws Exception {
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(FileSystemOutput.FORMAT_CONFIG, "json");
+    paramMap.put(FileSystemOutput.PATH_CONFIG, results.getPath());
+    config = ConfigFactory.parseMap(paramMap);
+
+    FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    fileSystemOutput.configure(config);
+    fileSystemOutput.applyBulkMutations(plannedRows);
+
+    File[] files = results.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".json");
+      }
+    });
+    assertEquals("Incorrect number of JSON files", 1, files.length);
+
+    BufferedReader br = new BufferedReader(new FileReader(files[0]));
+    String line = br.readLine();
+    assertEquals("Invalid first record", "{\"field1\":0,\"field2\":\"zero\",\"field3\":true,\"field4\":\"dog\"}", line);
+  }
+
   @Test (expected = RuntimeException.class)
   public void missingPartitions() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
