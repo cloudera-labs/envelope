@@ -64,19 +64,21 @@ public class TestFlagFileRepetition {
 
       // Place flag file
       assertTrue(fs.createNewFile(flagFile));
-      Thread.sleep(300);
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertFalse("Repeating steps should be populated", steps.isEmpty());
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertTrue("Repeating steps should not be populated", steps.isEmpty());
 
-      // Repeat again
+      // Should _not_ be empty
+      waitForResponse(300, false, 10);
+
+      // Should immediately be empty
+      waitForResponse(300, true, 1);
+
+      // Repeat again - add the flag file back
       assertTrue(fs.createNewFile(flagFile));
-      Thread.sleep(300);
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertFalse("Repeating steps should be populated", steps.isEmpty());
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertTrue("Repeating steps should not be populated", steps.isEmpty());
+
+      // Should _not_ be empty
+      waitForResponse(300, false, 10);
+
+      // Should immediately be empty
+      waitForResponse(300, true, 1);
     } catch (Exception e) {
       System.err.println(e.getMessage());
       fail();
@@ -99,28 +101,40 @@ public class TestFlagFileRepetition {
 
       // Place flag file
       assertTrue(fs.createNewFile(flagFile));
-      Thread.sleep(300);
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertFalse("Repeating steps should be populated", steps.isEmpty());
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertTrue("Repeating steps should not be populated", steps.isEmpty());
-      Thread.sleep(300);
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertTrue("Repeating steps should not be populated", steps.isEmpty());
+
+      // Should _not_ be empty
+      waitForResponse(300, false, 10);
+
+      // Should immediately be empty
+      waitForResponse(300, true, 1);
 
       // Repeat again
       long mTime = System.currentTimeMillis();
       fs.setTimes(flagFile, mTime, mTime);
-      Thread.sleep(300);
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertFalse("Repeating steps should be populated", steps.isEmpty());
-      steps = Repetitions.get().getAndClearRepeatingSteps();
-      assertTrue("Repeating steps should not be populated", steps.isEmpty());
+
+      // Should _not_ be empty as we have changed the file
+      waitForResponse(300, false, 10);
+
+      // Should immediately be empty
+      waitForResponse(300, true, 1);
     } catch (Exception e) {
       System.err.println(e.getMessage());
       fail();
     }
 
+  }
+
+  private Set<DataStep> waitForResponse(long waitFor, boolean response, int maxTimes) throws InterruptedException {
+    Set<DataStep> steps = null;
+    for (int i = 0; i < maxTimes; i++) {
+      Thread.sleep(waitFor);
+      steps = Repetitions.get().getAndClearRepeatingSteps();
+      if (steps.isEmpty() == response) {
+        return steps;
+      }
+    }
+    fail("Waited " + waitFor + "ms for repeating steps empty to be " + response);
+    return steps;
   }
 
   @After
