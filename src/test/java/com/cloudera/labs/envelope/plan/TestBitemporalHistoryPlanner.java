@@ -159,7 +159,7 @@ public class TestBitemporalHistoryPlanner {
 
     List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
 
-    assertEquals(planned.size(), 2);  
+    assertEquals(planned.size(), 2);
     assertEquals(planned.get(0).getMutationType(), MutationType.INSERT);
     assertEquals(planned.get(1).getMutationType(), MutationType.INSERT);
 
@@ -1351,7 +1351,7 @@ public class TestBitemporalHistoryPlanner {
     p = new BitemporalHistoryPlanner();
     config = config.withValue(BitemporalHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
     p.configure(config);
-    
+
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES, ""));
     arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
     Row key = new RowWithSchema(keySchema, "a");
@@ -1430,12 +1430,12 @@ public class TestBitemporalHistoryPlanner {
     assertTrue(systemStart2 < preplanSystemTime + 5000);
     assertEquals(RowUtils.get(planned.get(2).getRow(), "systemend"), FAR_FUTURE_MILLIS);
   }
-  
+
   @Test
   public void testNoCarryForwardWhenNull() {
     p = new BitemporalHistoryPlanner();
     p.configure(config);
-    
+
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, FAR_FUTURE_MILLIS, 1L, FAR_FUTURE_MILLIS, CURRENT_FLAG_YES, ""));
     arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
     Row key = new RowWithSchema(keySchema, "a");
@@ -1830,5 +1830,45 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(3).getRow(), "currentflag"), CURRENT_FLAG_YES);
   }
 
+  @Test
+  public void testNonDefaultCurrentFlag() {
+    String currFlagYes = "YES";
+    String currFlagNo = "NO";
 
+    config = config.
+        withValue(EventTimeHistoryPlanner.CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagYes)).
+        withValue(EventTimeHistoryPlanner.CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagNo));
+
+    p = new BitemporalHistoryPlanner();
+    p.configure(config);
+
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(planned.get(0).getMutationType(), MutationType.INSERT);
+    assertEquals(planned.get(1).getMutationType(), MutationType.INSERT);
+
+    Long systemStart0 = (Long)RowUtils.get(planned.get(0).getRow(), "systemstart");
+    Long systemStart1 = (Long)RowUtils.get(planned.get(1).getRow(), "systemstart");
+
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "eventstart"), 100L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "eventend"), 199L);
+    assertTrue(systemStart0 >= preplanSystemTime);
+    assertTrue(systemStart0 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "systemend"), FAR_FUTURE_MILLIS);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "currentflag"), currFlagNo);
+
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "value"), "world");
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "eventstart"), 200L);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "eventend"), FAR_FUTURE_MILLIS);
+    assertTrue(systemStart1 >= preplanSystemTime);
+    assertTrue(systemStart1 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "systemend"), FAR_FUTURE_MILLIS);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "currentflag"), currFlagYes);
+  }
 }

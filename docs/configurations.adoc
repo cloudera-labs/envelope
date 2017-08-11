@@ -705,6 +705,12 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |field.current.flag
 |The field name of the current flag attribute on the output.
 
+|current.flag.value.yes
+|The flag indicating current record. Overrides the default value (Y).
+
+|current.flag.value.no
+|The flag indicating non-current record. Overrides the default value (N).
+
 |carry.forward.when.null
 |If `true` then Envelope will overwrite null values of the arriving record with the corresponding values of the most recent existing record for the same key.
 
@@ -743,6 +749,12 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 
 |field.current.flag
 |The field name of the current flag attribute on the output.
+
+|current.flag.value.yes
+|The flag indicating current record. Overrides the default value (Y).
+
+|current.flag.value.no
+|The flag indicating non-current record. Overrides the default value (N).
 
 |field.last.updated
 |The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.

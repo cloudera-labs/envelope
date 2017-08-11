@@ -44,11 +44,14 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
   public static final String EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME = "field.effective.from";
   public static final String EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME = "field.effective.to";
   public static final String CURRENT_FLAG_FIELD_NAME_CONFIG_NAME = "field.current.flag";
+  public static final String CURRENT_FLAG_YES_CONFIG_NAME = "current.flag.value.yes";
+  public static final String CURRENT_FLAG_NO_CONFIG_NAME = "current.flag.value.no";
+  public static final String CURRENT_FLAG_YES = "Y";
+  public static final String CURRENT_FLAG_NO = "N";
+
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
   public static final String CARRY_FORWARD_CONFIG_NAME = "carry.forward.when.null";
 
-  public static final String CURRENT_FLAG_YES = "Y";
-  public static final String CURRENT_FLAG_NO = "N";
   public static final Long FAR_FUTURE_MILLIS = 253402214400000L; // 9999-12-31
 
   private Config config;
@@ -65,7 +68,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
 
   @Override
   public List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey)
-  {   
+  {
     Comparator<PlannedRow> tc = new PlanTimestampComparator(getTimestampFieldName());
 
     List<PlannedRow> planned = Lists.newArrayList();
@@ -96,7 +99,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
         arriving = RowUtils.set(arriving, getEffectiveFromFieldName(), arrivedTimestamp);
         arriving = RowUtils.set(arriving, getEffectiveToFieldName(), FAR_FUTURE_MILLIS);
         if (hasCurrentFlagField()) {
-          arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), CURRENT_FLAG_YES);
+          arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
         }
         if (hasLastUpdatedField()) {
           arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
@@ -156,7 +159,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
           arriving = RowUtils.set(arriving, getEffectiveFromFieldName(), arrivedTimestamp);
           arriving = RowUtils.set(arriving, getEffectiveToFieldName(), RowUtils.precedingTimestamp(planTimestamp));
           if (hasCurrentFlagField()) {
-            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), CURRENT_FLAG_NO);
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
           if (hasLastUpdatedField()) {
             arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
@@ -176,7 +179,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
           arriving = RowUtils.set(arriving, getEffectiveFromFieldName(), arrivedTimestamp);
           arriving = RowUtils.set(arriving, getEffectiveToFieldName(), RowUtils.precedingTimestamp(nextPlannedTimestamp));
           if (hasCurrentFlagField()) {
-            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), CURRENT_FLAG_NO);
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
           if (hasLastUpdatedField()) {
             arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
@@ -185,7 +188,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
 
           plan.setRow(RowUtils.set(plan.getRow(), getEffectiveToFieldName(), RowUtils.precedingTimestamp(arrivedTimestamp)));
           if (hasCurrentFlagField()) {
-            plan.setRow(RowUtils.set(plan.getRow(), getCurrentFlagFieldName(), CURRENT_FLAG_NO));
+            plan.setRow(RowUtils.set(plan.getRow(), getCurrentFlagFieldName(), getCurrentFlagNoValue()));
           }
           if (hasLastUpdatedField()) {
             plan.setRow(RowUtils.set(plan.getRow(), getLastUpdatedFieldName(), currentTimestampString()));
@@ -204,7 +207,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
           arriving = RowUtils.set(arriving, getEffectiveFromFieldName(), arrivedTimestamp);
           arriving = RowUtils.set(arriving, getEffectiveToFieldName(), FAR_FUTURE_MILLIS);
           if (hasCurrentFlagField()) {
-            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), CURRENT_FLAG_YES);
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
           }
           if (hasLastUpdatedField()) {
             arriving = RowUtils.set(arriving, getLastUpdatedFieldName(), currentTimestampString());
@@ -213,7 +216,7 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
 
           plan.setRow(RowUtils.set(plan.getRow(), getEffectiveToFieldName(), RowUtils.precedingTimestamp(arrivedTimestamp)));
           if (hasCurrentFlagField()) {
-            plan.setRow(RowUtils.set(plan.getRow(), getCurrentFlagFieldName(), CURRENT_FLAG_NO));
+            plan.setRow(RowUtils.set(plan.getRow(), getCurrentFlagFieldName(), getCurrentFlagNoValue()));
           }
           if (hasLastUpdatedField()) {
             plan.setRow(RowUtils.set(plan.getRow(), getLastUpdatedFieldName(), currentTimestampString()));
@@ -256,12 +259,28 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
     return config.hasPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
   }
 
+  private boolean hasCurrentFlagYes() {
+    return config.hasPath(CURRENT_FLAG_YES_CONFIG_NAME);
+  }
+
+  private boolean hasCurrentFlagNo() {
+    return config.hasPath(CURRENT_FLAG_NO_CONFIG_NAME);
+  }
+
   private String getLastUpdatedFieldName() {
     return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
   }
 
   private String getCurrentFlagFieldName() {
     return config.getString(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String getCurrentFlagYesValue(){
+    return hasCurrentFlagYes() ? config.getString(CURRENT_FLAG_YES_CONFIG_NAME) : CURRENT_FLAG_YES;
+  }
+
+  private String getCurrentFlagNoValue(){
+    return hasCurrentFlagNo() ? config.getString(CURRENT_FLAG_NO_CONFIG_NAME) : CURRENT_FLAG_NO;
   }
 
   private String getEffectiveToFieldName() {

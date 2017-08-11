@@ -49,6 +49,8 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
   public static final String SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME = "field.system.time.effective.from";
   public static final String SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME = "field.system.time.effective.to";
   public static final String CURRENT_FLAG_FIELD_NAME_CONFIG_NAME = "field.current.flag";
+  public static final String CURRENT_FLAG_YES_CONFIG_NAME = "current.flag.value.yes";
+  public static final String CURRENT_FLAG_NO_CONFIG_NAME = "current.flag.value.no";
   public static final String CARRY_FORWARD_CONFIG_NAME = "carry.forward.when.null";
 
   public static final String CURRENT_FLAG_YES = "Y";
@@ -123,7 +125,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
         arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
         if (hasCurrentFlagField) {
-          arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_YES);
+          arriving = set(arriving, currentFlagFieldName, getCurrentFlagYesValue());
         }
         plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
@@ -164,7 +166,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
 
           plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
           if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, CURRENT_FLAG_NO));
+            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
           }
           if (!plan.getMutationType().equals(MutationType.INSERT)) {
             plan.setMutationType(MutationType.UPDATE);
@@ -183,7 +185,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
           arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
           if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_NO);
+            arriving = set(arriving, currentFlagFieldName, getCurrentFlagNoValue());
           }
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
@@ -202,13 +204,13 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
           arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
           if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_NO);
+            arriving = set(arriving, currentFlagFieldName, getCurrentFlagNoValue());
           }
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
           if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, CURRENT_FLAG_NO));
+            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
           }
           if (!plan.getMutationType().equals(MutationType.INSERT)) {
             plan.setMutationType(MutationType.UPDATE);
@@ -232,12 +234,12 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
           arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
           if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, CURRENT_FLAG_YES);
+            arriving = set(arriving, currentFlagFieldName, getCurrentFlagYesValue());
           }
           plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
 
           if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, CURRENT_FLAG_NO));
+            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
           }
 
           if ((long)get(plan.getRow(), systemTimeEffectiveFromFieldName) < currentSystemTime) {
@@ -251,7 +253,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
             superseded = set(superseded, systemTimeEffectiveFromFieldName, currentSystemTime);
             superseded = set(superseded, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
             if (hasCurrentFlagField) {
-              superseded = set(superseded, currentFlagFieldName, CURRENT_FLAG_NO);
+              superseded = set(superseded, currentFlagFieldName, getCurrentFlagNoValue());
             }
             plannedForKey.add(new PlannedRow(superseded, MutationType.INSERT));
           }
@@ -281,7 +283,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
             superseded = set(superseded, systemTimeEffectiveToFieldName,
                 precedingTimestamp(currentSystemTime));
             if (hasCurrentFlagField) {
-              superseded = set(superseded, currentFlagFieldName, CURRENT_FLAG_NO);
+              superseded = set(superseded, currentFlagFieldName, getCurrentFlagNoValue());
             }
             if (plan.getMutationType().equals(MutationType.INSERT)) {
               plan.setRow(carried);
@@ -300,7 +302,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
               carried = set(carried, systemTimeEffectiveFromFieldName, currentSystemTime);
               carried = set(carried, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
               if (hasCurrentFlagField) {
-                carried = set(carried, currentFlagFieldName, CURRENT_FLAG_YES);
+                carried = set(carried, currentFlagFieldName, getCurrentFlagYesValue());
               }
               planned.add(new PlannedRow(carried, MutationType.INSERT));
             }
@@ -332,8 +334,24 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     return config.hasPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
   }
 
+  private boolean hasCurrentFlagYes() {
+    return config.hasPath(CURRENT_FLAG_YES_CONFIG_NAME);
+  }
+
+  private boolean hasCurrentFlagNo() {
+    return config.hasPath(CURRENT_FLAG_NO_CONFIG_NAME);
+  }
+
   private String getCurrentFlagFieldName() {
     return config.getString(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String getCurrentFlagYesValue(){
+    return hasCurrentFlagYes() ? config.getString(CURRENT_FLAG_YES_CONFIG_NAME) : CURRENT_FLAG_YES;
+  }
+
+  private String getCurrentFlagNoValue(){
+    return hasCurrentFlagNo() ? config.getString(CURRENT_FLAG_NO_CONFIG_NAME) : CURRENT_FLAG_NO;
   }
 
   private String getEventTimeEffectiveToFieldName() {
@@ -377,7 +395,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         into = set(into, fieldName, get(from, fieldName));
       }
     }
-    
+
     return into;
   }
 
@@ -406,5 +424,4 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
       return compareTimestamp(r1, r2, timestampFieldName);
     }
   }
-
 }

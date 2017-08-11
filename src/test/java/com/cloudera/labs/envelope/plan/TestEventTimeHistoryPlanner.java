@@ -459,13 +459,13 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 0);
   }
-  
+
   @Test
   public void testCarryForwardWhenNull() {
     p = new EventTimeHistoryPlanner();
     config = config.withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
     p.configure(config);
-    
+
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
     arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
     Row key = new RowWithSchema(keySchema, "a");
@@ -484,12 +484,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(1).getRow(), "enddate"), EventTimeHistoryPlanner.FAR_FUTURE_MILLIS);
     assertEquals(RowUtils.get(planned.get(1).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_YES);
   }
-  
+
   @Test
   public void testNoCarryForwardWhenNull() {
     p = new EventTimeHistoryPlanner();
     p.configure(config);
-    
+
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, EventTimeHistoryPlanner.FAR_FUTURE_MILLIS, EventTimeHistoryPlanner.CURRENT_FLAG_YES, ""));
     arriving.add(new RowWithSchema(arrivingSchema, "a", null, 200L));
     Row key = new RowWithSchema(keySchema, "a");
@@ -704,5 +704,35 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(3).getRow(), "startdate"), 200L);
     assertEquals(RowUtils.get(planned.get(3).getRow(), "enddate"), EventTimeHistoryPlanner.FAR_FUTURE_MILLIS);
     assertEquals(RowUtils.get(planned.get(3).getRow(), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_YES);
+  }
+
+
+  @Test
+  public void testNonDefaultCurrentFlag() {
+    String currFlagYes = "YES";
+    String currFlagNo = "NO";
+
+    config = config.
+        withValue(EventTimeHistoryPlanner.CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagYes)).
+        withValue(EventTimeHistoryPlanner.CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagNo));
+
+    p = new EventTimeHistoryPlanner();
+    p.configure(config);
+
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(planned.get(0).getMutationType(), MutationType.INSERT);
+    assertEquals(planned.get(1).getMutationType(), MutationType.INSERT);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "startdate"), 100L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "enddate"), 199L);
+    assertEquals(RowUtils.get(planned.get(0).getRow(), "currentflag"), currFlagNo);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "startdate"), 200L);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "enddate"), EventTimeHistoryPlanner.FAR_FUTURE_MILLIS);
+    assertEquals(RowUtils.get(planned.get(1).getRow(), "currentflag"), currFlagYes);
   }
 }
