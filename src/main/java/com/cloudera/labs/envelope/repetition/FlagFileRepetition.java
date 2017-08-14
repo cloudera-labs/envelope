@@ -101,21 +101,19 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable {
   @Override
   public void run() {
     try {
-      FileStatus stat = fs.getFileStatus(flagFile);
-      // We haven't thrown an exception so the file exists
-      currentFailures = 0;
-      switch (triggerMode) {
-        case PRESENT:
-          handlePresentFile();
-          break;
-        case MODIFIED:
-          handleModifiedFile(stat);
-          break;
+      if (fs.exists(flagFile)) {
+        FileStatus stat = fs.getFileStatus(flagFile);
+        // Successfully got file status so reset failure counter
+        currentFailures = 0;
+        switch (triggerMode) {
+          case PRESENT:
+            handlePresentFile();
+            break;
+          case MODIFIED:
+            handleModifiedFile(stat);
+            break;
+        }
       }
-    } catch (FileNotFoundException e) {
-      LOG.debug("Flag file [{}] not present", flagFile);
-      // This is not an error, it just means the file isn't there yet
-      currentFailures = 0;
     } catch (Exception e) {
       currentFailures++;
       if (currentFailures > numAllowedFailures) {
