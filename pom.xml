@@ -315,20 +315,9 @@
             <copyrightYear>${project.inceptionYear}-${currentYear}</copyrightYear>
             <copyrightOrganization>${project.organization.name}</copyrightOrganization>
           </properties>
-          <excludes>
-            <exclude>**/*.conf</exclude>
-            <exclude>**/*.properties</exclude>
-            <exclude>**/*.xml</exclude>
-            <exclude>**/*.sql</exclude>
-            <exclude>**/*.txt</exclude>
-            <exclude>**/*.log</exclude>
-            <exclude>**/*.json</exclude>
-            <exclude>**/*.grok</exclude>
-            <exclude>**/*.md</exclude>
-            <exclude>**/*.adoc</exclude>
-            <exclude>**/*.avsc</exclude>
-            <exclude>**/*.csv</exclude>
-          </excludes>
+          <includes>
+            <include>**/*.java</include>
+          </includes>
         </configuration>
         <executions>
           <execution>
@@ -345,20 +334,9 @@
         <artifactId>apache-rat-plugin</artifactId>
         <version>0.12</version>
         <configuration>
-          <excludes>
-            <exclude>**/*.conf</exclude>
-            <exclude>**/*.properties</exclude>
-            <exclude>**/*.xml</exclude>
-            <exclude>**/*.sql</exclude>
-            <exclude>**/*.txt</exclude>
-            <exclude>**/*.log</exclude>
-            <exclude>**/*.json</exclude>
-            <exclude>**/*.grok</exclude>
-            <exclude>**/*.md</exclude>
-            <exclude>**/*.adoc</exclude>
-            <exclude>**/*.avsc</exclude>
-            <exclude>**/*.csv</exclude>
-          </excludes>
+          <includes>
+            <include>**/*.java</include>
+          </includes>
         </configuration>
         <executions>
           <execution>
