@@ -21,16 +21,17 @@ import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
-import org.apache.avro.SchemaBuilder;
-import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
@@ -41,32 +42,29 @@ import com.typesafe.config.Config;
  */
 public class AvroTranslator implements Translator<byte[], byte[]> {
 
-  private List<String> fieldNames;
-  private List<String> fieldTypes;
-  private StructType schema;
+  private String avroSchemaLiteral;
   private Schema avroSchema;
+  private StructType schema;
   private boolean doesAppendRaw;
   private GenericDatumReader<GenericRecord> reader;
 
-  public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
-  public static final String FIELD_TYPES_CONFIG_NAME = "field.types";
+  public static final String AVRO_LITERAL_CONFIG = "schema.literal";
 
   @Override
   public void configure(Config config) {
-    fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
-    fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    avroSchema = schemaFor(fieldNames, fieldTypes);
-    reader = new GenericDatumReader<GenericRecord>(avroSchema);
+    avroSchemaLiteral = config.getString(AVRO_LITERAL_CONFIG);
+    avroSchema = new Schema.Parser().parse(avroSchemaLiteral);
+    schema = AvroUtils.structTypeFor(avroSchema);
     
     doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
     if (doesAppendRaw) {
-      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
-      fieldTypes.add("binary");
-      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
-      fieldTypes.add("binary");
+      List<StructField> rawFields = Lists.newArrayList(
+          DataTypes.createStructField(TranslatorUtils.getAppendRawKeyFieldName(config), DataTypes.BinaryType, false),
+          DataTypes.createStructField(TranslatorUtils.getAppendRawValueFieldName(config), DataTypes.BinaryType, false));
+      schema = RowUtils.appendFields(schema, rawFields);
     }
     
-    schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    reader = new GenericDatumReader<GenericRecord>(avroSchema);
   }
 
   @Override
@@ -86,43 +84,6 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
   @Override
   public StructType getSchema() {
     return schema;
-  }
-
-  private Schema schemaFor(List<String> fieldNames, List<String> fieldTypes) {
-    FieldAssembler<Schema> assembler = SchemaBuilder.record("t").fields();
-
-    for (int i = 0; i < fieldNames.size(); i++) {
-      String fieldName = fieldNames.get(i);
-      String fieldType = fieldTypes.get(i);
-
-      switch (fieldType) {
-        case "string":
-          assembler = assembler.optionalString(fieldName);
-          break;
-        case "float":
-          assembler = assembler.optionalFloat(fieldName);
-          break;
-        case "double":
-          assembler = assembler.optionalDouble(fieldName);
-          break;
-        case "int":
-          assembler = assembler.optionalInt(fieldName);
-          break;
-        case "long":
-          assembler = assembler.optionalLong(fieldName);
-          break;
-        case "boolean":
-          assembler = assembler.optionalBoolean(fieldName);
-          break;
-        case "binary":
-          assembler = assembler.optionalBytes(fieldName);
-          break;
-        default:
-          throw new RuntimeException("Unsupported provided field type: " + fieldType);
-      }
-    }
-
-    return assembler.endRecord();
   }
 
   private static Row rowForRecord(GenericRecord record) {

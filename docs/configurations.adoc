@@ -376,11 +376,8 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 ||
 |`_avro_`|
 
-|field.names
-|The list of fields to read from the Avro record.
-
-|field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+|schema.literal
+|The Avro JSON read schema for the values being translated.
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.

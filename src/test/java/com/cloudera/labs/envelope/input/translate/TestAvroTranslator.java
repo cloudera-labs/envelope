@@ -24,19 +24,18 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
-import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.junit.Test;
 
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
-import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -55,15 +54,14 @@ public class TestAvroTranslator {
     
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    DatumWriter<Record> writer = new SpecificDatumWriter<Record>(schema);
+    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
     writer.write(record, encoder);
     encoder.flush();
     out.close();
     byte[] a = out.toByteArray();
     
     Config config = ConfigFactory.empty()
-        .withValue(AvroTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(Lists.newArrayList("field1", "field2")))
-        .withValue(AvroTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(Lists.newArrayList("string", "int")));
+        .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()));
     
     Translator<byte[], byte[]> t = new AvroTranslator();
     t.configure(config);
@@ -85,15 +83,14 @@ public class TestAvroTranslator {
     
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    DatumWriter<Record> writer = new SpecificDatumWriter<Record>(schema);
+    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
     writer.write(record, encoder);
     encoder.flush();
     out.close();
     byte[] a = out.toByteArray();
     
     Config config = ConfigFactory.empty()
-        .withValue(AvroTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(Lists.newArrayList("field1", "field2")))
-        .withValue(AvroTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(Lists.newArrayList("string", "int")))
+        .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()))
         .withValue(TranslatorUtils.APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
     
     Translator<byte[], byte[]> t = new AvroTranslator();
