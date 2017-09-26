@@ -27,3 +27,17 @@ buildNumber.properties
 .idea
 *.iml
 /todo
+
+#Eclipse
+.classpath
+.settings
+.settings/
+.project
+
+#Mac
+.DS_Store
+
+#Local Hive Metastore
+metastore_db/
+spark-warehouse/
+derby.log

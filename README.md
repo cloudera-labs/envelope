@@ -19,7 +19,7 @@ Envelope requires a CDH5.7+ cluster with:
 
 - Cloudera's distribution of Apache Spark 2.1.0, or above
 - Cloudera's distribution of Apache Kafka 2.1.0 (based on Apache Kafka 0.10) or above, if using that component
-- Cloudera's distribution of Apache Kudu 1.3.0, if using that component
+- Cloudera's distribution of Apache Kudu 1.3.0 or above, if using that component
 
 ### Compiling Envelope
 
@@ -27,7 +27,7 @@ You can build the Envelope application from the top-level directory of the sourc
 
     mvn clean package
 
-This will create `envelope-0.5.0.jar` in the target directory.
+This will create `envelope-0.5.0.jar` in the `build/envelope/target` directory.
 
 ### Finding examples
 
