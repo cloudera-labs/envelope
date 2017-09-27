@@ -101,6 +101,7 @@ public class TestFlagFileRepetition {
 
       // Place flag file
       assertTrue(fs.createNewFile(flagFile));
+      System.out.println("File stat: " + fs.getFileStatus(flagFile));
 
       // Should _not_ be empty
       waitForResponse(300, false, 10);
@@ -108,8 +109,9 @@ public class TestFlagFileRepetition {
       // Should immediately be empty
       waitForResponse(300, true, 1);
 
-      // Repeat again
-      long mTime = System.currentTimeMillis();
+      // Repeat again and add 1000 as the local filesystem might only have a granularity of 1 second
+      long mTime = System.currentTimeMillis() + 1000;
+      System.out.println("Modifying file time to " + mTime);
       fs.setTimes(flagFile, mTime, mTime);
 
       // Should _not_ be empty as we have changed the file
