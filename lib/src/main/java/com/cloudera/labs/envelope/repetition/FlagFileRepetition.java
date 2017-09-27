@@ -92,7 +92,7 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable {
   private void handleModifiedFile(FileStatus stat) throws IOException {
     long modTime = stat.getModificationTime();
     if (modTime > lastModTime) {
-      LOG.info("Flag file [{}] is present and has been modified, repeating step", flagFile);
+      LOG.info("Flag file [{}] is present and has been modified since [{}], repeating step", flagFile, lastModTime);
       repeatStep();
       lastModTime = modTime;
     }
@@ -100,10 +100,12 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable {
 
   @Override
   public void run() {
+    LOG.trace("Firing flag-file repetition check");
     try {
       if (fs.exists(flagFile)) {
         FileStatus stat = fs.getFileStatus(flagFile);
         // Successfully got file status so reset failure counter
+        LOG.trace("Got flag-file stat: {}", stat);
         currentFailures = 0;
         switch (triggerMode) {
           case PRESENT:
