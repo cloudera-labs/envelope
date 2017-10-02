@@ -36,6 +36,11 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(FlagFileRepetition.class);
 
+  @Override
+  public String getAlias() {
+    return "flagfile";
+  }
+
   private enum TriggerMode {
     PRESENT,
     MODIFIED

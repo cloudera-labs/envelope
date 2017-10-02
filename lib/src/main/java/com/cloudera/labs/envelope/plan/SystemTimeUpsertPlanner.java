@@ -71,4 +71,8 @@ public class SystemTimeUpsertPlanner implements BulkPlanner {
     return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
   }
 
+  @Override
+  public String getAlias() {
+    return "systemtimeupsert";
+  }
 }

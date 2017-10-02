@@ -32,7 +32,7 @@ steps {
 
 ## Envelope-provided planners
 
-There are six planners bundled with Envelope.
+There are a number of planners bundled with Envelope.
 
 ### Append
 
@@ -263,7 +263,13 @@ And to query for what was at the previous system time our latest known state of 
 
 ## User-provided planners
 
-Custom developed planners can be provided by giving the fully-qualified class name of the planner to the `type` configuration. The class must implement `BulkPlanner` or `RandomPlanner`.
+Custom developed planners can be provided by giving the fully-qualified class name (or alias--see below) of the planner to the `type` configuration. The class must implement `BulkPlanner` or `RandomPlanner`.
+
+### Using Aliases
+
+To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
+  the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.planner.Planner` file
+  on the class path - the usual method is to package the file with your JAR.
 
 ## Bulk vs random planners
 

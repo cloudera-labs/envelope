@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.lang.reflect.Constructor;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class DeriverFactory {
+public class DeriverFactory extends LoadableFactory<Deriver> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,42 +28,10 @@ public class DeriverFactory {
     }
 
     String deriverType = config.getString(TYPE_CONFIG_NAME);
-
-    String deriverClass;
-    Deriver deriver;
-
-    switch (deriverType) {
-      case "sql":
-        deriverClass = "com.cloudera.labs.envelope.deriver.SQLDeriver";
-        break;
-      case "passthrough":
-        deriverClass = "com.cloudera.labs.envelope.deriver.PassthroughDeriver";
-        break;
-      case "nest":
-        deriverClass = "com.cloudera.labs.envelope.deriver.NestDeriver";
-        break;
-      case "morphline":
-        deriverClass = "com.cloudera.labs.envelope.deriver.MorphlineDeriver";
-        break;
-      case "pivot":
-        deriverClass = "com.cloudera.labs.envelope.deriver.PivotDeriver";
-        break;
-      case "exclude":
-        deriverClass = "com.cloudera.labs.envelope.deriver.ExcludeDeriver";
-        break;
-      case "dq":
-        deriverClass = "com.cloudera.labs.envelope.deriver.DataQualityDeriver";
-        break;
-      default:
-        deriverClass = deriverType;
-    }
-    
+    Deriver deriver = null;
     try {
-      Class<?> clazz = Class.forName(deriverClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      deriver = (Deriver)constructor.newInstance();
-    }
-    catch (Exception e) {
+      deriver = loadImplementation(Deriver.class, deriverType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 

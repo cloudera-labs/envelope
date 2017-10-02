@@ -76,6 +76,11 @@ public class LogOutput implements BulkOutput {
     return config.getString(LOG_LEVEL_CONFIG_NAME).toUpperCase();
   }
 
+  @Override
+  public String getAlias() {
+    return "log";
+  }
+
   @SuppressWarnings("serial")
   private static class SendRowToLogFunction implements VoidFunction<Row> {
     private Joiner joiner;

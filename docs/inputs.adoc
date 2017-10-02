@@ -93,4 +93,10 @@ input {
 
 In cases that Envelope does not provide an input for a required data source a custom input can be developed and referenced in the Envelope pipeline.
 
-To create a batch input implement the `BatchInput` interface, or to create a stream input implement the `StreamInput` interface. With the implemented class compiled into its own jar file the input can be referenced in the pipeline by using the fully qualified class name as the input `type`, and it can be provided to the Envelope application using the `--jars` argument when calling `spark2-submit`.
+To create a batch input implement the `BatchInput` interface, or to create a stream input implement the `StreamInput` interface. With the implemented class compiled into its own jar file the input can be referenced in the pipeline by using the fully qualified class name (or alias--see below) as the input `type`, and it can be provided to the Envelope application using the `--jars` argument when calling `spark2-submit`.
+
+=== Using Aliases
+
+To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
+  the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.input.Input` file
+  on the class path - the usual method is to package the file with your JAR.

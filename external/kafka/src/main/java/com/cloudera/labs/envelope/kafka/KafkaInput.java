@@ -162,7 +162,12 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
   public PairFunction<?, ?, ?> getPrepareFunction() {
     return new UnwrapConsumerRecordFunction();
   }
-  
+
+  @Override
+  public String getAlias() {
+    return "kafka";
+  }
+
   @SuppressWarnings({ "serial", "rawtypes" })
   private static class UnwrapConsumerRecordFunction implements PairFunction {
     @Override

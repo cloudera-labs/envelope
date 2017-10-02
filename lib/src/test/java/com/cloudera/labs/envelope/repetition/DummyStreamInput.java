@@ -79,4 +79,8 @@ public class DummyStreamInput implements StreamInput {
     };
   }
 
+  @Override
+  public String getAlias() {
+    return "dummy";
+  }
 }

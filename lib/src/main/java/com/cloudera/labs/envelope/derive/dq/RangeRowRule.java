@@ -122,4 +122,8 @@ public class RangeRowRule implements RowRule {
     return valueList;
   }
 
+  @Override
+  public String getAlias() {
+    return "range";
+  }
 }

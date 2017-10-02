@@ -15,6 +15,7 @@
  */
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 
 /**
@@ -22,7 +23,7 @@ import com.typesafe.config.Config;
  * Custom inputs should not implement Input directly -- they should implement either
  * BatchInput or StreamInput.
  */
-public interface Input {
+public interface Input extends Loadable {
 
   /**
    * Configure the input.

@@ -17,6 +17,7 @@ package com.cloudera.labs.envelope.plan;
 
 import java.util.Set;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 
 /**
@@ -24,7 +25,7 @@ import com.typesafe.config.Config;
  * Custom planners should not implement Planner directly -- they should implement BulkPlanner
  * or RandomPlanner.
  */
-public interface Planner {
+public interface Planner extends Loadable {
 
   /**
    * Configure the planner.

@@ -43,6 +43,11 @@ public class DatasetRowRuleWrapper implements DatasetRule {
     return dataset.map(new CheckRule(rowRule, name), RowEncoder.apply(SCHEMA)).select(new BooleanAggregator(name).toColumn());
   }
 
+  @Override
+  public String getAlias() {
+    return "rowrulewrapper";
+  }
+
   private class CheckRule implements MapFunction<Row, Row> {
 
     private RowRule theRule;

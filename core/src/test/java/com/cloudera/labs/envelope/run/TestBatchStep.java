@@ -212,6 +212,11 @@ public class TestBatchStep {
 
       return unioned;
     }
+
+    @Override
+    public String getAlias() {
+      return "passthrough";
+    }
   }
 
 }

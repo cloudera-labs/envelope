@@ -158,4 +158,8 @@ public class CheckSchemaDatasetRule implements DatasetRule {
     return map;
   }
 
+  @Override
+  public String getAlias() {
+    return "checkschema";
+  }
 }

@@ -98,4 +98,8 @@ public class MorphlineDeriver implements Deriver {
     return this.schema;
   }
 
+  @Override
+  public String getAlias() {
+    return "morphline";
+  }
 }

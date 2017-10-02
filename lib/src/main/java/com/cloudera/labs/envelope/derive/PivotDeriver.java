@@ -105,4 +105,8 @@ public class PivotDeriver implements Deriver {
     return pivoted;
   }
 
+  @Override
+  public String getAlias() {
+    return "pivot";
+  }
 }

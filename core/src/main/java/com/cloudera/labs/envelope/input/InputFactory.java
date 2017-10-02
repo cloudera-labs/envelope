@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import java.lang.reflect.Constructor;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class InputFactory {
+public class InputFactory extends LoadableFactory<Input> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,36 +28,10 @@ public class InputFactory {
     }
 
     String inputType = config.getString(TYPE_CONFIG_NAME);
-
-    String inputClass;
-    Input input;
-
-    switch (inputType) {
-      case "kafka":
-        inputClass = "com.cloudera.labs.envelope.input.KafkaInput";
-        break;
-      case "kudu":
-        inputClass = "com.cloudera.labs.envelope.input.KuduInput";
-        break;
-      case "filesystem":
-        inputClass = "com.cloudera.labs.envelope.input.FileSystemInput";
-        break;
-      case "hive":
-        inputClass = "com.cloudera.labs.envelope.input.HiveInput";
-        break;
-      case "jdbc":
-        inputClass = "com.cloudera.labs.envelope.input.JdbcInput";
-        break;
-      default:
-        inputClass = inputType;
-    }
-    
+    Input input = null;
     try {
-      Class<?> clazz = Class.forName(inputClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      input = (Input)constructor.newInstance();
-    }
-    catch (Exception e) {
+      input = loadImplementation(Input.class, inputType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 

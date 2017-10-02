@@ -59,4 +59,8 @@ public class RegexRowRule implements RowRule {
     return check;
   }
 
+  @Override
+  public String getAlias() {
+    return "regex";
+  }
 }

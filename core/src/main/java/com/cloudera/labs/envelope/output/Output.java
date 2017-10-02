@@ -15,6 +15,7 @@
  */
 package com.cloudera.labs.envelope.output;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 
 /**
@@ -22,7 +23,7 @@ import com.typesafe.config.Config;
  * Custom outputs should not directly implement this interface -- they should implement either
  * BulkOutput, RandomOutput, or both.
  */
-public interface Output {
+public interface Output extends Loadable {
 
   /**
    * Configure the output.

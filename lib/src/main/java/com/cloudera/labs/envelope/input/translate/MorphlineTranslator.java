@@ -148,4 +148,8 @@ public class MorphlineTranslator<K, V> implements Translator<K, V> {
     return outputRows;
   }
 
+  @Override
+  public String getAlias() {
+    return "morphline";
+  }
 }

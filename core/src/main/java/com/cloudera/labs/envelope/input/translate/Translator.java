@@ -15,6 +15,7 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
@@ -25,7 +26,7 @@ import com.typesafe.config.Config;
  * @param <K> The data type of the input keys
  * @param <V> The data type of the input values
  */
-public interface Translator<K, V> {
+public interface Translator<K, V> extends Loadable {
 
   /**
    * Configure the translator.

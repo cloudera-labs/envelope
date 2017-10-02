@@ -15,24 +15,22 @@
  */
 package com.cloudera.labs.envelope.partition;
 
-import java.io.Serializable;
-import java.lang.reflect.Constructor;
-import java.util.Comparator;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
+import com.typesafe.config.Config;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
 import org.apache.spark.RangePartitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.sql.Row;
-
-import com.typesafe.config.Config;
-
 import scala.math.Ordering;
 import scala.math.Ordering$;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 
-public class PartitionerFactory {
+import java.io.Serializable;
+import java.util.Comparator;
+
+public class PartitionerFactory extends LoadableFactory<ConfigurablePartitioner> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -43,8 +41,7 @@ public class PartitionerFactory {
       throw new RuntimeException("Partitioner type not specified");
     }
 
-    String partitionerClass = null;
-    Partitioner partitioner = null;
+    Partitioner partitioner;
 
     switch (partitionerType) {
       case "hash":
@@ -55,22 +52,16 @@ public class PartitionerFactory {
         ClassTag<Row> rowClassTag = ClassTag$.MODULE$.<Row>apply(Row.class);
         partitioner = new RangePartitioner<Row, Row>(rdd.getNumPartitions(), rdd.rdd(), true, rowOrdering, rowClassTag);
         break;
-      case "uuid":
-        partitionerClass = "com.cloudera.labs.envelope.partition.UUIDPartitioner";
-        break;
       default:
-        partitionerClass = partitionerType;
+        try {
+          partitioner = loadImplementation(ConfigurablePartitioner.class, partitionerType);
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+        }
     }
     
     if (partitioner == null) {
-      try {
-        Class<?> clazz = Class.forName(partitionerClass);
-        Constructor<?> constructor = clazz.getConstructor();
-        partitioner = (Partitioner)constructor.newInstance();
-      }
-      catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      throw new RuntimeException("No partitioner implementation found for: " + partitionerType);
     }
 
     if (partitioner instanceof ConfigurablePartitioner) {

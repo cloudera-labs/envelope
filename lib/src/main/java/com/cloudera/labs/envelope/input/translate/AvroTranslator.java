@@ -107,4 +107,8 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
     return RowFactory.create(values.toArray());
   }
 
+  @Override
+  public String getAlias() {
+    return "avro";
+  }
 }

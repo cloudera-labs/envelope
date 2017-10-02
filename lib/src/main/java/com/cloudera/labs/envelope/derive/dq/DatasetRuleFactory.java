@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-import java.lang.reflect.Constructor;
-
-public class DatasetRuleFactory {
+public class DatasetRuleFactory extends LoadableFactory<DatasetRule> {
 
   private static final String TYPE_CONFIG_NAME = "type";
 
@@ -31,34 +30,12 @@ public class DatasetRuleFactory {
     String ruleType = config.getString(TYPE_CONFIG_NAME);
 
     DatasetRule rule;
-
-    switch (ruleType) {
-      case "count":
-        rule = new CountDatasetRule();
-        break;
-      case "checkschema":
-        rule = new CheckSchemaDatasetRule();
-        break;
-      case "checknulls":
-      case "range":
-      case "enum":
-      case "regex":
-        rule = new DatasetRowRuleWrapper();
-        break;
-      default:
-        try {
-          Class<?> clazz = Class.forName(ruleType);
-          Constructor<?> constructor = clazz.getConstructor();
-          Object rawRule = constructor.newInstance();
-          if (rawRule instanceof RowRule) {
-            rule = new DatasetRowRuleWrapper();
-          } else {
-            rule = (DatasetRule) constructor.newInstance();
-          }
-        }
-        catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+    // First, see if this is a Dataset rule
+    try {
+      rule = loadImplementation(DatasetRule.class, ruleType);
+    } catch (Exception e) {
+      // It's probably a row rule
+      rule = new DatasetRowRuleWrapper();
     }
 
     rule.configure(name, config);

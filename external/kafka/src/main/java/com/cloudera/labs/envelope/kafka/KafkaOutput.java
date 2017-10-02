@@ -90,6 +90,11 @@ public class KafkaOutput implements BulkOutput {
     }
   }
 
+  @Override
+  public String getAlias() {
+    return "kafka";
+  }
+
   @SuppressWarnings("serial")
   private static class SendRowToKafkaFunction implements VoidFunction<Row> {
     private KafkaProducer<String, String> producer;

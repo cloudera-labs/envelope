@@ -87,6 +87,11 @@ public class NestDeriver implements Deriver {
     return nested;
   }
 
+  @Override
+  public String getAlias() {
+    return "nest";
+  }
+
   @SuppressWarnings("serial")
   private static class ExtractFieldsFunction implements Function<Row, List<Object>> {
     private List<String> fieldNames;

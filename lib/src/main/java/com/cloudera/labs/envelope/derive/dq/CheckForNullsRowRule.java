@@ -45,4 +45,8 @@ public class CheckForNullsRowRule implements RowRule {
     return true;
   }
 
+  @Override
+  public String getAlias() {
+    return "checknulls";
+  }
 }

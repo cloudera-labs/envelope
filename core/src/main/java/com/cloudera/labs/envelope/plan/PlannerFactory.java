@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.lang.reflect.Constructor;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class PlannerFactory {
+public class PlannerFactory extends LoadableFactory<Planner> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,45 +28,12 @@ public class PlannerFactory {
     }
 
     String plannerType = plannerConfig.getString(TYPE_CONFIG_NAME);
-
-    String plannerClass;
-    Planner planner;
-
-    switch (plannerType) {
-      case "append":
-        plannerClass = "com.cloudera.labs.envelope.plan.AppendPlanner";
-        break;
-      case "upsert":
-        plannerClass = "com.cloudera.labs.envelope.plan.UpsertPlanner";
-        break;
-      case "overwrite":
-        plannerClass = "com.cloudera.labs.envelope.plan.OverwritePlanner";
-        break;
-      case "eventtimeupsert":
-        plannerClass = "com.cloudera.labs.envelope.plan.EventTimeUpsertPlanner";
-        break;
-      case "history":
-        plannerClass = "com.cloudera.labs.envelope.plan.EventTimeHistoryPlanner";
-        break;
-      case "bitemporal":
-        plannerClass = "com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner";
-        break;
-      case "delete":
-        plannerClass = "com.cloudera.labs.envelope.plan.DeletePlanner";
-        break;
-      default:
-        plannerClass = plannerType;
-    }
-    
+    Planner planner = null;
     try {
-      Class<?> clazz = Class.forName(plannerClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      planner = (Planner)constructor.newInstance();
-    }
-    catch (Exception e) {
+      planner = loadImplementation(Planner.class, plannerType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-
     planner.configure(plannerConfig);
 
     return planner;

@@ -308,4 +308,8 @@ public class ZooKeeperOutput implements RandomOutput, Watcher {
     return true;
   }
 
+  @Override
+  public String getAlias() {
+    return "zookeeper";
+  }
 }

@@ -132,6 +132,11 @@ public class EventTimeUpsertPlanner implements RandomPlanner {
     return new Date(System.currentTimeMillis()).toString();
   }
 
+  @Override
+  public String getAlias() {
+    return "eventtimeupsert";
+  }
+
   private class TimestampComparator implements Comparator<Row> {
     private String timestampFieldName;
 

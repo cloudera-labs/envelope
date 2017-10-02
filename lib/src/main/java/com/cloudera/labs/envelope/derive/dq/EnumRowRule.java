@@ -112,4 +112,8 @@ public class EnumRowRule implements RowRule {
     return valueSet;
   }
 
+  @Override
+  public String getAlias() {
+    return "enum";
+  }
 }

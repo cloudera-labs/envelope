@@ -439,4 +439,8 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
     LOG.info("Kudu output received accumulators");
   }
 
+  @Override
+  public String getAlias() {
+    return "kudu";
+  }
 }

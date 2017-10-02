@@ -77,4 +77,8 @@ public class SQLDeriver implements Deriver {
     return contents;
   }
 
+  @Override
+  public String getAlias() {
+    return "sql";
+  }
 }

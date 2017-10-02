@@ -1,0 +1,3 @@
+com.cloudera.labs.envelope.input.FileSystemInput
+com.cloudera.labs.envelope.input.HiveInput
+com.cloudera.labs.envelope.input.JdbcInput

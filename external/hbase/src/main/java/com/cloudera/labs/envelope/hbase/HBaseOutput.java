@@ -229,6 +229,11 @@ public class HBaseOutput implements RandomOutput, BulkOutput {
     }
   }
 
+  @Override
+  public String getAlias() {
+    return "hbase";
+  }
+
   @SuppressWarnings("serial")
   public static class BulkHBaseMutatorFunction implements ForeachPartitionFunction<Row> {
 

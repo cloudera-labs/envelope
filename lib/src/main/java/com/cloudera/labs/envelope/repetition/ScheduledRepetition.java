@@ -46,4 +46,8 @@ public class ScheduledRepetition extends AbstractRepetition implements Runnable 
     repeatStep();
   }
 
+  @Override
+  public String getAlias() {
+    return "schedule";
+  }
 }

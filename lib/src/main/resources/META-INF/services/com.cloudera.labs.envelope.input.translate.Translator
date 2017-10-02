@@ -1,0 +1,4 @@
+com.cloudera.labs.envelope.input.translate.AvroTranslator
+com.cloudera.labs.envelope.input.translate.DelimitedTranslator
+com.cloudera.labs.envelope.input.translate.KVPTranslator
+com.cloudera.labs.envelope.input.translate.MorphlineTranslator

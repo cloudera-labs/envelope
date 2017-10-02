@@ -191,7 +191,7 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |Configuration suffix|Description
 
 |type
-|The input type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`. To use a custom input, specify the fully qualified name of the `Input` implementation class.
+|The input type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`. To use a custom input, specify the fully qualified name or alias of the `Input` implementation class.
 
 |repartition.partitions
 |The number of DataFrame partitions to repartition the input by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the input.
@@ -371,7 +371,7 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |Configuration suffix|Description
 
 |type
-|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`. To use a custom translator, specify the fully qualified name of the `Translator` implementation class.
+|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
 
 ||
 |`_avro_`|
@@ -474,7 +474,7 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude` and `dq`. To use a custom deriver, specify the fully qualified name of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude` and `dq`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
 
 |repartition.partitions
 |The number of DataFrame partitions to repartition the deriver results by. In Spark this will run `DataFrame#repartition`. If this configuration is not provided then Envelope will not repartition the deriver results.
@@ -648,7 +648,7 @@ Partitioner configurations belong to data steps, and have the `steps.[stepname].
 |Configuration suffix|Description
 
 |type
-|The partitioner type to be used. Envelope provides `hash`, `range`, `uuid`. To use a custom partitioner, specify the fully qualified name of the `ConfigurablePartitioner` implementation class. If no partitioner type is specified, Envelope will use the `hash` partitioner.
+|The partitioner type to be used. Envelope provides `hash`, `range`, `uuid`. To use a custom partitioner, specify the fully qualified name or alias of the `ConfigurablePartitioner` implementation class. If no partitioner type is specified, Envelope will use the `hash` partitioner.
 
 |===
 
@@ -661,7 +661,7 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |Configuration suffix|Description
 
 |type
-|The planner type to be used. Envelope provides `append`, `bitemporal`, `delete`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name of the `Planner` implementation class.
+|The planner type to be used. Envelope provides `append`, `bitemporal`, `delete`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name or alias of the `Planner` implementation class.
 
 ||
 |`_append_`|
@@ -782,7 +782,7 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |Configuration suffix|Description
 
 |type
-|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`, `hbase`, `zookeeper`. To use a custom output, specify the fully qualified name of the `Output` implementation class.
+|The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`, `hbase`, `zookeeper`. To use a custom output, specify the fully qualified name or alias of the `Output` implementation class.
 
 ||
 |`_filesystem_`|
@@ -998,7 +998,7 @@ The general configuration parameters for repetitions are:
 |Configuration suffix|Description
 
 |type
-|Required. The repetition type to be used. Envelope provides `scheduled` and `flagfile`. To use a custom repetition, specify the fully qualified name of the `Repetition` implementation class.
+|Required. The repetition type to be used. Envelope provides `scheduled` and `flagfile`. To use a custom repetition, specify the fully qualified name of the class (or alias) implementing the `Repetition` interface.
 
 |min-repeat-interval
 |Optional. To prevent steps being reloaded too frequently, this represents the minimum interval between repetitions. The value is interpreted as a

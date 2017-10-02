@@ -88,4 +88,9 @@ public class JdbcOutput implements BulkOutput  {
 
     }
   }
+
+  @Override
+  public String getAlias() {
+    return "jdbc";
+  }
 }

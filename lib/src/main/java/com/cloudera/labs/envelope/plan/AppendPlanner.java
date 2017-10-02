@@ -99,4 +99,8 @@ public class AppendPlanner implements BulkPlanner {
     return Boolean.parseBoolean(config.getString(UUID_KEY_CONFIG_NAME));
   }
 
+  @Override
+  public String getAlias() {
+    return "append";
+  }
 }

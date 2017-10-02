@@ -74,6 +74,11 @@ public class CountDatasetRule implements DatasetRule {
     return dependency != null && !dependency.isEmpty();
   }
 
+  @Override
+  public String getAlias() {
+    return "count";
+  }
+
   private class CheckCount implements MapFunction<Row, Row> {
 
     private long thisExpected;

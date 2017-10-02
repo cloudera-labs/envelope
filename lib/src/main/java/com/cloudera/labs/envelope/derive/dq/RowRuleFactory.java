@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-import java.lang.reflect.Constructor;
-
-public class RowRuleFactory {
+public class RowRuleFactory extends LoadableFactory<RowRule> {
 
   private static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,31 +28,11 @@ public class RowRuleFactory {
     }
 
     String ruleType = config.getString(TYPE_CONFIG_NAME);
-
     RowRule rule;
-
-    switch (ruleType) {
-      case "checknulls":
-        rule = new CheckForNullsRowRule();
-        break;
-      case "range":
-        rule = new RangeRowRule();
-        break;
-      case "enum":
-        rule = new EnumRowRule();
-        break;
-      case "regex":
-        rule = new RegexRowRule();
-        break;
-      default:
-        try {
-          Class<?> clazz = Class.forName(ruleType);
-          Constructor<?> constructor = clazz.getConstructor();
-          rule = (RowRule) constructor.newInstance();
-        }
-        catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+    try {
+      rule = loadImplementation(RowRule.class, ruleType);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
 
     rule.configure(name, config);

@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import java.lang.reflect.Constructor;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class OutputFactory {
+public class OutputFactory extends LoadableFactory<Output> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,45 +28,10 @@ public class OutputFactory {
     }
 
     String outputType = config.getString(TYPE_CONFIG_NAME);
-
-    String outputClass;
-    Output output;
-
-    switch (outputType) {
-      case "kudu":
-        outputClass = "com.cloudera.labs.envelope.output.KuduOutput";
-        break;
-      case "kafka":
-        outputClass = "com.cloudera.labs.envelope.output.KafkaOutput";
-        break;
-      case "log":
-        outputClass = "com.cloudera.labs.envelope.output.LogOutput";
-        break;
-      case "hive":
-        outputClass = "com.cloudera.labs.envelope.output.HiveOutput";
-        break;
-      case "filesystem":
-        outputClass = "com.cloudera.labs.envelope.output.FileSystemOutput";
-        break;
-      case "jdbc":
-        outputClass = "com.cloudera.labs.envelope.output.JdbcOutput";
-        break;
-      case "hbase":
-        outputClass = "com.cloudera.labs.envelope.output.HBaseOutput";
-        break;
-      case "zookeeper":
-        outputClass = "com.cloudera.labs.envelope.output.ZooKeeperOutput";
-        break;
-      default:
-        outputClass = outputType;
-    }
-    
+    Output output = null;
     try {
-      Class<?> clazz = Class.forName(outputClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      output = (Output)constructor.newInstance();
-    }
-    catch (Exception e) {
+      output = loadImplementation(Output.class, outputType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 

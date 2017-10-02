@@ -17,6 +17,7 @@ package com.cloudera.labs.envelope.derive;
 
 import java.util.Map;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -26,7 +27,7 @@ import com.typesafe.config.Config;
  * Derivers create new DataFrames derived from DataFrames already loaded into the Spark application.
  * Custom derivers should directly implement this interface.
  */
-public interface Deriver {
+public interface Deriver extends Loadable {
 
   /**
    * Configure the deriver.

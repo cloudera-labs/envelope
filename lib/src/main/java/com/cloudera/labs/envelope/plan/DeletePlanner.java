@@ -43,4 +43,8 @@ public class DeletePlanner implements BulkPlanner {
   @Override
   public void configure(Config config) {}
 
+  @Override
+  public String getAlias() {
+    return "delete";
+  }
 }

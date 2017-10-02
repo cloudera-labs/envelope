@@ -87,4 +87,8 @@ public class ExcludeDeriver implements Deriver {
 
   }
 
+  @Override
+  public String getAlias() {
+    return "exclude";
+  }
 }

@@ -15,11 +15,10 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.lang.reflect.Constructor;
-
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class TranslatorFactory {
+public class TranslatorFactory extends LoadableFactory<Translator<?,?>> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -29,32 +28,10 @@ public class TranslatorFactory {
     }
 
     String translatorType = config.getString(TYPE_CONFIG_NAME);
-
-    String translatorClass;
-    Translator<?, ?> translator;
-
-    if (translatorType.equals("kvp")) {
-      translatorClass = "com.cloudera.labs.envelope.input.translate.KVPTranslator";
-    }
-    else if (translatorType.equals("delimited")) {
-      translatorClass = "com.cloudera.labs.envelope.input.translate.DelimitedTranslator";
-    }
-    else if (translatorType.equals("avro")) {
-      translatorClass = "com.cloudera.labs.envelope.input.translate.AvroTranslator";
-    }
-    else if (translatorType.equals("morphline")) {
-      translatorClass = "com.cloudera.labs.envelope.input.translate.MorphlineTranslator";
-    }
-    else {
-      translatorClass = translatorType;
-    }
-    
+    Translator<?,?> translator = null;
     try {
-      Class<?> clazz = Class.forName(translatorClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      translator = (Translator<?, ?>)constructor.newInstance();
-    }
-    catch (Exception e) {
+      translator = loadImplementation(Translator.class, translatorType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 

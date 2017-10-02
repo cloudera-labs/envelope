@@ -2,7 +2,7 @@
 
 Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
 
-Envelope provides five derivers out of the box and also allows custom derivers to be specified.
+Envelope provides a number of derivers out of the box and also allows custom derivers to be specified.
 
 == Provided derivers
 
@@ -372,6 +372,10 @@ scope rules should implement a `check(Dataset<Row> dataset, Map<String, Dataset<
 method which returns a Dataset with a row per rule with the schema `name: String, result: Boolean`.
 Row level rules are automatically wrapped in `DatasetRowRuleWrapper` when used in a dataset scope.
 
+The custom rules also must implement a `getAlias()` method which allows an alias to be used instead of the fully-qualified
+class name in Envelope config files. The implementation must be placed in a `META-INF/services/com.cloudera.labs.envelope.derive.dq.DatasetRule`
+ or `META-INF/services/com.cloudera.labs.envelope.derive.dq.RowRule` file on the classpath.
+
 == Custom derivers
 
 In cases that Envelope does not provide a deriver that meets the requirements for a particular derivation a custom deriver can be developed and provided instead.
@@ -385,8 +389,8 @@ For example, if you are using Maven:
 ----
 <dependency>
   <groupId>com.cloudera.labs</groupId>
-  <artifactId>envelope</artifactId>
-  <version>0.4.0</version>
+  <artifactId>envelope-core</artifactId>
+  <version>0.5.0</version>
   <scope>provided</scope>
 </dependency>
 ----
@@ -397,8 +401,9 @@ The two methods in the interface are:
 
 - `configure` to receive the configurations of the `deriver` section of the step. This can be used to retrieve any custom configurations required by the deriver.
 - `derive` to run a derivation. The `dependencies` argument provides the name and Spark DataFrame for each of the dependencies of the step that contains the deriver. The return value is the DataFrame that represents the derivation. Access to the SparkSession object is available from the static method `Contexts#getSparkSession`.
+- `getAlias` to provide a short alias for your new implementation (see Using Aliases below).
 
-To reference the deriver in your pipeline simply use the deriver's fully qualified class name as the deriver type. For example:
+To reference the deriver in your pipeline simply use the deriver's fully qualified class name (or alias--see below) as the deriver type. For example:
 
 ----
 ...
@@ -409,6 +414,14 @@ deriver {
 }
 ...
 ----
+
+=== Using Aliases
+
+To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
+  the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.derive.Deriver` file
+  on the class path - the usual method is to package the file with your JAR.
+
+=== Adding at runtime
 
 With the project compiled into a jar file the deriver can be submitted as part of the Envelope pipeline similarly to:
 

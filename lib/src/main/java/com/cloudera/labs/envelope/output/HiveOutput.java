@@ -122,4 +122,8 @@ public class HiveOutput implements BulkOutput {
     return config.getString(TABLE_CONFIG);
   }
 
+  @Override
+  public String getAlias() {
+    return "hive";
+  }
 }

@@ -1,0 +1,4 @@
+com.cloudera.labs.envelope.output.FileSystemOutput
+com.cloudera.labs.envelope.output.HiveOutput
+com.cloudera.labs.envelope.output.JdbcOutput
+com.cloudera.labs.envelope.output.LogOutput

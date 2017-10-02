@@ -325,6 +325,11 @@ public class EventTimeHistoryPlanner implements RandomPlanner {
     return new Date(System.currentTimeMillis()).toString();
   }
 
+  @Override
+  public String getAlias() {
+    return "history";
+  }
+
   private class PlanTimestampComparator implements Comparator<PlannedRow> {
     private String timestampFieldName;
 

@@ -55,4 +55,9 @@ public class DummyBatchOutput implements BulkOutput {
   public static List<Row> getOutputs() {
     return outputs;
   }
+
+  @Override
+  public String getAlias() {
+    return "dummy";
+  }
 }

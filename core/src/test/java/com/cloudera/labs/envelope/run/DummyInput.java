@@ -49,7 +49,12 @@ public class DummyInput implements BatchInput {
                 )));
     return df;
   }
-  
+
+  @Override
+  public String getAlias() {
+    return "dummy";
+  }
+
   @SuppressWarnings("serial")
   private static class LongToRowFunction implements MapFunction<Long, Row> {
     @Override

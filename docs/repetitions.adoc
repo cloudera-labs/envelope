@@ -79,7 +79,7 @@ the step every hour and the other in response to the presence of a flag file on 
 
 ## Developing a Repetition
 
-New repetition instances _must_ implement the `Repetition` API. The `AbstractRepetition` class
+New repetition instances must implement the `Repetition` API. The `AbstractRepetition` class
 has useful state and methods and it is recommended to extend this but this is not mandatory.
 The `AbstractRepetition` maintains state for the repetition name, the step it is attached to
 as well as providing a handy `repeatStep()` method for when the step needs to be - well - repeated.
@@ -88,10 +88,11 @@ and schedule themselves for regular running in the central executor pool. Note t
 be required in every case.
 
 The `Repetition` interface only requires that implementers include a `configure` method that
-accepts the step instance for this repetition, a name for the repetition and the configuration
+accepts three parameters: the step instance for this repetition, a name for the repetition and the configuration
 sub-section for the repetition from the config file. The configure method should set up
 any resources required to run the repetition, such as scheduled threads, handles to external
-resources etc.
+resources etc. In addition, because it extends the `Loadable` interfqce, the implementation should provide a short-name
+alias.
 
 As an example, let's look at how `ScheduledRepetition` is implemented. It's short enough to simply
 paste the entire code here:
@@ -133,3 +134,9 @@ The actual work of checking to see if a repetition should be triggered is implem
 `run()` method (so it gets executed every time the regular task is executed). Here, the
 implementation is super simple - since this step should be run at the rate specified in the
 configuration we simply call `repeatStep` and `Runner` and `Repetitions` do the rest.
+
+### Specifying an alias
+
+The `Loadable` interface allows for shorter aliases to be used in Envelope config files.
+This functionality only works if the fully qualified classname is
+placed in a `META-INF/services/com.cloudera.labs.envelope.repetition.Repetition` file on the classpath.

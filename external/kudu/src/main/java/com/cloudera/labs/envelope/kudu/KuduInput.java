@@ -48,4 +48,8 @@ public class KuduInput implements BatchInput {
     return tableDF;
   }
 
+  @Override
+  public String getAlias() {
+    return "kudu";
+  }
 }

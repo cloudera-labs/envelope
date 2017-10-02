@@ -154,4 +154,8 @@ public class KVPTranslator implements Translator<String, String> {
     }
   }
 
+  @Override
+  public String getAlias() {
+    return "kvp";
+  }
 }

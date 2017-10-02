@@ -285,7 +285,12 @@ public class FileSystemInput implements BatchInput {
       return lines;
     }
   }
-  
+
+  @Override
+  public String getAlias() {
+    return "filesystem";
+  }
+
   @SuppressWarnings("serial")
   private static class PrepareLineForTranslationFunction implements MapFunction<Row, Tuple2<String, String>> {
     @Override

@@ -399,6 +399,11 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
     return into;
   }
 
+  @Override
+  public String getAlias() {
+    return "bitemporal";
+  }
+
   private class PlanTimestampComparator implements Comparator<PlannedRow> {
     private String timestampFieldName;
 

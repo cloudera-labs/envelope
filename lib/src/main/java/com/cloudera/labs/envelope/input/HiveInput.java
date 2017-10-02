@@ -43,4 +43,8 @@ public class HiveInput implements BatchInput {
     return Contexts.getSparkSession().read().table(tableName);
   }
 
+  @Override
+  public String getAlias() {
+    return "hive";
+  }
 }

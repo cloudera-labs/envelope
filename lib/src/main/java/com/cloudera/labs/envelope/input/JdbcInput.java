@@ -66,4 +66,9 @@ public class JdbcInput implements BatchInput{
 
     return Contexts.getSparkSession().read().jdbc(url,tablename,properties);
   }
+
+  @Override
+  public String getAlias() {
+    return "jdbc";
+  }
 }

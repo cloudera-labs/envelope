@@ -56,7 +56,12 @@ public class FIXInput implements BatchInput {
     
     return fixDF;
   }
-  
+
+  @Override
+  public String getAlias() {
+    return "fixexample";
+  }
+
   @SuppressWarnings("serial")
   private static class GenerateFIXMessages implements FlatMapFunction<Long, Row> {
     private long ordersPerTask;

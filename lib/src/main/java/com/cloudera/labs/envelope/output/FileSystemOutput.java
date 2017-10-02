@@ -137,4 +137,8 @@ public class FileSystemOutput implements BulkOutput {
     return Sets.newHashSet(MutationType.INSERT, MutationType.OVERWRITE);
   }
 
+  @Override
+  public String getAlias() {
+    return "filesystem";
+  }
 }

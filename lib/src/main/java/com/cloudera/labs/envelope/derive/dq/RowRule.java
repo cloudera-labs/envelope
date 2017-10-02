@@ -15,12 +15,13 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 
 import java.io.Serializable;
 
-public interface RowRule extends Serializable {
+public interface RowRule extends Serializable, Loadable {
 
   /**
    * Called once by Envelope to configure the data quality rule

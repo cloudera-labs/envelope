@@ -15,20 +15,21 @@
  */
 package com.cloudera.labs.envelope.repetition;
 
+import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.typesafe.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Constructor;
+public class RepetitionFactory extends LoadableFactory<Repetition> {
 
-public class RepetitionFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(RepetitionFactory.class);
 
   public static final String TYPE_CONFIG_NAME = "type";
 
   /**
-   * Create a {@link Repetition} instance with the supplied name and associated with the supplied step. Shipped
-   * implementations include {@code schedule} (see {@link ScheduledRepetition} and {@code flagfile} (see {@link FlagFileRepetition})
-   * but arbitrary implementations can be selected using the fully-qualified class name. The {@code type} parameter
-   * is mandatory in the supplied {@code repetitionConfig}.
+   * Create a {@link Repetition} instance with the supplied name and associated with the supplied step.
+   * The {@code type} parameter is mandatory in the supplied {@code repetitionConfig}.
    * @param step the linked {@link BatchStep} for this repetition
    * @param name the name of the repetition
    * @param repetitionConfig the configuration of the repetition
@@ -39,32 +40,14 @@ public class RepetitionFactory {
       throw new RuntimeException("Repetition type not specified");
     }
 
+    LOG.debug("Loaded repetitions from services: {}" + getLoadables(Repetition.class));
     String repetitionType = repetitionConfig.getString(TYPE_CONFIG_NAME);
-
-    String repetitionClass;
-    Repetition repetition;
-
-    switch(repetitionType) {
-      case "schedule":
-        repetitionClass = "com.cloudera.labs.envelope.repetition.ScheduledRepetition";
-        break;
-      case "flagfile":
-        repetitionClass = "com.cloudera.labs.envelope.repetition.FlagFileRepetition";
-        break;
-      // TODO: hdfs directory pattern, Kafka topic, others...
-      default:
-        repetitionClass = repetitionType;
-    }
-    
+    Repetition repetition = null;
     try {
-      Class<?> clazz = Class.forName(repetitionClass);
-      Constructor<?> constructor = clazz.getConstructor();
-      repetition = (Repetition)constructor.newInstance();
-    }
-    catch (Exception e) {
+      repetition = loadImplementation(Repetition.class, repetitionType);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-
     repetition.configure(step, name, repetitionConfig);
 
     return repetition;

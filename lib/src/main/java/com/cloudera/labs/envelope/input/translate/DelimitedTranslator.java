@@ -130,4 +130,8 @@ public class DelimitedTranslator implements Translator<String, String> {
     }
   }
 
+  @Override
+  public String getAlias() {
+    return "delimited";
+  }
 }

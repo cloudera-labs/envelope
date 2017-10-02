@@ -45,4 +45,8 @@ public class UUIDPartitioner extends ConfigurablePartitioner {
     return numPartitions;
   }
 
+  @Override
+  public String getAlias() {
+    return "uuid";
+  }
 }

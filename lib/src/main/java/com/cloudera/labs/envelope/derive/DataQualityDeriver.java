@@ -52,6 +52,11 @@ public class DataQualityDeriver implements Deriver {
 
   private static final String DEFAULT_RESULTS_FIELD = "results";
 
+  @Override
+  public String getAlias() {
+    return "dq";
+  }
+
   private enum Scope {
     DATASET,
     ROW

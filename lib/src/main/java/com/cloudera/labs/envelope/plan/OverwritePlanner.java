@@ -47,4 +47,8 @@ public class OverwritePlanner implements BulkPlanner {
     return Sets.newHashSet(MutationType.OVERWRITE);
   }
 
+  @Override
+  public String getAlias() {
+    return "overwrite";
+  }
 }
