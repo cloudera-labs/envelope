@@ -1,0 +1,44 @@
+# Task Guide
+
+Tasks are a type of step that allows an Envelope pipeline to make side effects that are outside of the flow of data through the pipeline. Examples of tasks could include sending emails, or raising alerts, or updating external operational metadata.
+
+Tasks can read in the data from the dependencies of the task step they are defined in, but they can not provide data to subsequent steps.
+
+Envelope does not provide any task implementations. All usages of a task step must reference a custom developed task.
+
+## Custom tasks
+
+A custom task must implement the `Task` interface. The `configure` method receives the configuration of the task from the pipeline, the `run` method is an execution of the task, and the `getAlias` method provides an alias for the custom class for use in Envelope configuration files.
+
+All tasks run in the driver process and so they should be designed to be fast, require little memory, and if they read the contents of dependency DataFrames then the data should be very small.
+
+To develop a custom task:
+
+. Create a new Java or Scala project that includes a dependency on the Envelope version you are using.
+. Create an implementation of the `Task` interface (under `com.cloudera.labs.envelope.task`).
+. Optionally, if you want to use the alias in your Envelope configuration files, add a file to your project at location 'META-INF/services/com.cloudera.labs.envelope.task.Task' with your task's fully qualified class name as the file contents.
+. Compile your project to a jar. You do not need to include Envelope or Spark in your compiled artifact.
+. Add task step to your pipeline by setting `type` to `task`, `class` to the fully qualified class name of your task, and any other configurations for your task.
+. Run the pipeline with your task similarly to:
+
+  spark2-submit --jars yourtask.jar envelope-*.jar yourpipeline.conf
+
+### Example
+
+----
+application {
+  name = Custom task
+  ...
+}
+
+steps {
+  ...
+  run_task {
+    dependencies = [...]
+    type = task
+    class = com.example.CustomTask
+    value = hello
+  }
+  ...
+}
+----

@@ -15,6 +15,7 @@
  */
 package com.cloudera.labs.envelope.utils;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.cloudera.labs.envelope.repetition.Repetitions;
@@ -22,7 +23,11 @@ import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.Step;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,6 +186,18 @@ public class StepUtils {
     }
     
     return stepsCopy;
+  }
+  
+  public static Map<String, Dataset<Row>> getStepDataFrames(Set<Step> steps) {
+    Map<String, Dataset<Row>> stepDFs = Maps.newHashMap();
+
+    for (Step step : steps) {
+      if (step instanceof DataStep) {
+        stepDFs.put(step.getName(), ((DataStep)step).getData());
+      }
+    }
+
+    return stepDFs;
   }
 
 }

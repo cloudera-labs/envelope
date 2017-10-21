@@ -94,7 +94,7 @@ Step configurations have the `steps.[stepname].` prefix. All steps can have the 
 |Configuration suffix|Description
 
 |type
-|The step type. Envelope supports `data`, `loop`, and `decision`. Default `data`.
+|The step type. Envelope supports `data`, `loop`, `decision`, `task`. Default `data`.
 
 |dependencies
 |The list of step names that Envelope will submit before submitting this step.
@@ -179,6 +179,19 @@ Decision steps can, additionally to the step configurations, have the below conf
 
 |key
 |Required if `method` is `step_by_key`. The specific key of the previous step to look up the boolean result by.
+
+|===
+
+=== Task steps
+
+Task steps can, additionally to the step configurations, have the below configurations. For more information on task steps see the link:tasks.adoc[tasks guide].
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|class
+|Required. The alias or fully qualified class name of the `Task` implementation.
 
 |===
 

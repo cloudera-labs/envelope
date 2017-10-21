@@ -57,3 +57,4 @@ If you are ready for more, dive in:
 * [Planners Guide](docs/planners.adoc) - directions and details on when, why, and how to use planners and associated outputs
 * [Looping Guide](docs/looping.adoc) - information and an example for defining loops in an Envelope pipeline
 * [Decisions Guide](docs/decisions.adoc) - information on using decisions to dynamically choose which parts of the pipeline to run
+* [Tasks Guide](docs/tasks.adoc) - how to apply side-effects in an Envelope pipeline that are separate from the data flow

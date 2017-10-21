@@ -59,6 +59,7 @@ public class Runner {
   public static final String DATA_TYPE = "data";
   public static final String LOOP_TYPE = "loop";
   public static final String DECISION_TYPE = "decision";
+  public static final String TASK_TYPE = "task";
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
   
   private static ExecutorService threadPool;
@@ -133,6 +134,10 @@ public class Runner {
       else if (stepConfig.getString(TYPE_PROPERTY).equals(LOOP_TYPE)) {
         LOG.debug("Adding loop step: " + stepName);
         step = new LoopStep(stepName, stepConfig);
+      }
+      else if (stepConfig.getString(TYPE_PROPERTY).equals(TASK_TYPE)) {
+        LOG.debug("Adding task step: " + stepName);
+        step = new TaskStep(stepName, stepConfig);
       }
       else if (stepConfig.getString(TYPE_PROPERTY).equals(DECISION_TYPE)) {
         LOG.debug("Adding decision step: " + stepName);
@@ -274,6 +279,29 @@ public class Runner {
           else {
             LOG.debug("Step has been submitted");
           }
+        }
+        else if (step instanceof TaskStep) {
+          LOG.debug("Step is a task");
+          
+          TaskStep taskStep = (TaskStep)step;
+          
+          if (!taskStep.hasSubmitted()) {
+            LOG.debug("Step has not been submitted");
+          
+            final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
+            
+            if (StepUtils.allStepsSubmitted(dependencies)) {
+              LOG.debug("Step dependencies have finished, running task");
+              taskStep.run(StepUtils.getStepDataFrames(dependencies));
+              LOG.debug("Task finished");
+            }
+            else {
+              LOG.debug("Step dependencies have not been submitted");
+            }
+          }
+          else {
+            LOG.debug("Step has been submitted");
+          }  
         }
         else {
           throw new RuntimeException("Unknown step class type: " + step.getClass().getName());

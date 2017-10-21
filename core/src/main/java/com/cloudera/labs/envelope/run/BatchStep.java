@@ -15,19 +15,20 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.repetition.RepetitionFactory;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.repetition.RepetitionFactory;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.StepUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigObject;
 
 /**
  * A batch step is a data step that contains a single DataFrame.
@@ -71,7 +72,7 @@ public class BatchStep extends DataStep {
       data = ((BatchInput)getInput()).read();
     }
     else if (hasDeriver()) {
-      Map<String, Dataset<Row>> dependencies = getStepDataFrames(dependencySteps);
+      Map<String, Dataset<Row>> dependencies = StepUtils.getStepDataFrames(dependencySteps);
       data = getDeriver().derive(dependencies);
     }
     else {

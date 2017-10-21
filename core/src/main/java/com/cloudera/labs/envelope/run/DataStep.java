@@ -222,18 +222,6 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       data.show();
     }
   }
-
-  protected Map<String, Dataset<Row>> getStepDataFrames(Set<Step> steps) {
-    Map<String, Dataset<Row>> stepDFs = Maps.newHashMap();
-
-    for (Step step : steps) {
-      if (step instanceof DataStep) {
-        stepDFs.put(step.getName(), ((DataStep)step).getData());
-      }
-    }
-
-    return stepDFs;
-  }
   
   @Override
   public Set<AccumulatorRequest> getAccumulatorRequests() {
