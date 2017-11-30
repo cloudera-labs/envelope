@@ -63,7 +63,7 @@ public class DelimitedTranslator implements Translator<String, String> {
 
   @Override
   public Iterable<Row> translate(String key, String value) {
-    String[] stringValues = value.split(Pattern.quote(delimiter));
+    String[] stringValues = value.split(Pattern.quote(delimiter), fieldNames.size());
     values.clear();
 
     for (int valuePos = 0; valuePos < stringValues.length; valuePos++) {

@@ -26,6 +26,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import java.util.List;
+
 public class TestDelimitedTranslator {
 
   @Test
@@ -82,5 +84,37 @@ public class TestDelimitedTranslator {
     assertEquals(r.get(7), "testkey");
     assertEquals(r.get(8), delimited);
   }
-  
+
+  @Test
+  public void testEmptyFields() throws Exception {
+    String delimited1 = "000001|2017-11-01 23:21:21.924||TYPE|DATA";
+    String delimited2 = "000002|2017-11-01 23:21:21.924|101|TYPE|";
+
+    List<String> fieldNames = Lists.newArrayList("event_id", "event_time", "event_state", "event_type", "event_data");
+    List<String> fieldTypes = Lists.newArrayList("long", "string", "long", "string", "string");
+
+    Config config = ConfigFactory.empty()
+            .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(fieldNames))
+            .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(fieldTypes))
+            .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("|"));
+
+    Translator<String, String> t = new DelimitedTranslator();
+    t.configure(config);
+
+    Row r1 = t.translate("testkey1", delimited1).iterator().next();
+    assertEquals(r1.length(), 5);
+    assertEquals(r1.get(0), 000001L);
+    assertEquals(r1.get(1), "2017-11-01 23:21:21.924");
+    assertEquals(r1.get(2), null);
+    assertEquals(r1.get(3), "TYPE");
+    assertEquals(r1.get(4), "DATA");
+
+    Row r2 = t.translate("testkey2", delimited2).iterator().next();
+    assertEquals(r2.length(), 5);
+    assertEquals(r2.get(0), 000002L);
+    assertEquals(r2.get(1), "2017-11-01 23:21:21.924");
+    assertEquals(r2.get(2), 101L);
+    assertEquals(r2.get(3), "TYPE");
+    assertEquals(r2.get(4), null);
+  }
 }
