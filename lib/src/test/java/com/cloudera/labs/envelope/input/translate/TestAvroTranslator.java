@@ -45,7 +45,7 @@ import com.typesafe.config.ConfigValueFactory;
 public class TestAvroTranslator {
 
   @Test
-  public void testAvroTranslation() throws Exception {
+  public void testAvroTranslationWithLiteralSchema() throws Exception {
     Schema schema = SchemaBuilder.record("test").fields()
         .optionalString("field1")
         .optionalInt("field2")
@@ -59,11 +59,41 @@ public class TestAvroTranslator {
     DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
     writer.write(record, encoder);
     encoder.flush();
-    out.close();
     byte[] a = out.toByteArray();
-    
+    out.close();
+
     Config config = ConfigFactory.empty()
         .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()));
+    
+    Translator<byte[], byte[]> t = new AvroTranslator();
+    t.configure(config);
+    
+    Row r = t.translate(null, a).iterator().next();
+    
+    assertEquals(r, RowFactory.create("hello", 100));
+  }
+
+  @Test
+  public void testAvroTranslationWithPathToSchema() throws Exception {
+    Schema schema = SchemaBuilder.record("test").fields()
+        .requiredString("field1")
+        .requiredInt("field2")
+        .endRecord();
+    Record record = new Record(schema);
+    record.put("field1", "hello");
+    record.put("field2", 100);
+    
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
+    writer.write(record, encoder);
+    encoder.flush();
+    byte[] a = out.toByteArray();
+    out.close();
+
+    Config config = ConfigFactory.empty()
+        .withValue(AvroTranslator.AVRO_PATH_CONFIG, 
+            ConfigValueFactory.fromAnyRef(getClass().getResource("/translator/avro-translator-test.avsc").getFile()));
     
     Translator<byte[], byte[]> t = new AvroTranslator();
     t.configure(config);

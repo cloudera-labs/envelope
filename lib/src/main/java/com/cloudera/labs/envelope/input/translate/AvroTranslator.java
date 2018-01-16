@@ -17,6 +17,8 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,6 +29,9 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
@@ -36,7 +41,9 @@ import org.apache.spark.sql.types.StructType;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
+import com.google.common.io.CharStreams;
 import com.typesafe.config.Config;
 
 /**
@@ -44,17 +51,28 @@ import com.typesafe.config.Config;
  */
 public class AvroTranslator implements Translator<byte[], byte[]> {
 
-  private String avroSchemaLiteral;
   private Schema avroSchema;
   private StructType schema;
   private boolean doesAppendRaw;
   private GenericDatumReader<GenericRecord> reader;
 
   public static final String AVRO_LITERAL_CONFIG = "schema.literal";
+  public static final String AVRO_PATH_CONFIG = "schema.path";
 
   @Override
   public void configure(Config config) {
-    avroSchemaLiteral = config.getString(AVRO_LITERAL_CONFIG);
+    if (!(config.hasPath(AVRO_PATH_CONFIG) ^ config.hasPath(AVRO_LITERAL_CONFIG))) {
+      throw new RuntimeException("Avro translator must specify either a '" + AVRO_PATH_CONFIG + "' or a '" + AVRO_LITERAL_CONFIG + "' configuration.");
+    }
+    
+    String avroSchemaLiteral;
+    if (config.hasPath(AVRO_LITERAL_CONFIG)) {
+      avroSchemaLiteral = config.getString(AVRO_LITERAL_CONFIG);
+    }
+    else {
+      String avroSchemaPath = config.getString(AVRO_PATH_CONFIG);
+      avroSchemaLiteral = hdfsFileAsString(avroSchemaPath);
+    }
     avroSchema = new Schema.Parser().parse(avroSchemaLiteral);
     schema = AvroUtils.structTypeFor(avroSchema);
     
@@ -112,5 +130,22 @@ public class AvroTranslator implements Translator<byte[], byte[]> {
   @Override
   public String getAlias() {
     return "avro";
+  }
+  
+  private String hdfsFileAsString(String hdfsFile) {
+    String contents = null;
+
+    try {
+      FileSystem fs = FileSystem.get(new Configuration());
+      InputStream stream = fs.open(new Path(hdfsFile));
+      InputStreamReader reader = new InputStreamReader(stream, Charsets.UTF_8);
+      contents = CharStreams.toString(reader);
+      reader.close();
+      stream.close();
+    } catch (Exception e) {
+      throw new RuntimeException("Avro translator was unable to open schema path: " + hdfsFile, e);
+    }
+
+    return contents;
   }
 }

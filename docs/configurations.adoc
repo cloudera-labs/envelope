@@ -389,7 +389,10 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |`_avro_`|
 
 |schema.literal
-|The Avro JSON read schema for the values being translated.
+|The Avro JSON read schema string for the values being translated. This configuration and `schema.path` are mutually exclusive.
+
+|schema.path
+|The path to the Avro JSON read schema file for the values being translated. This configuration and `schema.literal` are mutually exclusive.
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
