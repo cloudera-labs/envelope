@@ -1,8 +1,7 @@
 = Configuration specification
+:toc: left
 
-This page specifies the configurations available in Envelope 0.4.
-
-:toc:
+This page specifies the configurations available in Envelope.
 
 == Example configuration
 
@@ -882,7 +881,8 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |The delimiter string to separate the field values with. Default is `,`.
 
 ||
-|`_kudu_`|
+|`_kudu_`
+|Note: For Envelope pipelines with a Kudu output, and with security enabled, and in YARN cluster mode, and where using a random planner (such as history or bitemporal), then you must add `--conf spark.kudu.master.addresses=yourkuduconnectionstringhere` to your `spark2-submit` call.
 
 |connection
 |The hosts and ports of the masters of the Kudu cluster, in the form "host1:port1,host2:port2,...,hostn:portn".

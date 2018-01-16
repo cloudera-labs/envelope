@@ -15,12 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.cloudera.labs.envelope.kudu;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
@@ -67,7 +86,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   private static final String ACCUMULATOR_NUMBER_OF_SCANNERS = "Number of Kudu scanners";
   private static final String ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED = "Number of filters scanned in Kudu";
   private static final String ACCUMULATOR_SECONDS_SCANNING = "Seconds spent scanning Kudu";
-
+  
   private Config config;
   private Accumulators accumulators;
 
@@ -148,10 +167,26 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   private synchronized KuduTable connectToTable() throws KuduException {
     if (client == null) {
       LOG.info("Connecting to Kudu");
-
+      
       String masterAddresses = config.getString(CONNECTION_CONFIG_NAME);
 
       client = new KuduClient.KuduClientBuilder(masterAddresses).build();
+      
+      Credentials creds;
+      try {
+        creds = UserGroupInformation.getCurrentUser().getCredentials();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      
+      Text alias = new Text(KuduServiceCredentialProvider.CREDENTIAL_ALIAS_PREFIX + masterAddresses);
+      Token<? extends TokenIdentifier> token = creds.getToken(alias);
+      if (token != null) {
+        byte[] authCreds = token.getPassword();
+        client.importAuthenticationCredentials(authCreds);
+        LOG.info("Kudu authentication credentials imported");
+      }
+      
       session = client.newSession();
       session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
       session.setMutationBufferSpace(10000);
@@ -445,4 +480,5 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   public String getAlias() {
     return "kudu";
   }
+
 }

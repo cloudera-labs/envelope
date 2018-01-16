@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
 
 /**
@@ -198,6 +199,9 @@ public enum Contexts {
         }
       }
     }
+    
+    String envelopeConf = config.root().render(ConfigRenderOptions.concise());
+    sparkConf.set("envelope.configuration", envelopeConf);
 
     return sparkConf;
   }
