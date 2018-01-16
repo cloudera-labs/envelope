@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.labs.envelope.kafka;
+package com.cloudera.labs.envelope.input;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Maps;
