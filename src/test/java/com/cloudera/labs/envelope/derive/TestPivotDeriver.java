@@ -40,6 +40,38 @@ public class TestPivotDeriver {
   @Test
   public void testDefaultDynamicPivot() throws Exception {
     List<Row> sourceList = Lists.newArrayList(
+        RowFactory.create("A", "hello", "1"),
+        RowFactory.create("A", "world", "2"),
+        RowFactory.create("B", "hello", "3"),
+        RowFactory.create("C", "world", "4"));
+    StructType schema = RowUtils.structTypeFor(
+        Lists.newArrayList("entity_id", "key", "value"),
+        Lists.newArrayList("string", "string", "string"));
+    Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
+
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+    dependencies.put("source", source);
+
+    Config config = ConfigFactory.empty()
+        .withValue(PivotDeriver.STEP_NAME_CONFIG, ConfigValueFactory.fromAnyRef("source"))
+        .withValue(PivotDeriver.ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("entity_id")))
+        .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
+        .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
+
+    Deriver d = new PivotDeriver();
+    d.configure(config);
+
+    List<Row> results = d.derive(dependencies).collectAsList();
+
+    assertEquals(results.size(), 3);
+    assertTrue(results.contains(RowFactory.create("A", "1", "2")));
+    assertTrue(results.contains(RowFactory.create("B", "3", null)));
+    assertTrue(results.contains(RowFactory.create("C", null, "4")));
+  }
+
+  @Test
+  public void testIntegerDataType() throws Exception {
+    List<Row> sourceList = Lists.newArrayList(
         RowFactory.create("A", "hello", 1),
         RowFactory.create("A", "world", 2),
         RowFactory.create("B", "hello", 3),
@@ -68,17 +100,49 @@ public class TestPivotDeriver {
     assertTrue(results.contains(RowFactory.create("B", 3, null)));
     assertTrue(results.contains(RowFactory.create("C", null, 4)));
   }
-  
+
+  @Test
+  public void testDoubleDataType() throws Exception {
+    List<Row> sourceList = Lists.newArrayList(
+        RowFactory.create("A", "hello", 1.0),
+        RowFactory.create("A", "world", 2.0),
+        RowFactory.create("B", "hello", 3.0),
+        RowFactory.create("C", "world", 4.0));
+    StructType schema = RowUtils.structTypeFor(
+        Lists.newArrayList("entity_id", "key", "value"),
+        Lists.newArrayList("string", "string", "double"));
+    Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
+
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+    dependencies.put("source", source);
+
+    Config config = ConfigFactory.empty()
+        .withValue(PivotDeriver.STEP_NAME_CONFIG, ConfigValueFactory.fromAnyRef("source"))
+        .withValue(PivotDeriver.ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("entity_id")))
+        .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
+        .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
+
+    Deriver d = new PivotDeriver();
+    d.configure(config);
+
+    List<Row> results = d.derive(dependencies).collectAsList();
+
+    assertEquals(results.size(), 3);
+    assertTrue(results.contains(RowFactory.create("A", 1.0, 2.0)));
+    assertTrue(results.contains(RowFactory.create("B", 3.0, null)));
+    assertTrue(results.contains(RowFactory.create("C", null, 4.0)));
+  }
+
   @Test
   public void testMultipleFieldEntityKeyPivot() throws Exception {
     List<Row> sourceList = Lists.newArrayList(
-        RowFactory.create("A", "AA", "AAA", "hello", 1),
-        RowFactory.create("A", "AA", "AAA", "world", 2),
-        RowFactory.create("B", "BB", "BBB", "hello", 3),
-        RowFactory.create("C", "CC", "CCC", "world", 4));
+        RowFactory.create("A", "AA", "AAA", "hello", "1"),
+        RowFactory.create("A", "AA", "AAA", "world", "2"),
+        RowFactory.create("B", "BB", "BBB", "hello", "3"),
+        RowFactory.create("C", "CC", "CCC", "world", "4"));
     StructType schema = RowUtils.structTypeFor(
         Lists.newArrayList("entity_id1", "entity_id2", "entity_id3", "key", "value"),
-        Lists.newArrayList("string", "string", "string", "string", "int"));
+        Lists.newArrayList("string", "string", "string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -97,21 +161,21 @@ public class TestPivotDeriver {
     List<Row> results = d.derive(dependencies).collectAsList();
     
     assertEquals(results.size(), 3);
-    assertTrue(results.contains(RowFactory.create("A", "AA", "AAA", 1, 2)));
-    assertTrue(results.contains(RowFactory.create("B", "BB", "BBB", 3, null)));
-    assertTrue(results.contains(RowFactory.create("C", "CC", "CCC", null, 4)));
+    assertTrue(results.contains(RowFactory.create("A", "AA", "AAA", "1", "2")));
+    assertTrue(results.contains(RowFactory.create("B", "BB", "BBB", "3", null)));
+    assertTrue(results.contains(RowFactory.create("C", "CC", "CCC", null, "4")));
   }
   
   @Test
   public void testSpecifiedDynamicPivot() throws Exception {
     List<Row> sourceList = Lists.newArrayList(
-        RowFactory.create("A", "hello", 1),
-        RowFactory.create("A", "world", 2),
-        RowFactory.create("B", "hello", 3),
-        RowFactory.create("C", "world", 4));
+        RowFactory.create("A", "hello", "1"),
+        RowFactory.create("A", "world", "2"),
+        RowFactory.create("B", "hello", "3"),
+        RowFactory.create("C", "world", "4"));
     StructType schema = RowUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "int"));
+        Lists.newArrayList("string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -130,22 +194,22 @@ public class TestPivotDeriver {
     List<Row> results = d.derive(dependencies).collectAsList();
     
     assertEquals(results.size(), 3);
-    assertTrue(results.contains(RowFactory.create("A", 1, 2)));
-    assertTrue(results.contains(RowFactory.create("B", 3, null)));
-    assertTrue(results.contains(RowFactory.create("C", null, 4)));
+    assertTrue(results.contains(RowFactory.create("A", "1", "2")));
+    assertTrue(results.contains(RowFactory.create("B", "3", null)));
+    assertTrue(results.contains(RowFactory.create("C", null, "4")));
   }
   
   @Test
   public void testStaticPivot() throws Exception {
     List<Row> sourceList = Lists.newArrayList(
-        RowFactory.create("A", "hello", 1),
-        RowFactory.create("A", "world", 2),
-        RowFactory.create("B", "hello", 3),
-        RowFactory.create("C", "world", 4),
-        RowFactory.create("D", "dummy", 5));
+        RowFactory.create("A", "hello", "1"),
+        RowFactory.create("A", "world", "2"),
+        RowFactory.create("B", "hello", "3"),
+        RowFactory.create("C", "world", "4"),
+        RowFactory.create("D", "dummy", "5"));
     StructType schema = RowUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "int"));
+        Lists.newArrayList("string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -165,9 +229,9 @@ public class TestPivotDeriver {
     List<Row> results = d.derive(dependencies).collectAsList();
     
     assertEquals(results.size(), 4);
-    assertTrue(results.contains(RowFactory.create("A", 1, 2)));
-    assertTrue(results.contains(RowFactory.create("B", 3, null)));
-    assertTrue(results.contains(RowFactory.create("C", null, 4)));
+    assertTrue(results.contains(RowFactory.create("A", "1", "2")));
+    assertTrue(results.contains(RowFactory.create("B", "3", null)));
+    assertTrue(results.contains(RowFactory.create("C", null, "4")));
     assertTrue(results.contains(RowFactory.create("D", null, null)));
   }
   

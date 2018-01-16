@@ -25,6 +25,7 @@ import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 
 public class PivotDeriver implements Deriver {
@@ -99,9 +100,13 @@ public class PivotDeriver implements Deriver {
     else {
       pivotGrouped = grouped.pivot(pivotKeyFieldName, Lists.<Object>newArrayList(pivotKeys));
     }
-    
-    Dataset<Row> pivoted = pivotGrouped.max(pivotValueFieldName);
-    
+
+    Map<String, String> firstExpr = Maps.newHashMap();
+    firstExpr.put(pivotValueFieldName, "first");
+
+    Dataset<Row> pivoted = pivotGrouped.agg(firstExpr);
+
+
     return pivoted;
   }
 
