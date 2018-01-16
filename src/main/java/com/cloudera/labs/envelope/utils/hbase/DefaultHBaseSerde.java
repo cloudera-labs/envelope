@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -184,9 +183,9 @@ public class DefaultHBaseSerde implements HBaseSerde {
   
   private Scan convertToScan(Row row) {
     byte[] startRow = buildRowKey(row);
-    byte[] stopRow = exclusiveStopRow(startRow);
+    byte[] stopRow = HBaseUtils.exclusiveStopRow(startRow);
     Scan scan = new Scan(startRow, stopRow);
-    
+
     return scan;
   }
   
@@ -234,23 +233,6 @@ public class DefaultHBaseSerde implements HBaseSerde {
     }
 
     return fullRow;
-  }
-  
-  private byte[] exclusiveStopRow(byte[] startRow) {
-    byte[] stopRow = startRow.clone();
-     
-    for (int i = stopRow.length - 1; i >= 0; i--) {
-      if (stopRow[i] < 255) {
-        stopRow[i] += 1;
-        return stopRow;
-      }
-      stopRow[i] = 0;
-      if (i == 0) {
-        return HConstants.EMPTY_BYTE_ARRAY;
-      }
-    }
-    
-    return stopRow;
   }
   
   private Set<String> getColumnFamilies(Row row) {

@@ -249,4 +249,21 @@ public class HBaseUtils {
     return mergedScan;
   }
 
+  public static byte[] exclusiveStopRow(byte[] startRow) {
+    byte[] stopRow = startRow.clone();
+
+    for (int i = stopRow.length - 1; i >= 0; i--) {
+      if (stopRow[i] < Byte.MAX_VALUE) {
+        stopRow[i] += 1;
+        return stopRow;
+      }
+      stopRow[i] = 0;
+      if (i == 0) {
+        return HConstants.EMPTY_BYTE_ARRAY;
+      }
+    }
+
+    return stopRow;
+  }
+
 }

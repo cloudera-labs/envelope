@@ -21,10 +21,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
@@ -209,6 +211,38 @@ public class TestHBaseUtils {
     assertTrue(ranges.get(0).getStopRow().equals(stopRow1));
     assertTrue(ranges.get(1).getStartRow().equals(startRow2));
     assertTrue(ranges.get(1).getStopRow().equals(stopRow2));
+  }
+
+  @Test
+  public void testExclusiveStopRowForLowestStartRow() {
+    byte[] startRow = {0, 0, 0};
+    byte[] stopRow = HBaseUtils.exclusiveStopRow(startRow);
+
+    assertEquals(ByteBuffer.wrap(stopRow), ByteBuffer.wrap(new byte[] {0, 0, 1}));
+  }
+
+  @Test
+  public void testExclusiveStopRowForTypicalStartRow() {
+    byte[] startRow = Bytes.toBytes("hello");
+    byte[] stopRow = HBaseUtils.exclusiveStopRow(startRow);
+
+    assertEquals(ByteBuffer.wrap(stopRow), ByteBuffer.wrap(Bytes.toBytes("hellp")));
+  }
+
+  @Test
+  public void testExclusiveStopRowForFinalHighByteStartRow() {
+    byte[] startRow = {64, 96, 127};
+    byte[] stopRow = HBaseUtils.exclusiveStopRow(startRow);
+
+    assertEquals(ByteBuffer.wrap(stopRow), ByteBuffer.wrap(new byte[] {64, 97, 0}));
+  }
+
+  @Test
+  public void testExclusiveStopRowForHighestStartRow() {
+    byte[] startRow = {127, 127, 127};
+    byte[] stopRow = HBaseUtils.exclusiveStopRow(startRow);
+
+    assertEquals(ByteBuffer.wrap(stopRow), ByteBuffer.wrap(HConstants.EMPTY_BYTE_ARRAY));
   }
 
 }
