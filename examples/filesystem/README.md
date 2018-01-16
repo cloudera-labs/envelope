@@ -6,21 +6,18 @@ This example demonstrates a simple HDFS-based data processing pipeline.
 
     mvn package
 
-**Upload the JSON example data**
+**Upload the JSON example data to home directory**
 
-    hadoop fs -copyFromLocal examples/filesystem/example-input.json .
+    hdfs dfs -put examples/filesystem/example-input.json
 
 **Run the Envelope job**
 
-    spark-submit target/envelope-*.jar examples/filesystem/filesystem.conf
+    spark2-submit target/envelope-*.jar examples/filesystem/filesystem.conf
 
-**Concatenate the resulting partitions**
+**Grab the results**
 
-This is a quick 'n dirty way to glob the partitions.
-
-    IN=$(hadoop fs -ls hdfs://<your NameNode>:8020/user/<username>/example-output/part* | awk '{printf "%s ", $NF}')
-    avro-tools concat ${IN} results.avro
+    hdfs dfs -get example-output/*.parquet
 
 **Look at the local results**
 
-    avro-tools tojson --pretty results.avro
+    parquet-tools cat *.parquet
