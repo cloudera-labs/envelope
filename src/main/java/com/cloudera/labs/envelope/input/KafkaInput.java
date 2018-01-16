@@ -36,6 +36,8 @@ import org.apache.spark.streaming.kafka010.HasOffsetRanges;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.OffsetRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.labs.envelope.output.Output;
 import com.cloudera.labs.envelope.output.OutputFactory;
@@ -48,10 +50,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 
 import scala.Tuple2;
 
 public class KafkaInput implements StreamInput, CanRecordProgress {
+  
+  private static Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
 
   public static final String BROKERS_CONFIG = "brokers";
   public static final String TOPIC_CONFIG = "topic";
@@ -145,12 +150,16 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
     return dStream;
   }
 
-  private void addCustomParams(Map<String, Object> params) {
-    for (String propertyName : config.root().keySet()) {
+  void addCustomParams(Map<String, Object> params) {
+    for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
+      String propertyName = entry.getKey();
       if (propertyName.startsWith(PARAMETER_CONFIG_PREFIX)) {
         String paramName = propertyName.substring(PARAMETER_CONFIG_PREFIX.length());
         String paramValue = config.getString(propertyName);
 
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Adding Kafka property: {} = \"{}\"", paramName, paramValue);
+        }
         params.put(paramName, paramValue);
       }
     }
