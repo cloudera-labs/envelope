@@ -174,7 +174,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private boolean doesCache() {
-    if (!config.hasPath(CACHE_PROPERTY)) return true;
+    if (!config.hasPath(CACHE_PROPERTY)) return false;
 
     return config.getBoolean(CACHE_PROPERTY);
   }
