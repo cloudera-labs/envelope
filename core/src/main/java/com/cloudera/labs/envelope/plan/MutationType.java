@@ -21,7 +21,7 @@ package com.cloudera.labs.envelope.plan;
  * The type of mutation being planned.
  */
 public enum MutationType {
-
+  
   /**
    * Do not apply this mutation.
    */
@@ -51,5 +51,8 @@ public enum MutationType {
    * Replace all existing rows with the mutation.
    */
   , OVERWRITE
+  ;
 
+  public static final String MUTATION_TYPE_FIELD_NAME = "_mutation";
+  
 }

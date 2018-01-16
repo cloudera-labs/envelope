@@ -17,16 +17,16 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
+import java.util.Map;
+
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 
-import java.util.Map;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.typesafe.config.Config;
 
 public class CountDatasetRule implements DatasetRule {
 
@@ -93,7 +93,7 @@ public class CountDatasetRule implements DatasetRule {
 
     @Override
     public Row call(Row row) throws Exception {
-      return new RowWithSchema(SCHEMA, name, RowUtils.<Long>getAs(row, "count") == thisExpected);
+      return new RowWithSchema(SCHEMA, name, row.<Long>getAs("count") == thisExpected);
     }
 
   }

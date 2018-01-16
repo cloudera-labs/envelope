@@ -35,7 +35,7 @@ public interface RandomPlanner extends Planner {
    * @return The list of random mutations for the key to be applied to the output. The output
    * will apply them in the same order as the list.
    */
-  List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey);
+  List<Row> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey);
 
   /**
    * Get the list of field names that constitute the natural key of the arriving records. This is

@@ -75,6 +75,6 @@ public class SystemTimeUpsertPlanner implements BulkPlanner {
 
   @Override
   public String getAlias() {
-    return "systemtimeupsert";
+    return "upsert";
   }
 }

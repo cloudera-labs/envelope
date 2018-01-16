@@ -29,11 +29,13 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 public class TestEventTimeUpsertPlanner {
 
@@ -61,7 +63,7 @@ public class TestEventTimeUpsertPlanner {
     configMap = Maps.newHashMap();
     configMap.put(EventTimeUpsertPlanner.KEY_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("key"));
     configMap.put(EventTimeUpsertPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("value"));
-    configMap.put(EventTimeUpsertPlanner.TIMESTAMP_FIELD_NAME_CONFIG_NAME, "timestamp");
+    configMap.put(EventTimeUpsertPlanner.TIMESTAMP_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("timestamp"));
     config = ConfigFactory.parseMap(configMap);
   }
 
@@ -73,10 +75,10 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    assertEquals(planned.get(0).getMutationType(), MutationType.INSERT);
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.INSERT);
   }
 
   @Test
@@ -88,10 +90,10 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
   }
 
   @Test
@@ -103,7 +105,7 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "world", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 0);
   }
@@ -117,7 +119,7 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 0);
   }
@@ -131,10 +133,10 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
   }
 
   @Test
@@ -146,7 +148,7 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "world", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 0);
   }
@@ -162,12 +164,12 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "135", 135L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    assertEquals(planned.get(0).getMutationType(), MutationType.UPDATE);
-    Row plannedRow = planned.get(0).getRow();
-    assertEquals(plannedRow.get(plannedRow.fieldIndex("value")), "200");
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
+    Row Row = planned.get(0);
+    assertEquals(Row.get(Row.fieldIndex("value")), "200");
   }
 
   @Test
@@ -180,11 +182,11 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    Row plannedRow = planned.get(0).getRow();
-    assertNotNull(plannedRow.get(plannedRow.fieldIndex("lastupdated")));
+    Row Row = planned.get(0);
+    assertNotNull(Row.get(Row.fieldIndex("lastupdated")));
   }
 
   @Test
@@ -195,10 +197,31 @@ public class TestEventTimeUpsertPlanner {
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
     Row key = new RowWithSchema(keySchema, "a");
 
-    List<PlannedRow> planned = p.planMutationsForKey(key, arriving, existing);
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
-    assertEquals(planned.get(0).getRow().length(), 3);
+    assertEquals(planned.get(0).length(), 4); // includes mutation type field
+  }
+  
+  @Test
+  public void testNonDefaultTimeModel() {
+    config = config
+        .withValue(EventTimeUpsertPlanner.EVENT_TIME_MODEL_CONFIG_NAME + "." + TimeModelFactory.TYPE_CONFIG_NAME, 
+            ConfigValueFactory.fromAnyRef("longmillis"))
+        .withValue(EventTimeUpsertPlanner.LAST_UPDATED_TIME_MODEL_CONFIG_NAME + "." + TimeModelFactory.TYPE_CONFIG_NAME, 
+            ConfigValueFactory.fromAnyRef("longmillis"));
+    
+    p = new EventTimeUpsertPlanner();
+    p.configure(config);
+
+    existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
+    arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 1);
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
   }
 
 }

@@ -23,7 +23,6 @@ import java.util.Set;
 import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 
 /**
  * Random outputs write data out in individual mutations of a row at a time.
@@ -41,7 +40,7 @@ public interface RandomOutput extends Output {
    * mutation type and the mutation data as a Spark SQL Row. The output must apply the mutations in
    * the same order as the list.
    */
-  void applyRandomMutations(List<PlannedRow> planned) throws Exception;
+  void applyRandomMutations(List<Row> planned) throws Exception;
 
   /**
    * Get the existing records from the output that matches the given filters.

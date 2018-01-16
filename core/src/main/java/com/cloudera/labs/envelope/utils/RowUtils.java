@@ -44,10 +44,7 @@ import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
 
-import scala.Predef;
-import scala.Tuple2;
 import scala.collection.JavaConversions;
-import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
@@ -659,10 +656,6 @@ public class RowUtils {
     return row.get(row.fieldIndex(fieldName));
   }
 
-  public static <T> T getAs(Row row, String fieldName) {
-    return row.getAs(row.fieldIndex(fieldName));
-  }
-
   public static Row set(Row row, String fieldName, Object replacement) {
     Object[] values = new Object[row.length()];
 
@@ -674,9 +667,7 @@ public class RowUtils {
       }
     }
 
-    Row replacedRow = new RowWithSchema(row.schema(), values);
-
-    return replacedRow;
+    return new RowWithSchema(row.schema(), values);
   }
   
   public static Row append(Row row, Object value) {
@@ -702,6 +693,17 @@ public class RowUtils {
     }
 
     return to;
+  }
+  
+  public static Row remove(Row row, String fieldName) {
+    List<StructField> removedFields = Lists.newArrayList(row.schema().fields());
+    removedFields.remove(row.fieldIndex(fieldName));
+    StructType removedSchema = new StructType(removedFields.toArray(new StructField[removedFields.size()]));
+    
+    List<Object> removedValues = Lists.newArrayList(RowUtils.valuesFor(row));
+    removedValues.remove(row.fieldIndex(fieldName));
+    
+    return new RowWithSchema(removedSchema, removedValues.toArray());
   }
 
   public static Object[] valuesFor(Row row) {
@@ -771,34 +773,6 @@ public class RowUtils {
     }
 
     return false;
-  }
-
-  public static Long precedingTimestamp(Long timestamp) {
-    return timestamp - 1;
-  }
-
-  public static boolean before(Row first, Row second, String timestampFieldName) {
-    return compareTimestamp(first, second, timestampFieldName) == -1;
-  }
-
-  public static boolean after(Row first, Row second, String timestampFieldName) {
-    return compareTimestamp(first, second, timestampFieldName) == 1;
-  }
-
-  public static boolean simultaneous(Row first, Row second, String timestampFieldName) {
-    return compareTimestamp(first, second, timestampFieldName) == 0;
-  }
-
-  public static int compareTimestamp(Row first, Row second, String timestampFieldName) {
-    Long ts1 = (Long) first.get(first.fieldIndex(timestampFieldName));
-    Long ts2 = (Long) second.get(second.fieldIndex(timestampFieldName));
-    if (ts1 < ts2) {
-      return -1;
-    } else if (ts1 > ts2) {
-      return 1;
-    } else {
-      return 0;
-    }
   }
 
   public static Column[] toColumnArray(List<String> columnList) {

@@ -17,60 +17,75 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static com.cloudera.labs.envelope.utils.ConfigUtils.assertConfig;
-import static com.cloudera.labs.envelope.utils.RowUtils.after;
-import static com.cloudera.labs.envelope.utils.RowUtils.append;
-import static com.cloudera.labs.envelope.utils.RowUtils.before;
-import static com.cloudera.labs.envelope.utils.RowUtils.compareTimestamp;
-import static com.cloudera.labs.envelope.utils.RowUtils.different;
-import static com.cloudera.labs.envelope.utils.RowUtils.get;
-import static com.cloudera.labs.envelope.utils.RowUtils.precedingTimestamp;
-import static com.cloudera.labs.envelope.utils.RowUtils.set;
-import static com.cloudera.labs.envelope.utils.RowUtils.simultaneous;
-
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.plan.time.TimeModel;
+import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 public class BitemporalHistoryPlanner implements RandomPlanner {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";
-  public static final String TIMESTAMP_FIELD_NAME_CONFIG_NAME = "field.timestamp";
-  public static final String EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME = "field.event.time.effective.from";
-  public static final String EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME = "field.event.time.effective.to";
-  public static final String SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME = "field.system.time.effective.from";
-  public static final String SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME = "field.system.time.effective.to";
+  public static final String TIMESTAMP_FIELD_NAMES_CONFIG_NAME = "fields.timestamp";
+  public static final String EVENT_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME = "fields.event.time.effective.from";
+  public static final String EVENT_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME = "fields.event.time.effective.to";
+  public static final String SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME = "fields.system.time.effective.from";
+  public static final String SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME = "fields.system.time.effective.to";
   public static final String CURRENT_FLAG_FIELD_NAME_CONFIG_NAME = "field.current.flag";
   public static final String CURRENT_FLAG_YES_CONFIG_NAME = "current.flag.value.yes";
   public static final String CURRENT_FLAG_NO_CONFIG_NAME = "current.flag.value.no";
   public static final String CARRY_FORWARD_CONFIG_NAME = "carry.forward.when.null";
+  public static final String EVENT_TIME_MODEL_CONFIG_NAME = "time.model.event";
+  public static final String SYSTEM_TIME_MODEL_CONFIG_NAME = "time.model.system";
 
-  public static final String CURRENT_FLAG_YES = "Y";
-  public static final String CURRENT_FLAG_NO = "N";
-  public static final Long FAR_FUTURE_MILLIS = 253402214400000L; // 9999-12-31
-
+  public static final String CURRENT_FLAG_DEFAULT_YES = "Y";
+  public static final String CURRENT_FLAG_DEFAULT_NO = "N";
+  
   private Config config;
+  private Row currentSystemTimeRow;
+  private TimeModel timestampTimeModel;
+  private TimeModel eventEffectiveFromTimeModel;
+  private TimeModel eventEffectiveToTimeModel;
+  private TimeModel systemEffectiveFromTimeModel;
+  private TimeModel systemEffectiveToTimeModel;
 
   @Override
   public void configure(Config config) {
     this.config = config;
-    assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
-    assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
-    assertConfig(config, TIMESTAMP_FIELD_NAME_CONFIG_NAME);
-    assertConfig(config, EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
-    assertConfig(config, EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
-    assertConfig(config, SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
-    assertConfig(config, SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
+    
+    ConfigUtils.assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, EVENT_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, EVENT_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
+    ConfigUtils.assertConfig(config, SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
+    
+    Config eventTimeModelConfig = config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+    Config systemTimeModelConfig = config.hasPath(SYSTEM_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(SYSTEM_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+    
+    this.timestampTimeModel = TimeModelFactory.create(eventTimeModelConfig, getTimestampFieldNames());
+    this.eventEffectiveFromTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEventTimeEffectiveFromFieldNames());
+    this.eventEffectiveToTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEventTimeEffectiveToFieldNames());
+    this.systemEffectiveFromTimeModel = TimeModelFactory.create(systemTimeModelConfig, getSystemTimeEffectiveFromFieldNames());
+    this.systemEffectiveToTimeModel = TimeModelFactory.create(systemTimeModelConfig, getSystemTimeEffectiveToFieldNames());
   }
 
   @Override
@@ -79,57 +94,45 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
   }
 
   @Override
-  public List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey) {
-    List<String> valueFieldNames = getValueFieldNames();
-    String timestampFieldName = getTimestampFieldName();
-    String eventTimeEffectiveFromFieldName = getEventTimeEffectiveFromFieldName();
-    String eventTimeEffectiveToFieldName = getEventTimeEffectiveToFieldName();
-    String systemTimeEffectiveFromFieldName = getSystemTimeEffectiveFromFieldName();
-    String systemTimeEffectiveToFieldName = getSystemTimeEffectiveToFieldName();
-    boolean hasCurrentFlagField = hasCurrentFlagField();
-    String currentFlagFieldName = null;
-    if (hasCurrentFlagField) {
-      currentFlagFieldName = getCurrentFlagFieldName();
-    }
-
-    long currentSystemTime = System.currentTimeMillis();
-    Comparator<PlannedRow> tc = new PlanTimestampComparator(timestampFieldName);
-
-    List<PlannedRow> plannedForKey = Lists.newArrayList();
+  public List<Row> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey) {
+    resetCurrentSystemTime();
+    
+    List<Row> plannedForKey = Lists.newArrayList();
 
     // Filter out existing entries for this key that have already been closed
     if (existingForKey != null) {
       for (Row existing : existingForKey) {
-        if (currentSystemTime < (long)get(existing, systemTimeEffectiveToFieldName)) {
-          plannedForKey.add(new PlannedRow(existing, MutationType.NONE));
+        if (PlannerUtils.before(systemEffectiveToTimeModel, currentSystemTimeRow, existing)) {
+          existing = PlannerUtils.appendMutationTypeField(existing);
+          plannedForKey.add(existing);
         }
       }
     }
 
-    Collections.sort(plannedForKey, tc);
-    Collections.sort(arrivingForKey, new ArrivingTimestampComparator(timestampFieldName));
+    Collections.sort(plannedForKey, timestampTimeModel);
+    Collections.sort(arrivingForKey, timestampTimeModel);
 
     for (Row arriving : arrivingForKey) {
-      arriving = append(arriving, eventTimeEffectiveFromFieldName, DataTypes.LongType, null);
-      arriving = append(arriving, eventTimeEffectiveToFieldName, DataTypes.LongType, null);
-      arriving = append(arriving, systemTimeEffectiveFromFieldName, DataTypes.LongType, null);
-      arriving = append(arriving, systemTimeEffectiveToFieldName, DataTypes.LongType, null);
-      if (hasCurrentFlagField) {
-        arriving = append(arriving, currentFlagFieldName, DataTypes.StringType, null);
+      arriving = eventEffectiveFromTimeModel.appendFields(arriving);
+      arriving = eventEffectiveToTimeModel.appendFields(arriving);
+      arriving = systemEffectiveFromTimeModel.appendFields(arriving);
+      arriving = systemEffectiveToTimeModel.appendFields(arriving);
+      if (hasCurrentFlagField()) {
+        arriving = RowUtils.append(arriving, getCurrentFlagFieldName(), DataTypes.StringType, null);
       }
-
-      Long arrivingTimestamp = (Long)get(arriving, timestampFieldName);
+      arriving = PlannerUtils.appendMutationTypeField(arriving);
 
       // There was no existing record for the key, so we just insert the input record.
       if (plannedForKey.isEmpty()) {
-        arriving = set(arriving, eventTimeEffectiveFromFieldName, arrivingTimestamp);
-        arriving = set(arriving, eventTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-        arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
-        arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-        if (hasCurrentFlagField) {
-          arriving = set(arriving, currentFlagFieldName, getCurrentFlagYesValue());
+        arriving = PlannerUtils.copyTime(arriving, timestampTimeModel, arriving, eventEffectiveFromTimeModel);
+        arriving = eventEffectiveToTimeModel.setFarFutureTime(arriving);
+        arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
+        arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
+        if (hasCurrentFlagField()) {
+          arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
         }
-        plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
+        arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
+        plannedForKey.add(arriving);
 
         continue;
       }
@@ -137,42 +140,32 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
       // Iterate through each existing record of the key in time order, stopping when we
       // have either corrected the history or gone all the way through it.
       for (int position = 0; position < plannedForKey.size(); position++) {
-        PlannedRow plan = plannedForKey.get(position);
-        Long planTimestamp = (Long)get(plan.getRow(), timestampFieldName);
-        PlannedRow previousPlanned = null;
-        PlannedRow nextPlanned = null;
-        Long nextPlannedTimestamp = null;
-
-        if (position > 0) {
-          previousPlanned = plannedForKey.get(position - 1);
-        }
-        if (position + 1 < plannedForKey.size()) {
-          nextPlanned = plannedForKey.get(position + 1);
-          nextPlannedTimestamp = (Long)get(nextPlanned.getRow(), timestampFieldName);
-        }
+        Row plan = plannedForKey.get(position);
+        Row previousPlanned = position > 0 ? plannedForKey.get(position - 1) : null;
+        Row nextPlanned = position + 1 < plannedForKey.size() ? plannedForKey.get(position + 1) : null;
 
         // There is an existing record for the same key and timestamp. It is possible that
         // the existing record is in the storage layer or is about to be added during this
         // micro-batch. Either way, we only update that record if it has changed.
-        if (simultaneous(arriving, plan.getRow(), timestampFieldName) &&
-          different(arriving, plan.getRow(), valueFieldNames))
-        {
-          arriving = set(arriving, eventTimeEffectiveFromFieldName, get(plan.getRow(), eventTimeEffectiveFromFieldName));
-          arriving = set(arriving, eventTimeEffectiveToFieldName, get(plan.getRow(), eventTimeEffectiveToFieldName));
-          arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
-          arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, get(plan.getRow(), currentFlagFieldName));
+        if (PlannerUtils.simultaneous(timestampTimeModel, arriving, plan) && RowUtils.different(arriving, plan, getValueFieldNames())) {
+          arriving = PlannerUtils.copyTime(plan, eventEffectiveFromTimeModel, arriving, eventEffectiveFromTimeModel);
+          arriving = PlannerUtils.copyTime(plan, eventEffectiveToTimeModel, arriving, eventEffectiveToTimeModel);
+          arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
+          arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
+          if (hasCurrentFlagField()) {
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), RowUtils.get(plan, getCurrentFlagFieldName()));
           }
-          plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
+          arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
+          plannedForKey.add(arriving);
 
-          plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
-          if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
+          plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
+          if (hasCurrentFlagField()) {
+            plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
-          if (!plan.getMutationType().equals(MutationType.INSERT)) {
-            plan.setMutationType(MutationType.UPDATE);
+          if (!PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
+            plan = PlannerUtils.setMutationType(plan, MutationType.UPDATE);
           }
+          plannedForKey.set(position, plan);
 
           break;
         }
@@ -181,15 +174,16 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         // The input record is timestamped before any existing record of the same key. In
         // this case there is no need to modify existing records, and we only have to insert
         // the input record as effective up until just prior to the first existing record.
-        else if (previousPlanned == null && before(arriving, plan.getRow(), timestampFieldName)) {
-          arriving = set(arriving, eventTimeEffectiveFromFieldName, arrivingTimestamp);
-          arriving = set(arriving, eventTimeEffectiveToFieldName, precedingTimestamp(planTimestamp));
-          arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
-          arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, getCurrentFlagNoValue());
+        else if (previousPlanned == null && PlannerUtils.before(timestampTimeModel, arriving, plan)) {
+          arriving = PlannerUtils.copyTime(arriving, timestampTimeModel, arriving, eventEffectiveFromTimeModel);
+          arriving = PlannerUtils.copyPrecedingTime(plan, timestampTimeModel, arriving, eventEffectiveToTimeModel);
+          arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
+          arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
+          if (hasCurrentFlagField()) {
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
-          plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
+          arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
+          plannedForKey.add(arriving);
 
           break;
         }
@@ -198,31 +192,33 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         // effective until just prior to the next existing record and we update the
         // previous existing record to be effective until just prior to the input record.
         else if (plan != null && nextPlanned != null &&
-             after(arriving, plan.getRow(), timestampFieldName) &&
-             before(arriving, nextPlanned.getRow(), timestampFieldName))
+                 PlannerUtils.after(timestampTimeModel, arriving, plan) &&
+                 PlannerUtils.before(timestampTimeModel, arriving, nextPlanned))
         {
-          arriving = set(arriving, eventTimeEffectiveFromFieldName, arrivingTimestamp);
-          arriving = set(arriving, eventTimeEffectiveToFieldName, precedingTimestamp(nextPlannedTimestamp));
-          arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
-          arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, getCurrentFlagNoValue());
+          arriving = PlannerUtils.copyTime(arriving, timestampTimeModel, arriving, eventEffectiveFromTimeModel);
+          arriving = PlannerUtils.copyPrecedingTime(nextPlanned, timestampTimeModel, arriving, eventEffectiveToTimeModel);
+          arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
+          arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
+          if (hasCurrentFlagField()) {
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
-          plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
+          arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
+          plannedForKey.add(arriving);
 
-          plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
-          if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
+          plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
+          if (hasCurrentFlagField()) {
+            plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
-          if (!plan.getMutationType().equals(MutationType.INSERT)) {
-            plan.setMutationType(MutationType.UPDATE);
+          if (!PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
+            plan = PlannerUtils.setMutationType(plan, MutationType.UPDATE);
           }
-
-          Row superseded = plan.getRow();
-          superseded = set(superseded, eventTimeEffectiveToFieldName, precedingTimestamp(arrivingTimestamp));
-          superseded = set(superseded, systemTimeEffectiveFromFieldName, currentSystemTime);
-          superseded = set(superseded, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          plannedForKey.add(new PlannedRow(superseded, MutationType.INSERT));
+          plannedForKey.set(position, plan);
+          
+          plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
+          plan = systemEffectiveFromTimeModel.setCurrentSystemTime(plan);
+          plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
+          plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
+          plannedForKey.add(plan);
 
           break;
         }
@@ -230,95 +226,99 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
         // is the 'normal' case where data arrives in order. We insert the input record
         // effective until the far future, and we update the previous existing record
         // to be effective until just prior to the input record.
-        else if (after(arriving, plan.getRow(), timestampFieldName) && nextPlanned == null) {
-          arriving = set(arriving, eventTimeEffectiveFromFieldName, arrivingTimestamp);
-          arriving = set(arriving, eventTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          arriving = set(arriving, systemTimeEffectiveFromFieldName, currentSystemTime);
-          arriving = set(arriving, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-          if (hasCurrentFlagField) {
-            arriving = set(arriving, currentFlagFieldName, getCurrentFlagYesValue());
+        else if (PlannerUtils.after(timestampTimeModel, arriving, plan) && nextPlanned == null) {
+          arriving = PlannerUtils.copyTime(arriving, timestampTimeModel, arriving, eventEffectiveFromTimeModel);
+          arriving = eventEffectiveToTimeModel.setFarFutureTime(arriving);
+          arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
+          arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
+          if (hasCurrentFlagField()) {
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
           }
-          plannedForKey.add(new PlannedRow(arriving, MutationType.INSERT));
-
-          if (hasCurrentFlagField) {
-            plan.setRow(set(plan.getRow(), currentFlagFieldName, getCurrentFlagNoValue()));
+          arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
+          plannedForKey.add(arriving);
+          
+          if (hasCurrentFlagField()) {
+            plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
+          plannedForKey.set(position, plan);
 
-          if ((long)get(plan.getRow(), systemTimeEffectiveFromFieldName) < currentSystemTime) {
-            plan.setRow(set(plan.getRow(), systemTimeEffectiveToFieldName, precedingTimestamp(currentSystemTime)));
-            if (!plan.getMutationType().equals(MutationType.INSERT)) {
-              plan.setMutationType(MutationType.UPDATE);
+          // We only need to supersede a record that has already become visible in the output.
+          // We know this has happened if the record in the plan has an earlier system
+          // time than the current system time.
+          if (PlannerUtils.before(systemEffectiveFromTimeModel, plan, currentSystemTimeRow)) {
+            plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
+            if (!PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
+              plan = PlannerUtils.setMutationType(plan, MutationType.UPDATE);
             }
-
-            Row superseded = plan.getRow();
-            superseded = set(superseded, eventTimeEffectiveToFieldName, precedingTimestamp(arrivingTimestamp));
-            superseded = set(superseded, systemTimeEffectiveFromFieldName, currentSystemTime);
-            superseded = set(superseded, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-            if (hasCurrentFlagField) {
-              superseded = set(superseded, currentFlagFieldName, getCurrentFlagNoValue());
+            plannedForKey.set(position, plan);
+            
+            plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
+            plan = systemEffectiveFromTimeModel.setCurrentSystemTime(plan);
+            plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
+            if (hasCurrentFlagField()) {
+              plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
             }
-            plannedForKey.add(new PlannedRow(superseded, MutationType.INSERT));
+            plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
+            plannedForKey.add(plan);
           }
           else {
-            plan.setRow(set(plan.getRow(), eventTimeEffectiveToFieldName, precedingTimestamp(arrivingTimestamp)));
+            plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
+            plannedForKey.set(position, plan);
           }
-
+          
           break;
         }
       }
 
-      Collections.sort(plannedForKey, tc);
+      Collections.sort(plannedForKey, timestampTimeModel);
     }
 
     // Final pass-through here to carry forward anything we need to
-    List<PlannedRow> planned = Lists.newArrayList();
+    List<Row> planned = Lists.newArrayList();
     if (doesCarryForward()) {
       for (int position = 0; position < plannedForKey.size(); position++) {
-        PlannedRow plan = plannedForKey.get(position);
+        Row plan = plannedForKey.get(position);
         // We carry forward for all mutations in case the next non-NONE row needs the values from this row
         if (position > 0) {
-          Row carried = carryForwardWhenNull(plan.getRow(),
-              plannedForKey.get(position - 1).getRow());
-          if (different(plan.getRow(), carried, getValueFieldNames())) {
+          Row carried = carryForwardWhenNull(plan, plannedForKey.get(position - 1));
+          if (RowUtils.different(plan, carried, getValueFieldNames())) {
             // Close existing record and add a new one if not an insert - otherwise just replace
-            Row superseded = plan.getRow();
-            superseded = set(superseded, systemTimeEffectiveToFieldName,
-                precedingTimestamp(currentSystemTime));
-            if (hasCurrentFlagField) {
-              superseded = set(superseded, currentFlagFieldName, getCurrentFlagNoValue());
+            plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
+            if (hasCurrentFlagField()) {
+              plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
             }
-            if (plan.getMutationType().equals(MutationType.INSERT)) {
-              plan.setRow(carried);
+            if (PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
+              plannedForKey.set(position, carried);
+              plan = carried;
               // This might supersede a previous insert that we've just added as part of a history re-write
               // Condition: the values are the same, it has the same timestamp and has the same currentSystemTime
               if (planned.size() > 1 &&
-                  simultaneous(plan.getRow(), planned.get(planned.size() - 1).getRow(),
-                      timestampFieldName) &&
-                  simultaneous(plan.getRow(), planned.get(planned.size() - 1).getRow(),
-                      systemTimeEffectiveFromFieldName)) {
+                  PlannerUtils.simultaneous(timestampTimeModel, plan, planned.get(planned.size() - 1)) &&
+                  PlannerUtils.simultaneous(systemEffectiveFromTimeModel, plan, planned.get(planned.size() - 1)))
+              {
                 planned.remove(planned.size() - 1);
               }
               planned.add(plan);
             } else {
-              planned.add(new PlannedRow(superseded, MutationType.UPDATE));
-              carried = set(carried, systemTimeEffectiveFromFieldName, currentSystemTime);
-              carried = set(carried, systemTimeEffectiveToFieldName, FAR_FUTURE_MILLIS);
-              if (hasCurrentFlagField) {
-                carried = set(carried, currentFlagFieldName, getCurrentFlagYesValue());
+              planned.add(PlannerUtils.setMutationType(plan, MutationType.UPDATE));
+              carried = systemEffectiveFromTimeModel.setCurrentSystemTime(carried);
+              carried = systemEffectiveToTimeModel.setFarFutureTime(carried);
+              if (hasCurrentFlagField()) {
+                carried = RowUtils.set(carried, getCurrentFlagFieldName(), getCurrentFlagYesValue());
               }
-              planned.add(new PlannedRow(carried, MutationType.INSERT));
+              planned.add(PlannerUtils.setMutationType(carried, MutationType.INSERT));
             }
-          } else if (!plan.getMutationType().equals(MutationType.NONE)) {
+          } else if (!PlannerUtils.getMutationType(plan).equals(MutationType.NONE)) {
             planned.add(plan);
           }
-          plan.setRow(carried);
-        } else if (!plan.getMutationType().equals(MutationType.NONE)) {
+          plannedForKey.set(position, carried);
+        } else if (!PlannerUtils.getMutationType(plan).equals(MutationType.NONE)) {
           planned.add(plan);
         }
       }
     } else {
-      for (PlannedRow plan : plannedForKey) {
-        if (!plan.getMutationType().equals(MutationType.NONE)) {
+      for (Row plan : plannedForKey) {
+        if (!PlannerUtils.getMutationType(plan).equals(MutationType.NONE)) {
           planned.add(plan);
         }
       }
@@ -349,35 +349,35 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
   }
 
   private String getCurrentFlagYesValue(){
-    return hasCurrentFlagYes() ? config.getString(CURRENT_FLAG_YES_CONFIG_NAME) : CURRENT_FLAG_YES;
+    return hasCurrentFlagYes() ? config.getString(CURRENT_FLAG_YES_CONFIG_NAME) : CURRENT_FLAG_DEFAULT_YES;
   }
 
   private String getCurrentFlagNoValue(){
-    return hasCurrentFlagNo() ? config.getString(CURRENT_FLAG_NO_CONFIG_NAME) : CURRENT_FLAG_NO;
+    return hasCurrentFlagNo() ? config.getString(CURRENT_FLAG_NO_CONFIG_NAME) : CURRENT_FLAG_DEFAULT_NO;
   }
 
-  private String getEventTimeEffectiveToFieldName() {
-    return config.getString(EVENT_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
+  private List<String> getEventTimeEffectiveToFieldNames() {
+    return config.getStringList(EVENT_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
   }
 
-  private String getEventTimeEffectiveFromFieldName() {
-    return config.getString(EVENT_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
+  private List<String> getEventTimeEffectiveFromFieldNames() {
+    return config.getStringList(EVENT_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
   }
 
-  private String getSystemTimeEffectiveToFieldName() {
-    return config.getString(SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAME_CONFIG_NAME);
+  private List<String> getSystemTimeEffectiveToFieldNames() {
+    return config.getStringList(SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
   }
 
-  private String getSystemTimeEffectiveFromFieldName() {
-    return config.getString(SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAME_CONFIG_NAME);
+  private List<String> getSystemTimeEffectiveFromFieldNames() {
+    return config.getStringList(SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
   }
 
   private List<String> getValueFieldNames() {
     return config.getStringList(VALUE_FIELD_NAMES_CONFIG_NAME);
   }
 
-  private String getTimestampFieldName() {
-    return config.getString(TIMESTAMP_FIELD_NAME_CONFIG_NAME);
+  private List<String> getTimestampFieldNames() {
+    return config.getStringList(TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
   }
 
   private boolean doesCarryForward() {
@@ -393,42 +393,40 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
 
     for (StructField field : into.schema().fields()) {
       String fieldName = field.name();
-      if (get(into, fieldName) == null && get(from, fieldName) != null) {
-        into = set(into, fieldName, get(from, fieldName));
+      if (RowUtils.get(into, fieldName) == null && RowUtils.get(from, fieldName) != null) {
+        into = RowUtils.set(into, fieldName, RowUtils.get(from, fieldName));
       }
     }
 
     return into;
   }
-
+  
+  private void resetCurrentSystemTime() {
+    long currentSystemTimeMillis = System.currentTimeMillis();
+    
+    this.timestampTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    this.eventEffectiveFromTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    this.eventEffectiveToTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    this.systemEffectiveFromTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    this.systemEffectiveToTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    this.currentSystemTimeRow = getCurrentSystemTimeRow(currentSystemTimeMillis);
+  }
+  
+  private Row getCurrentSystemTimeRow(long currentSystemTimeMillis) {
+    StructType schema = 
+        RowUtils.appendFields(systemEffectiveFromTimeModel.getSchema(), 
+            Lists.newArrayList(systemEffectiveToTimeModel.getSchema().fields()));
+    Object[] nulls = new Object[schema.size()];
+    Row row = new RowWithSchema(schema, nulls);
+    row = systemEffectiveFromTimeModel.setCurrentSystemTime(row);
+    row = systemEffectiveToTimeModel.setCurrentSystemTime(row);
+    
+    return row;
+  }
+  
   @Override
   public String getAlias() {
     return "bitemporal";
   }
-
-  private class PlanTimestampComparator implements Comparator<PlannedRow> {
-    private String timestampFieldName;
-
-    public PlanTimestampComparator(String timestampFieldName) {
-      this.timestampFieldName = timestampFieldName;
-    }
-
-    @Override
-    public int compare(PlannedRow p1, PlannedRow p2) {
-      return compareTimestamp(p1.getRow(), p2.getRow(), timestampFieldName);
-    }
-  }
-
-  private class ArrivingTimestampComparator implements Comparator<Row> {
-    private String timestampFieldName;
-
-    public ArrivingTimestampComparator(String timestampFieldName) {
-      this.timestampFieldName = timestampFieldName;
-    }
-
-    @Override
-    public int compare(Row r1, Row r2) {
-      return compareTimestamp(r1, r2, timestampFieldName);
-    }
-  }
+  
 }

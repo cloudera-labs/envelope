@@ -17,15 +17,16 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
-import org.apache.spark.sql.Row;
-
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.spark.sql.Row;
+
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.typesafe.config.Config;
 
 public class EnumRowRule implements RowRule {
 
@@ -67,7 +68,7 @@ public class EnumRowRule implements RowRule {
     boolean check = true;
     for (String field : fields) {
       if (fieldType == String.class && !caseSensitive) {
-        check = check && validValues.contains(RowUtils.<String>getAs(row, field).toLowerCase());
+        check = check && validValues.contains(row.<String>getAs(field).toLowerCase());
       } else {
         check = check && validValues.contains(RowUtils.get(row, field));
       }

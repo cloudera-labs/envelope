@@ -46,14 +46,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.hbase.HBaseOutput;
-import com.cloudera.labs.envelope.hbase.HBaseSerde;
-import com.cloudera.labs.envelope.hbase.HBaseUtils;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -113,8 +110,8 @@ public class TestHBaseOutput {
     table.close();
   }
 
-  private List<PlannedRow> createPlannedMutations() {
-    List<PlannedRow> records = new ArrayList<>();
+  private List<Row> createPlannedMutations() {
+    List<Row> records = new ArrayList<>();
     long beginTime = 1_000_000_000;
     for (int i = 0; i < INPUT_ROWS; ++i) {
       // Nonsense
@@ -127,9 +124,9 @@ public class TestHBaseOutput {
           i % 10,
           i + i % 10
       );
-      records.add(new PlannedRow(insertRow, MutationType.UPSERT));
+      records.add(PlannerUtils.setMutationType(insertRow, MutationType.UPSERT));
       Row updateRow = RowUtils.set(insertRow, "leavesqty", (i % 10) + 10);
-      records.add(new PlannedRow(updateRow, MutationType.UPSERT));
+      records.add(PlannerUtils.setMutationType(updateRow, MutationType.UPSERT));
     }
 
     return records;
@@ -257,7 +254,7 @@ public class TestHBaseOutput {
 
     HBaseOutput output = new HBaseOutput();
     output.configure(config);
-    List<PlannedRow> records = createPlannedMutations();
+    List<Row> records = createPlannedMutations();
 
     // Should be empty
     scanAndCountTable(table, 0);
@@ -277,9 +274,9 @@ public class TestHBaseOutput {
       }
     }
 
-    for (PlannedRow record : records) {
+    for (Row record : records) {
       // Turn it into a DELETE
-      record.setMutationType(MutationType.DELETE);
+      records.set(records.indexOf(record), PlannerUtils.setMutationType(record, MutationType.DELETE));
     }
 
     output.applyRandomMutations(records);

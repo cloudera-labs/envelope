@@ -71,7 +71,7 @@ public class RowWithSchema implements Row {
 
   @Override
   public <T> T getAs(String arg0) {
-    return internalRow.getAs(arg0);
+    return internalRow.getAs(fieldIndex(arg0));
   }
 
   @Override

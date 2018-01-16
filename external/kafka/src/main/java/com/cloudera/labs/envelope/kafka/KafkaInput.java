@@ -46,9 +46,9 @@ import com.cloudera.labs.envelope.output.Output;
 import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -209,7 +209,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
   public void recordProgress() throws Exception {
     if (doesRecordProgress()) {
       // Plan the offset ranges as an upsert 
-      List<PlannedRow> planned = Lists.newArrayList();
+      List<Row> planned = Lists.newArrayList();
       StructType schema = DataTypes.createStructType(Lists.newArrayList(
           DataTypes.createStructField("group_id", DataTypes.StringType, false),
           DataTypes.createStructField("topic", DataTypes.StringType, false),
@@ -217,7 +217,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
           DataTypes.createStructField("offset", DataTypes.LongType, false)));
       for (OffsetRange offsetRange : offsetRanges) {
         Row offsetRow = new RowWithSchema(schema, groupID, offsetRange.topic(), offsetRange.partition(), offsetRange.untilOffset());
-        PlannedRow plan = new PlannedRow(offsetRow, MutationType.UPSERT);
+        Row plan = PlannerUtils.setMutationType(offsetRow, MutationType.UPSERT);
         planned.add(plan);
       }
       

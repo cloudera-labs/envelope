@@ -8,6 +8,8 @@ The data that is provided to a planner comes from the data of the step that the 
 
 In some cases a planner additionally needs the corresponding 'existing' data of the arriving data to generate all of the required mutations. This is handled automatically by Envelope.
 
+Planners make heavy use of the concept of time -- when did something occur in the real world, when did something get recorded in an output, data arriving out of order, etc. -- and so they need to know how to read various representations of time on arriving records. By default the provided planners assume that time values are modeled as a long field of the number of milliseconds since epoch. To use other time models, see the below section <<Handling time>>.
+
 There are a set of standardized mutation types, e.g. INSERT and UPDATE, that planners emit, and that allow planners and outputs to be completely independent of each other. Each planner specifies which of the mutation types it can emit, and typically a planner will not emit all of the mutation types. Conversely, each output specifies which of the mutation types that it can apply, and typically an output will not support applying all of the mutation types. For a planner and an output to be compatible all mutation types that the planner may emit must be supported by the output. There is a compatibility matrix for planners and outputs at the end of this guide.
 
 One example could be for a step that contains the `kafka` output. The Kafka component does not have capability to update or delete previously created (i.e. existing) records in place, so the only mutation type that it supports is INSERT. For the step to write to Kafka it must then include a planner that only emits INSERTs. The only planner currently bundled with Envelope that meets this criteria is the `append` planner. The step may then look something like:
@@ -265,7 +267,7 @@ And to query for what was at the previous system time our latest known state of 
 
 Custom developed planners can be provided by giving the fully-qualified class name (or alias--see below) of the planner to the `type` configuration. The class must implement `BulkPlanner` or `RandomPlanner`.
 
-### Using Aliases
+### Using aliases
 
 To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
   the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.planner.Planner` file
@@ -290,6 +292,71 @@ A random planner applies individual mutation types to the mutations of the plan 
 |history|Random
 |bitemporal|Random
 |===
+
+## Handling time
+
+Planners interpret values that encode time using 'time models'. By default Envelope-provided planners use the `longmillis` time model which reads a single long field as the number of milliseconds since epoch. In total there are five time models that are provided by Envelope. Custom time models can be provided in much the same way as a custom planner. Time models can handle a time value that is encoded over a single field or over multiple fields.
+
+### Envelope-provided time models
+
+#### Long milliseconds
+
+The `longmillis` time model reads a long field as the number of milliseconds since epoch (1970-01-01 00:00:00.000 UTC).
+
+#### Nanoseconds with sequence number
+
+The `nanoswithseqnum` time model reads two fields -- a decimal(38,0) field of the number of nanoseconds since epoch, and an integer field of the 1-indexed sequence number of the records within a single nanosecond. This can be useful for financial use cases where multiple events may occur within a single nanosecond. When applying the system time with this time model (e.g. on a last updated or system time effective from attribute) the time will only have millisecond precision.
+
+#### String date
+
+The `stringdate` time model reads a string field as a date with no time component. Operations with this time model are at the whole date granularity. The default format for interpreting the string value is "yyyy-MM-dd". A custom format can be provided with the `format` property. Date formats are defined by http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java's SimpleDateFormat].
+
+#### String date-time
+
+The `stringdatetime` time model reads a string field as a date with a time component. Operations with this time model are at the millisecond granularity. The default format for interpreting the string value is "yyyy-MM-dd HH:mm:ss.SSS". A custom format can be provided with the `format` property. Date formats are defined by http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java's SimpleDateFormat].
+
+#### Timestamp
+
+The `timestamp` time model reads a Spark SQL timestamp field. Operations with this time model are at the nanosecond granularity.
+
+### Example
+
+Consider an example where the bi-temporal planner is being used in a step, and the event time on the arriving record is encoded as a string date-time with a custom format, and the system time is to be recorded on the output is a Spark SQL timestamp. We could configure the planner accordingly:
+
+----
+steps {
+  ...
+  step_name {
+    deriver {
+      ...
+    }
+    planner {
+      type = bitemporal
+      fields.key = [name]
+      fields.timestamp = [time]
+      fields.values = [score]
+      fields.event.time.effective.from = [event_start_ts]
+      fields.event.time.effective.to = [event_end_ts]
+      fields.system.time.effective.from = [system_start_ts]
+      fields.system.time.effective.to = [system_end_ts]
+      field.current.flag = current_flag
+      time.model {
+        event {
+          type = stringdatetime
+          format = "dd-MMM-yyyy HH.mm.ss:SSS"
+        }
+        system {
+          type = timestamp
+        }
+      }
+    }
+    output {
+      ...
+    }
+  }
+  ...
+}
+----
 
 ## Mutation types
 

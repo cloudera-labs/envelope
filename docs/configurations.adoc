@@ -699,20 +699,20 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |fields.values
 |The list of field names that are used to determine if an arriving record is different to an existing record.
 
-|field.timestamp
-|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+|fields.timestamp
+|The list of field names of the event time of the record.
 
-|field.event.time.effective.from
-|The field name of the event-time effective-from timestamp attribute on the output.
+|fields.event.time.effective.from
+|The list of field names of the event-time effective-from timestamp attribute on the output.
 
-|field.event.time.effective.to
-|The field name of the event-time effective-to timestamp attribute on the output.
+|fields.event.time.effective.to
+|The list of field names of the event-time effective-to timestamp attribute on the output.
 
-|field.system.time.effective.from
-|The field name of the system-time effective-from timestamp attribute on the output.
+|fields.system.time.effective.from
+|The list of field names of the system-time effective-from timestamp attribute on the output.
 
-|field.system.time.effective.to
-|The field name of the system-time effective-to timestamp attribute on the output.
+|fields.system.time.effective.to
+|The list of field names of the system-time effective-to timestamp attribute on the output.
 
 |field.current.flag
 |The field name of the current flag attribute on the output.
@@ -726,6 +726,12 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |carry.forward.when.null
 |If `true` then Envelope will overwrite null values of the arriving record with the corresponding values of the most recent existing record for the same key.
 
+|time.model.event
+|The time model for interpreting the event time of the arriving and existing records, and for generating the event time effective from/to values.
+
+|time.model.system
+|The time model for interpreting the system time of the existing records, and for generating the system time effective from/to values.
+
 ||
 |`_eventtimeupsert_`|
 
@@ -733,13 +739,19 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |The list of field names that make up the natural key of the record.
 
 |field.last.updated
-|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp.
 
-|field.timestamp
-|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+|fields.timestamp
+|The list of field names of the event time of the record.
 
-|field.values
+|fields.values
 |The list of field names that are used to determine if an arriving record is different to an existing record.
+
+|time.model.event
+|The time model for interpreting the event time of the arriving and existing records.
+
+|time.model.last.updated
+|The time model for generating the last updated values.
 
 ||
 |`_history_`|
@@ -750,14 +762,14 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |fields.values
 |The list of field names that are used to determine if an arriving record is different to an existing record.
 
-|field.timestamp
-|The field name of the event time of the record. Must reference a field with the `LongType` Spark SQL data type.
+|fields.timestamp
+|The list of field names of the event time of the record.
 
-|field.effective.from
-|The field name of the event-time effective-from timestamp attribute on the output.
+|fields.effective.from
+|The list of field names of the event-time effective-from timestamp attribute on the output.
 
-|field.effective.to
-|The field name of the event-time effective-to timestamp attribute on the output.
+|fields.effective.to
+|The list of field names of the event-time effective-to timestamp attribute on the output.
 
 |field.current.flag
 |The field name of the current flag attribute on the output.
@@ -768,11 +780,17 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |current.flag.value.no
 |The flag indicating non-current record. Overrides the default value (N).
 
-|field.last.updated
-|The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+|fields.last.updated
+|The list of field names for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp.
 
 |carry.forward.when.null
 |If `true` then Envelope will overwrite null values of the arriving record with the corresponding values of the most recent existing record for the same key.
+
+|time.model.event
+|The time model for interpreting the event time of the arriving and existing records, and for generating the effective from/to values.
+
+|time.model.last.updated
+|The time model for generating the last updated values.
 
 ||
 |`_overwrite_`|_This deriver has no custom configurations_.
@@ -785,6 +803,40 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 
 |field.last.updated
 |The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
+
+|===
+
+==== Time models
+
+Time model configurations belong to planners, and have the `steps.[stepname].planner.time.model.[timename]` prefix. For more information on time models see the link:planners.adoc#Handling_time[planners guide].
+
+[cols="2,8a", options="header"]
+|===
+|Configuration suffix|Description
+
+|type
+|The time model type to be used. Envelope provides `longmillis`, `nanoswithseqnum`, `stringdate`, `stringdatetime`, `timestamp`. To use a custom output, specify the fully qualified name or alias of the `TimeModel` implementation class.
+
+||
+|`_longmillis_`|_This time model has no custom configurations_.
+
+||
+|`_nanoswithseqnum_`|_This time model has no custom configurations_.
+
+||
+|`_stringdate_`|
+
+|format
+|The link:http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java SimpleDateFormat] format of the date values. Default "yyyy-MM-dd".
+
+||
+|`_stringdatetime_`|
+
+|format
+|The link:http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java SimpleDateFormat] format of the date-time values. Default "yyyy-MM-dd HH:mm:ss.SSS".
+
+||
+|`_timestamp_`|_This time model has no custom configurations_.
 
 |===
 

@@ -46,10 +46,8 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.hbase.DefaultHBaseSerde;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
@@ -158,12 +156,12 @@ public class TestDefaultHBaseSerde {
     Result result = Result.create(cells);
     Row row = serde.convertFromResult(result);
 
-    assertEquals("Symbol should be GOOG", "GOOG", RowUtils.<String>getAs(row, "symbol"));
-    assertEquals("Transacttime should be 1000L", 1000L, RowUtils.<Long>getAs(row, "transacttime").longValue());
-    assertEquals("Clordid should be abcd", "abcd", RowUtils.<String>getAs(row, "clordid"));
-    assertEquals("Orderqty should be 100", 100, RowUtils.<Integer>getAs(row, "orderqty").intValue());
-    assertEquals("Leavesqty should be 10", 10, RowUtils.<Integer>getAs(row, "leavesqty").intValue());
-    assertEquals("Cumqty should be 5", 5, RowUtils.<Integer>getAs(row, "cumqty").intValue());
+    assertEquals("Symbol should be GOOG", "GOOG", row.<String>getAs("symbol"));
+    assertEquals("Transacttime should be 1000L", 1000L, row.<Long>getAs("transacttime").longValue());
+    assertEquals("Clordid should be abcd", "abcd", row.<String>getAs("clordid"));
+    assertEquals("Orderqty should be 100", 100, row.<Integer>getAs("orderqty").intValue());
+    assertEquals("Leavesqty should be 10", 10, row.<Integer>getAs("leavesqty").intValue());
+    assertEquals("Cumqty should be 5", 5, row.<Integer>getAs("cumqty").intValue());
   }
 
   @Test
@@ -193,19 +191,19 @@ public class TestDefaultHBaseSerde {
     List<Row> rows = serde.convertFromResults(Lists.newArrayList(result1, result2));
 
     assertEquals("Two Rows should be returned", 2, rows.size());
-    assertEquals("Symbol should be GOOG", "GOOG", RowUtils.<String>getAs( rows.get(0), "symbol"));
-    assertEquals("Transacttime should be 1000L", 1000L, RowUtils.<Long>getAs(rows.get(0), "transacttime").longValue());
-    assertEquals("Clordid should be abcd", "abcd", RowUtils.<String>getAs(rows.get(0), "clordid"));
-    assertEquals("Orderqty should be 100", 100, RowUtils.<Integer>getAs(rows.get(0), "orderqty").intValue());
-    assertEquals("Leavesqty should be 10", 10, RowUtils.<Integer>getAs(rows.get(0), "leavesqty").intValue());
-    assertEquals("Cumqty should be 5", 5, RowUtils.<Integer>getAs(rows.get(0), "cumqty").intValue());
+    assertEquals("Symbol should be GOOG", "GOOG", rows.get(0).<String>getAs("symbol"));
+    assertEquals("Transacttime should be 1000L", 1000L, rows.get(0).<Long>getAs("transacttime").longValue());
+    assertEquals("Clordid should be abcd", "abcd", rows.get(0).<String>getAs("clordid"));
+    assertEquals("Orderqty should be 100", 100, rows.get(0).<Integer>getAs("orderqty").intValue());
+    assertEquals("Leavesqty should be 10", 10, rows.get(0).<Integer>getAs("leavesqty").intValue());
+    assertEquals("Cumqty should be 5", 5, rows.get(0).<Integer>getAs("cumqty").intValue());
 
-    assertEquals("Symbol should be AAPL", "AAPL", RowUtils.<String>getAs(rows.get(1), "symbol"));
-    assertEquals("Transacttime should be 1004L", 1004L, RowUtils.<Long>getAs(rows.get(1), "transacttime").longValue());
-    assertEquals("Clordid should be efgh", "efgh", RowUtils.<String>getAs(rows.get(1), "clordid"));
-    assertEquals("Orderqty should be 99", 99, RowUtils.<Integer>getAs(rows.get(1), "orderqty").intValue());
-    assertEquals("Leavesqty should be 9", 9, RowUtils.<Integer>getAs(rows.get(1), "leavesqty").intValue());
-    assertEquals("Cumqty should be 4", 4, RowUtils.<Integer>getAs(rows.get(1), "cumqty").intValue());
+    assertEquals("Symbol should be AAPL", "AAPL", rows.get(1).<String>getAs("symbol"));
+    assertEquals("Transacttime should be 1004L", 1004L, rows.get(1).<Long>getAs("transacttime").longValue());
+    assertEquals("Clordid should be efgh", "efgh", rows.get(1).<String>getAs("clordid"));
+    assertEquals("Orderqty should be 99", 99, rows.get(1).<Integer>getAs("orderqty").intValue());
+    assertEquals("Leavesqty should be 9", 9, rows.get(1).<Integer>getAs("leavesqty").intValue());
+    assertEquals("Cumqty should be 4", 4, rows.get(1).<Integer>getAs("cumqty").intValue());
   }
 
   @Test

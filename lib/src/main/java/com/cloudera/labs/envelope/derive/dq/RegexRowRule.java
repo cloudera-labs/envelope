@@ -17,14 +17,14 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
-import org.apache.spark.sql.Row;
-
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.spark.sql.Row;
+
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
 
 public class RegexRowRule implements RowRule {
 
@@ -50,7 +50,7 @@ public class RegexRowRule implements RowRule {
   public boolean check(Row row) {
     boolean check = true;
     for (String field : fields) {
-      String value = RowUtils.getAs(row, field);
+      String value = row.getAs(field);
       Matcher matcher = pattern.matcher(value);
       check = check && matcher.matches();
       if (!check) {

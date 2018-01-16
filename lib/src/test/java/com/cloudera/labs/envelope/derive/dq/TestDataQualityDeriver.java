@@ -17,14 +17,14 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.derive.DataQualityDeriver;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.List;
+import java.util.Map;
+
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -34,15 +34,16 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.Test;
+
+import com.cloudera.labs.envelope.derive.DataQualityDeriver;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+
 import scala.collection.JavaConverters;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestDataQualityDeriver {
 
@@ -114,7 +115,7 @@ public class TestDataQualityDeriver {
 
       assertEquals("Should be two rows", 2, dqRows.size());
       for (Row row : dqRows) {
-        scala.collection.immutable.Map<String, Boolean> scalaResults = RowUtils.getAs(row, "results");
+        scala.collection.immutable.Map<String, Boolean> scalaResults = row.getAs("results");
         Map<String, Boolean> ruleResults = fromScalaMap(scalaResults);
         assertEquals("Rule results map should have three entries", 3, ruleResults.size());
         assertTrue("Checkfields should pass", ruleResults.get("r1"));
@@ -155,17 +156,17 @@ public class TestDataQualityDeriver {
       assertEquals("Should be results from six rules", 6, dqRows.size());
       Map<String, Row> results = Maps.newHashMap();
       for (Row row : dqRows) {
-        results.put(RowUtils.<String>getAs(row, "name"), row);
+        results.put(row.<String>getAs("name"), row);
       }
       assertEquals("Should be results from four different rules", 6, results.size());
 
       // Check count
-      assertTrue("Count should have passed", RowUtils.<Boolean>getAs(results.get("r1"), "result"));
-      assertTrue("Checknulls should have passed", RowUtils.<Boolean>getAs(results.get("r2"), "result"));
-      assertTrue("Regex should have passed", RowUtils.<Boolean>getAs(results.get("r3"), "result"));
-      assertFalse("Enum should not have passed", RowUtils.<Boolean>getAs(results.get("r4"), "result"));
-      assertTrue("Checkschema should have passed", RowUtils.<Boolean>getAs(results.get("r5"), "result"));
-      assertFalse("Checkschema should not have passed", RowUtils.<Boolean>getAs(results.get("r6"), "result"));
+      assertTrue("Count should have passed", results.get("r1").<Boolean>getAs("result"));
+      assertTrue("Checknulls should have passed", results.get("r2").<Boolean>getAs("result"));
+      assertTrue("Regex should have passed", results.get("r3").<Boolean>getAs("result"));
+      assertFalse("Enum should not have passed", results.get("r4").<Boolean>getAs("result"));
+      assertTrue("Checkschema should have passed", results.get("r5").<Boolean>getAs("result"));
+      assertFalse("Checkschema should not have passed", results.get("r6").<Boolean>getAs("result"));
     } catch (Exception e) {
       e.printStackTrace();
       fail("DQ config should be valid: " + e.getMessage());

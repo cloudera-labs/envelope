@@ -47,7 +47,6 @@ import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.partition.PartitionerFactory;
 import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.plan.Planner;
 import com.cloudera.labs.envelope.plan.PlannerFactory;
 import com.cloudera.labs.envelope.plan.RandomPlanner;
@@ -297,7 +296,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       RandomPlanner randomPlanner = (RandomPlanner)getPlanner();
       List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
       Config outputConfig = config.getConfig("output");
-      JavaRDD<PlannedRow> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
+      JavaRDD<Row> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
 
       applyMutations(planned, outputConfig);
     }
@@ -352,7 +351,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
   
   // Group the arriving records by key, attach the existing records for each key, and plan
-  private JavaRDD<PlannedRow> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
+  private JavaRDD<Row> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
     JavaPairRDD<Row, Row> keyedArriving = 
         arriving.javaRDD().keyBy(new ExtractKeyFunction(keyFieldNames, accumulators));
 
@@ -362,7 +361,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     JavaPairRDD<Row, Tuple2<Iterable<Row>, Iterable<Row>>> arrivingAndExistingByKey =
         arrivingByKey.mapPartitionsToPair(new JoinExistingForKeysFunction(outputConfig, keyFieldNames, accumulators));
 
-    JavaRDD<PlannedRow> planned = 
+    JavaRDD<Row> planned = 
         arrivingAndExistingByKey.flatMap(new PlanForKeyFunction(plannerConfig, accumulators));
 
     return planned;
@@ -519,7 +518,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
 
   @SuppressWarnings("serial")
   private static class PlanForKeyFunction
-  implements FlatMapFunction<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>, PlannedRow> {
+  implements FlatMapFunction<Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>>, Row> {
     private Config config;
     private RandomPlanner planner;
     private Accumulators accumulators;
@@ -530,7 +529,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
 
     @Override
-    public Iterator<PlannedRow>
+    public Iterator<Row>
     call(Tuple2<Row, Tuple2<Iterable<Row>, Iterable<Row>>> keyedRecords) throws Exception {
       long startTime = System.nanoTime();
       
@@ -545,7 +544,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       List<Row> arrivingRecords = Lists.newArrayList(keyedRecords._2()._1());
       List<Row> existingRecords = Lists.newArrayList(keyedRecords._2()._2());
 
-      Iterable<PlannedRow> plannedForKey = planner.planMutationsForKey(key, arrivingRecords, existingRecords);
+      Iterable<Row> plannedForKey = planner.planMutationsForKey(key, arrivingRecords, existingRecords);
       
       long endTime = System.nanoTime();
       accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_PLANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
@@ -554,12 +553,12 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
   };
 
-  private void applyMutations(JavaRDD<PlannedRow> planned, Config outputConfig) {
+  private void applyMutations(JavaRDD<Row> planned, Config outputConfig) {
     planned.foreachPartition(new ApplyMutationsForPartitionFunction(outputConfig, accumulators));
   }
 
   @SuppressWarnings("serial")
-  private static class ApplyMutationsForPartitionFunction implements VoidFunction<Iterator<PlannedRow>> {
+  private static class ApplyMutationsForPartitionFunction implements VoidFunction<Iterator<Row>> {
     private Config config;
     private RandomOutput output;
     private Accumulators accumulators;
@@ -570,7 +569,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
 
     @Override
-    public void call(Iterator<PlannedRow> plannedIterator) throws Exception {
+    public void call(Iterator<Row> plannedIterator) throws Exception {
       long startTime = System.nanoTime();
 
       if (output == null) {
@@ -580,7 +579,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
         }
       }
       
-      List<PlannedRow> planned = Lists.newArrayList(plannedIterator);
+      List<Row> planned = Lists.newArrayList(plannedIterator);
 
       output.applyRandomMutations(planned);
       

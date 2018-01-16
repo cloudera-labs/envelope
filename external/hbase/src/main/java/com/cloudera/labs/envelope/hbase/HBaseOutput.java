@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -166,24 +166,26 @@ public class HBaseOutput implements RandomOutput, BulkOutput {
   }
 
   @Override
-  public void applyRandomMutations(List<PlannedRow> plannedRows) throws Exception {
+  public void applyRandomMutations(List<Row> plannedRows) throws Exception {
     LOG.debug("Applying planned rows to table: {}", tableName.toString());
     try (Table table = getConnection(config).getTable(tableName)) {
       List<Mutation> actions = Lists.newArrayList();
 
       LOG.debug("Extracting mutations from {} rows", plannedRows.size());
 
-      for (PlannedRow row : plannedRows) {
-        switch (row.getMutationType()) {
+      for (Row row : plannedRows) {
+        MutationType mutationType = PlannerUtils.getMutationType(row);
+        row = PlannerUtils.removeMutationTypeField(row);
+        switch (mutationType) {
           case UPSERT:
-            actions.add(getSerde(config).convertToPut(row.getRow()));
+            actions.add(getSerde(config).convertToPut(row));
             break;
           case DELETE:
-            actions.add(getSerde(config).convertToDelete(row.getRow()));
+            actions.add(getSerde(config).convertToDelete(row));
             break;
           default:
             throw new RuntimeException("Unsupported HBase mutation type: " +
-                row.getMutationType().toString());
+                PlannerUtils.getMutationType(row));
         }
 
         if (actions.size() >= batchSize) {

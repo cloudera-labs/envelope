@@ -64,11 +64,11 @@ import org.slf4j.LoggerFactory;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.spark.UsesAccumulators;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -103,7 +103,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
   }
 
   @Override
-  public void applyRandomMutations(List<PlannedRow> planned) throws Exception {
+  public void applyRandomMutations(List<Row> planned) throws Exception {
     KuduTable table = connectToTable();
 
     List<Operation> operations = extractOperations(planned, table);
@@ -318,11 +318,11 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
     return scanner;
   }
 
-  private List<Operation> extractOperations(List<PlannedRow> planned, KuduTable table) throws Exception {
+  private List<Operation> extractOperations(List<Row> planned, KuduTable table) throws Exception {
     List<Operation> operations = Lists.newArrayList();
 
-    for (PlannedRow plan : planned) {
-      MutationType mutationType = plan.getMutationType();
+    for (Row plan : planned) {
+      MutationType mutationType = PlannerUtils.getMutationType(plan);
 
       Operation operation = null;
 
@@ -344,36 +344,38 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
       }
 
       PartialRow kuduRow = operation.getRow();
-      Row planRow = plan.getRow();
 
-      if (planRow.schema() == null) {
+      if (plan.schema() == null) {
         throw new RuntimeException("Plan sent to Kudu output does not contain a schema");
       }
+      
+      plan = PlannerUtils.removeMutationTypeField(plan);
 
-      for (StructField field : planRow.schema().fields()) {
+      for (StructField field : plan.schema().fields()) {
         String fieldName = field.name();
+        
         ColumnSchema columnSchema = table.getSchema().getColumn(fieldName);
 
-        if (!planRow.isNullAt(planRow.fieldIndex(fieldName))) {
-          int fieldIndex = planRow.fieldIndex(fieldName);
+        if (!plan.isNullAt(plan.fieldIndex(fieldName))) {
+          int fieldIndex = plan.fieldIndex(fieldName);
           switch (columnSchema.getType()) {
             case DOUBLE:
-              kuduRow.addDouble(fieldName, planRow.getDouble(fieldIndex));
+              kuduRow.addDouble(fieldName, plan.getDouble(fieldIndex));
               break;
             case FLOAT:
-              kuduRow.addFloat(fieldName, planRow.getFloat(fieldIndex));
+              kuduRow.addFloat(fieldName, plan.getFloat(fieldIndex));
               break;
             case INT32:
-              kuduRow.addInt(fieldName, planRow.getInt(fieldIndex));
+              kuduRow.addInt(fieldName, plan.getInt(fieldIndex));
               break;
             case INT64:
-              kuduRow.addLong(fieldName, planRow.getLong(fieldIndex));
+              kuduRow.addLong(fieldName, plan.getLong(fieldIndex));
               break;
             case STRING:
-              kuduRow.addString(fieldName, planRow.getString(fieldIndex));
+              kuduRow.addString(fieldName, plan.getString(fieldIndex));
               break;
             case BOOL:
-              kuduRow.addBoolean(fieldName, planRow.getBoolean(fieldIndex));
+              kuduRow.addBoolean(fieldName, plan.getBoolean(fieldIndex));
               break;
             default:
               throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());

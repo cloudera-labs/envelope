@@ -18,18 +18,19 @@
 package com.cloudera.labs.envelope.plan;
 
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
 
+import com.cloudera.labs.envelope.plan.time.TimeModel;
+import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * A planner implementation for updating existing and inserting new (upsert). This maintains the
@@ -39,66 +40,84 @@ public class EventTimeUpsertPlanner implements RandomPlanner {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
-  public static final String TIMESTAMP_FIELD_NAME_CONFIG_NAME = "field.timestamp";
-  public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "field.values";
+  public static final String TIMESTAMP_FIELD_NAMES_CONFIG_NAME = "fields.timestamp";
+  public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";
+  public static final String EVENT_TIME_MODEL_CONFIG_NAME = "time.model.event";
+  public static final String LAST_UPDATED_TIME_MODEL_CONFIG_NAME = "time.model.last.updated";
 
   private Config config;
+  private TimeModel eventTimeModel;
+  private TimeModel lastUpdatedTimeModel;
+  private List<String> valueFieldNames;
 
   @Override
   public void configure(Config config) {
     this.config = config;
+    
+    Config eventTimeModelConfig = config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+    Config lastUpdatedTimeModelConfig = config.hasPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+    
+    this.eventTimeModel = TimeModelFactory.create(eventTimeModelConfig, getTimestampFieldNames());
+    if (hasLastUpdatedField()) {
+      this.lastUpdatedTimeModel = TimeModelFactory.create(lastUpdatedTimeModelConfig, getLastUpdatedFieldName());
+    }
+    this.valueFieldNames = getValueFieldNames();
   }
 
   @Override
-  public List<PlannedRow> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey)
-  {
+  public List<Row> planMutationsForKey(Row key, List<Row> arrivingForKey, List<Row> existingForKey) {
+    resetCurrentSystemTime();
+    
     if (key.schema() == null) {
       throw new RuntimeException("Key sent to event time upsert planner does not contain a schema");
     }
-
-    String timestampFieldName = getTimestampFieldName();
-    List<String> valueFieldNames = getValueFieldNames();
-
-    Comparator<Row> tc = new TimestampComparator(timestampFieldName);
-
-    List<PlannedRow> planned = Lists.newArrayList();
+    
+    List<Row> planned = Lists.newArrayList();
 
     if (arrivingForKey.size() > 1) {
-      Collections.sort(arrivingForKey, Collections.reverseOrder(tc));
+      Collections.sort(arrivingForKey, Collections.reverseOrder(eventTimeModel));
     }
-    Row arrived = arrivingForKey.get(0);
+    Row arriving = arrivingForKey.get(0);
 
-    if (arrived.schema() == null) {
+    if (arriving.schema() == null) {
       throw new RuntimeException("Arriving row sent to event time upsert planner does not contain a schema");
+    }
+    
+    arriving = PlannerUtils.appendMutationTypeField(arriving);
+    
+    if (hasLastUpdatedField()) {
+      arriving = lastUpdatedTimeModel.appendFields(arriving);
     }
 
     Row existing = null;
-    if (existingForKey.size() > 0) {
+    if (!existingForKey.isEmpty()) {
       existing = existingForKey.get(0);
 
-      if (arrived.schema() == null) {
+      if (arriving.schema() == null) {
         throw new RuntimeException("Existing row sent to event time upsert planner does not contain a schema");
       }
     }
 
     if (existing == null) {
       if (hasLastUpdatedField()) {
-        arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
+        arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
       }
 
-      planned.add(new PlannedRow(arrived, MutationType.INSERT));
+      planned.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
     }
-    else if (RowUtils.before(arrived, existing, timestampFieldName)) {
+    else if (PlannerUtils.before(eventTimeModel, arriving, existing)) {
       // We do nothing because the arriving record is older than the existing record
     }
-    else if ((RowUtils.simultaneous(arrived, existing, timestampFieldName) ||
-          RowUtils.after(arrived, existing, timestampFieldName)) &&
-          RowUtils.different(arrived, existing, valueFieldNames))
+    else if ((PlannerUtils.simultaneous(eventTimeModel, arriving, existing) ||
+              PlannerUtils.after(eventTimeModel, arriving, existing)) &&
+             RowUtils.different(arriving, existing, valueFieldNames))
     {
       if (hasLastUpdatedField()) {
-        arrived = RowUtils.append(arrived, getLastUpdatedFieldName(), DataTypes.StringType, currentTimestampString());
+        arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
       }
-      planned.add(new PlannedRow(arrived, MutationType.UPDATE));
+      planned.add(PlannerUtils.setMutationType(arriving, MutationType.UPDATE));
     }
 
     return planned;
@@ -126,30 +145,22 @@ public class EventTimeUpsertPlanner implements RandomPlanner {
     return config.getStringList(VALUE_FIELD_NAMES_CONFIG_NAME);
   }
 
-  private String getTimestampFieldName() {
-    return config.getString(TIMESTAMP_FIELD_NAME_CONFIG_NAME);
+  private List<String> getTimestampFieldNames() {
+    return config.getStringList(TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
   }
-
-  private String currentTimestampString() {
-    return new Date(System.currentTimeMillis()).toString();
+  
+  private void resetCurrentSystemTime() {
+    long currentSystemTimeMillis = System.currentTimeMillis();
+    
+    this.eventTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    if (hasLastUpdatedField()) {
+      this.lastUpdatedTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
+    }
   }
-
+  
   @Override
   public String getAlias() {
     return "eventtimeupsert";
-  }
-
-  private class TimestampComparator implements Comparator<Row> {
-    private String timestampFieldName;
-
-    public TimestampComparator(String timestampFieldName) {
-      this.timestampFieldName = timestampFieldName;
-    }
-
-    @Override
-    public int compare(Row r1, Row r2) {
-      return RowUtils.compareTimestamp(r1, r2, timestampFieldName);
-    }
   }
 
 }

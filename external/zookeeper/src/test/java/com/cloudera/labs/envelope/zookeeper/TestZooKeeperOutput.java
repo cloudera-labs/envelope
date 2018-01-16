@@ -37,10 +37,9 @@ import org.junit.Test;
 
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.zookeeper.ZooKeeperOutput;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -77,8 +76,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "world", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> plan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> plan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     
     zkOutput.applyRandomMutations(plan);
 
@@ -101,12 +100,12 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "world", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     Row delete = new RowWithSchema(keySchema, "hello", 100, 1000L);
-    List<PlannedRow> deletePlan = Lists.newArrayList(new PlannedRow(delete, MutationType.DELETE));
+    List<Row> deletePlan = Lists.newArrayList(PlannerUtils.setMutationType(delete, MutationType.DELETE));
     zkOutput.applyRandomMutations(deletePlan);
 
     Row filter1 = new RowWithSchema(keySchema, "hello", 100, 1000L);
@@ -127,8 +126,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "world", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     Row filter = new RowWithSchema(keySchema, "hello", 100, 1000L);
@@ -148,8 +147,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "hello", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     StructType partialSchema = RowUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"));
@@ -172,8 +171,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "world", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     StructType partialSchema = RowUtils.structTypeFor(Lists.newArrayList("field6"), Lists.newArrayList("double"));
@@ -194,8 +193,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "world", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     StructType keySchemaWithValues = keySchema
@@ -219,8 +218,8 @@ public class TestZooKeeperOutput implements Watcher {
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
     Row row2 = new RowWithSchema(schema, "hello", -100, -1000L, false, -1.0f, 1.0);
-    List<PlannedRow> upsertPlan = Lists.newArrayList(
-        new PlannedRow(row1, MutationType.UPSERT), new PlannedRow(row2, MutationType.UPSERT));
+    List<Row> upsertPlan = Lists.newArrayList(
+        PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
     StructType partialSchemaWithValues = 
@@ -244,9 +243,9 @@ public class TestZooKeeperOutput implements Watcher {
     List<Row> filters = Lists.newArrayList(filter);
     List<Row> existing = Lists.newArrayList(zkOutput.getExistingForFilters(filters));
     
-    List<PlannedRow> deletes = Lists.newArrayList();
+    List<Row> deletes = Lists.newArrayList();
     for (Row exist : existing) {
-      deletes.add(new PlannedRow(exist, MutationType.DELETE));
+      deletes.add(PlannerUtils.setMutationType(exist, MutationType.DELETE));
     }
     zkOutput.applyRandomMutations(deletes);
   }

@@ -17,9 +17,8 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
+import java.util.Map;
+
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -27,7 +26,8 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.expressions.Aggregator;
 
-import java.util.Map;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.typesafe.config.Config;
 
 public class DatasetRowRuleWrapper implements DatasetRule {
 
@@ -83,13 +83,13 @@ public class DatasetRowRuleWrapper implements DatasetRule {
     @Override
     public Row reduce(Row a, Row b) {
       return new RowWithSchema(SCHEMA, name,
-          RowUtils.<Boolean>getAs(a, "result") && RowUtils.<Boolean>getAs(b, "result"));
+          a.<Boolean>getAs("result") && b.<Boolean>getAs("result"));
     }
 
     @Override
     public Row merge(Row a, Row b) {
       return new RowWithSchema(SCHEMA, name,
-          RowUtils.<Boolean>getAs(a, "result") && RowUtils.<Boolean>getAs(b, "result"));
+          a.<Boolean>getAs("result") && b.<Boolean>getAs("result"));
     }
 
     @Override

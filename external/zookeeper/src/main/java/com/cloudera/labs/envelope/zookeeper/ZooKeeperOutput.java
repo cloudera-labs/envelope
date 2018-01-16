@@ -36,9 +36,9 @@ import org.apache.zookeeper.ZooKeeper.States;
 
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.plan.PlannedRow;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
@@ -102,7 +102,7 @@ public class ZooKeeperOutput implements RandomOutput, Watcher {
   }
 
   @Override
-  public void applyRandomMutations(List<PlannedRow> planned) throws Exception {
+  public void applyRandomMutations(List<Row> planned) throws Exception {
     if (planned.size() > 1000) {
       throw new RuntimeException(
           "ZooKeeper output does not support applying more than 1000 mutations at a time. " +
@@ -112,17 +112,19 @@ public class ZooKeeperOutput implements RandomOutput, Watcher {
     
     ZooKeeper zk = getZooKeeper();
     
-    for (PlannedRow plan : planned) {
-      Row row = plan.getRow();
-      if (row.schema() == null) {
+    for (Row plan : planned) {
+      if (plan.schema() == null) {
         throw new RuntimeException("Mutation row provided to ZooKeeper output must contain a schema");
       }
       
-      Row key = RowUtils.subsetRow(row, RowUtils.subsetSchema(row.schema(), keyFieldNames));
-      String znode = znodesForFilter(zk, key).iterator().next(); // There can only be one znode per full key
-      byte[] value = serializeRow(RowUtils.subsetRow(row, RowUtils.subtractSchema(row.schema(), keyFieldNames)));
+      MutationType mutationType = PlannerUtils.getMutationType(plan);
+      plan = PlannerUtils.removeMutationTypeField(plan);
       
-      switch (plan.getMutationType()) {
+      Row key = RowUtils.subsetRow(plan, RowUtils.subsetSchema(plan.schema(), keyFieldNames));
+      String znode = znodesForFilter(zk, key).iterator().next(); // There can only be one znode per full key
+      byte[] value = serializeRow(RowUtils.subsetRow(plan, RowUtils.subtractSchema(plan.schema(), keyFieldNames)));
+      
+      switch (mutationType) {
         case DELETE:
           zk.delete(znode, -1);
           break;
@@ -131,7 +133,7 @@ public class ZooKeeperOutput implements RandomOutput, Watcher {
           zk.setData(znode, value, -1);
           break;
         default:
-          throw new RuntimeException("ZooKeeper output does not support mutation type: " + plan.getMutationType());
+          throw new RuntimeException("ZooKeeper output does not support mutation type: " + PlannerUtils.getMutationType(plan));
       }
     }
   }
