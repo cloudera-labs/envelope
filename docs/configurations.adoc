@@ -875,13 +875,19 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |`_kafka_`|
 
 |brokers
-|The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
+|Required. The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
 
 |topic
-|The Kafka topic to write to.
+|Required. The Kafka topic to write to.
 
-|field.delimiter
-|The delimiter string to separate the field values with. Default is `,`.
+|serializer.type
+|Required. The type of serialization to use for writing the row in to the topic. Valid types are `delimited` and `avro`.
+
+|serializer.field.delimiter
+|Required if `serializer.type` is `delimited`. The delimiter string to separate the field values with.
+
+|serializer.schema.path
+|Required if `serializer.type` is `avro`. The path to the Avro schema file for serializing the rows, e.g. `hdfs:/your/path/to/schema.avsc`.
 
 ||
 |`_kudu_`

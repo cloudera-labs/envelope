@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "avroserializationtest",
+  "fields": [
+    {"name": "field1", "type": "string"},
+    {"name": "field2", "type": "int"},
+    {"name": "field3", "type": "boolean"}
+  ]
+}

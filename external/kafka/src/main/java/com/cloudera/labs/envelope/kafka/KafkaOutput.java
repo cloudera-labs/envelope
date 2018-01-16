@@ -18,23 +18,24 @@
 package com.cloudera.labs.envelope.kafka;
 
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.kafka.serde.AvroSerializer;
+import com.cloudera.labs.envelope.kafka.serde.DelimitedSerializer;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 
 import scala.Tuple2;
 
@@ -42,17 +43,16 @@ public class KafkaOutput implements BulkOutput {
 
   public static final String BROKERS_CONFIG_NAME = "brokers";
   public static final String TOPIC_CONFIG_NAME = "topic";
-  public static final String FIELD_DELIMITER_CONFIG_NAME = "field.delimiter";
+  public static final String SERIALIZER_CONFIG_PREFIX = "serializer.";
+  public static final String SERIALIZER_TYPE_CONFIG_NAME = SERIALIZER_CONFIG_PREFIX + "type";
+  public static final String DELIMITED_SERIALIZER = "delimited";
+  public static final String AVRO_SERIALIZER = "avro";
   
-  private String brokers;
-  private String topic;
-  private String delimiter;
+  private Config config;
 
   @Override
   public void configure(Config config) {    
-    this.brokers = config.getString(BROKERS_CONFIG_NAME);
-    this.topic = config.getString(TOPIC_CONFIG_NAME);
-    this.delimiter = getDelimiter(config);
+    this.config = config;
   }
 
   @Override
@@ -62,7 +62,7 @@ public class KafkaOutput implements BulkOutput {
       Dataset<Row> mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
-        mutationDF.javaRDD().foreach(new SendRowToKafkaFunction(topic, brokers, delimiter));
+        mutationDF.javaRDD().foreach(new SendRowToKafkaFunction(config));
       }
     }
   }
@@ -72,26 +72,6 @@ public class KafkaOutput implements BulkOutput {
     return Sets.newHashSet(MutationType.INSERT);
   }
 
-  private String getDelimiter(Config config) {
-    if (!config.hasPath(FIELD_DELIMITER_CONFIG_NAME)) return ",";
-
-    String delimiter = config.getString(FIELD_DELIMITER_CONFIG_NAME);
-
-    if (delimiter.startsWith("chars:")) {
-      String[] codePoints = delimiter.substring("chars:".length()).split(",");
-
-      StringBuilder delimiterBuilder = new StringBuilder();
-      for (String codePoint : codePoints) {
-        delimiterBuilder.append(Character.toChars(Integer.parseInt(codePoint)));
-      }
-
-      return delimiterBuilder.toString();
-    }
-    else {
-      return delimiter;
-    }
-  }
-
   @Override
   public String getAlias() {
     return "kafka";
@@ -99,28 +79,42 @@ public class KafkaOutput implements BulkOutput {
 
   @SuppressWarnings("serial")
   private static class SendRowToKafkaFunction implements VoidFunction<Row> {
-    private KafkaProducer<String, String> producer;
+    private KafkaProducer<Row, Row> producer;
     private String topic;
     private String brokers;
-    private String delimiter;
-    private Joiner joiner;
+    private String serializerType;
+    private Config config;
 
-    public SendRowToKafkaFunction(String topic, String brokers, String delimiter) {
-      this.topic = topic;
-      this.brokers = brokers;
-      this.delimiter = delimiter;
+    public SendRowToKafkaFunction(Config config) {
+      this.brokers = config.getString(BROKERS_CONFIG_NAME);
+      this.topic = config.getString(TOPIC_CONFIG_NAME);
+      this.serializerType = config.getString(SERIALIZER_TYPE_CONFIG_NAME);
+      this.config = config;
     }
 
     private void initialize() {
-      Properties producerProps = new Properties();
-      producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-      producerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+      Serializer<Row> keySerializer, valueSerializer;
+      switch (serializerType) {
+        case DELIMITED_SERIALIZER:
+          keySerializer = new DelimitedSerializer();
+          valueSerializer = new DelimitedSerializer();
+          break;
+        case AVRO_SERIALIZER:
+          keySerializer = new AvroSerializer();
+          valueSerializer = new AvroSerializer();
+          break;
+        default:
+          throw new RuntimeException("Kafka output does not support serializer type: " + serializerType);
+      }
+      
+      Map<String, ?> serializerConfiguration = getSerializerConfiguration();
+      keySerializer.configure(serializerConfiguration, true);
+      valueSerializer.configure(serializerConfiguration, false);
+      
+      Map<String, Object> producerProps = Maps.newHashMap();
       producerProps.put("bootstrap.servers", brokers);
-
-      Serializer<String> serializer = new StringSerializer();
-      producer = new KafkaProducer<String, String>(producerProps, serializer, serializer);
-
-      joiner = Joiner.on(delimiter);
+      
+      producer = new KafkaProducer<Row, Row>(producerProps, keySerializer, valueSerializer);
     }
 
     @Override
@@ -128,16 +122,24 @@ public class KafkaOutput implements BulkOutput {
       if (producer == null) {
         initialize();
       }
+      
+      producer.send(new ProducerRecord<Row, Row>(topic, mutation));
+    }
+    
+    private Map<String, ?> getSerializerConfiguration() {
+      Map<String, Object> configs = Maps.newHashMap();
+      
+      for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
+        String propertyName = entry.getKey();
+        if (propertyName.startsWith(SERIALIZER_CONFIG_PREFIX)) {
+          String paramName = propertyName.substring(SERIALIZER_CONFIG_PREFIX.length());
+          String paramValue = config.getString(propertyName);
 
-      List<Object> values = Lists.newArrayList();
-
-      for (int fieldIndex = 0; fieldIndex < mutation.size(); fieldIndex++) {
-        values.add(mutation.get(fieldIndex));
+          configs.put(paramName, paramValue);
+        }
       }
-
-      String message = joiner.join(values);
-
-      producer.send(new ProducerRecord<String, String>(topic, message));
+      
+      return configs;
     }
   }
 
