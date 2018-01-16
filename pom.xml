@@ -319,10 +319,6 @@
         <version>3.0</version>
         <configuration>
           <header>src/etc/APACHE-2.txt</header>
-          <properties>
-            <copyrightYear>${project.inceptionYear}-${currentYear}</copyrightYear>
-            <copyrightOrganization>${project.organization.name}</copyrightOrganization>
-          </properties>
           <excludes>
             <exclude>**/*.conf</exclude>
             <exclude>**/*.properties</exclude>
