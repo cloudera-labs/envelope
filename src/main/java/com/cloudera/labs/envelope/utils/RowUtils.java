@@ -757,7 +757,7 @@ public class RowUtils {
   public static boolean different(Row first, Row second, List<String> valueFieldNames) {
     for (String valueFieldName : valueFieldNames) {
       Object firstValue = first.get(first.fieldIndex(valueFieldName));
-      Object secondValue = second.get(first.fieldIndex(valueFieldName));
+      Object secondValue = second.get(second.fieldIndex(valueFieldName));
 
       if (firstValue != null && secondValue != null && !firstValue.equals(secondValue)) {
         return true;
