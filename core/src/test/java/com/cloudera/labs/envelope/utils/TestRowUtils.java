@@ -19,6 +19,7 @@ package com.cloudera.labs.envelope.utils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
@@ -306,8 +307,23 @@ public class TestRowUtils {
     Row row1 = new RowWithSchema(schema, "hello", 1, 2.0);
     Row row2 = new RowWithSchema(schema, "hello", 10, -2.0);
 
-    assert (RowUtils.different(row1, row2, Lists.newArrayList("field1", "field2", "field3")));
-    assert (!RowUtils.different(row1, row2, Lists.newArrayList("field1")));
+    assertTrue(RowUtils.different(row1, row2, Lists.newArrayList("field1", "field2", "field3")));
+    assertTrue(!RowUtils.different(row1, row2, Lists.newArrayList("field1")));
+  }
+  
+  @Test
+  public void testDifferentForDifferentSchemas() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType schema1 = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+    StructType schema2 = DataTypes.createStructType(Lists.newArrayList(field3, field2, field1));
+    
+    Row row1 = new RowWithSchema(schema1, "hello", 1, 2.0);
+    Row row2 = new RowWithSchema(schema2, -2.0, 10, "hello");
+
+    assertTrue(RowUtils.different(row1, row2, Lists.newArrayList("field1", "field2", "field3")));
+    assertTrue(!RowUtils.different(row1, row2, Lists.newArrayList("field1")));
   }
 
   @Test
