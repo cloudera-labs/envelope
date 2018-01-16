@@ -1,4 +1,5 @@
 = Derivers Guide
+::toc:: left
 
 Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
 
@@ -254,7 +255,7 @@ The following row-level rules are provided:
 
 * `checknulls` - check for the null values in one or more fields in a row
 * `enum` - check one or more fields against a list of allowed values (non-floating point numerics and strings)
-* `range` - check one or more numeric fields is between upper and lower bounds (inclusive)
+* `range` - check one or more numeric fields is between lower and upper bounds (inclusive)
 * `regex` - check one or more string fields against an allowed pattern
 
 ==== Dataset Scope Rules
@@ -356,6 +357,7 @@ steps {
           fields = ["age"]
           fieldtype = "int"
           range = [0,150]
+          ignore-nulls = true
         }
       }
     }

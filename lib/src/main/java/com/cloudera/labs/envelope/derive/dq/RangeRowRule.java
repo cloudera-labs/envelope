@@ -28,9 +28,10 @@ import java.util.List;
 
 public class RangeRowRule implements RowRule {
 
-  private static final String RANGE_CONFIG = "range";
-  private static final String FIELD_TYPE_CONFIG = "fieldtype";
-  private static final String FIELDS_CONFIG = "fields";
+  public static final String RANGE_CONFIG = "range";
+  public static final String FIELD_TYPE_CONFIG = "fieldtype";
+  public static final String FIELDS_CONFIG = "fields";
+  public static final String IGNORE_NULLS_CONFIG = "ignore-nulls";
 
   private static final Class<Long> DEFAULT_FIELD_TYPE = Long.class;
 
@@ -38,6 +39,7 @@ public class RangeRowRule implements RowRule {
   private List<String> fields;
   private Comparable lower;
   private Comparable upper;
+  private boolean ignoreNulls;
   private Class<? extends Comparable> fieldType = DEFAULT_FIELD_TYPE;
 
   @Override
@@ -56,6 +58,7 @@ public class RangeRowRule implements RowRule {
     } else {
       throw new RuntimeException("Range must be a length-2 list");
     }
+    ignoreNulls = config.hasPath(IGNORE_NULLS_CONFIG) && config.getBoolean(IGNORE_NULLS_CONFIG);
   }
 
   @Override
@@ -63,28 +66,30 @@ public class RangeRowRule implements RowRule {
     for (String field : fields) {
       Comparable value;
       Object o = RowUtils.get(row, field);
-      if (o instanceof Number) {
-        if (o instanceof Float) {
-          value = ((Float)o).doubleValue();
+      if (o != null) {
+        if (o instanceof Number) {
+          if (o instanceof Float) {
+            value = ((Float)o).doubleValue();
+          } else {
+            value = (Comparable)o;
+          }
         } else {
-          value = (Comparable)o;
+          throw new RuntimeException("Range checkInternal on non-numeric type");
         }
-      } else {
-        throw new RuntimeException("Range checkInternal on non-numeric type");
+  
+        if (!checkInternal(value, lower, upper)) {
+          return false;
+        }
       }
-
-      if (!checkInternal(value, lower, upper)) {
-        return false;
+      else {
+        return ignoreNulls;
       }
     }
     return true;
   }
 
   private boolean checkInternal(Comparable value, Comparable lower, Comparable upper) {
-    if (value != null) {
-      return (value.compareTo(lower) >= 0 && value.compareTo(upper) <= 0);
-    }
-    else throw new RuntimeException("Attempt to compare null");
+    return (value.compareTo(lower) >= 0 && value.compareTo(upper) <= 0);
   }
 
   private static Class<? extends Comparable> getFieldType(String fieldType) {

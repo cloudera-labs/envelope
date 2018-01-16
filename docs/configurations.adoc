@@ -617,6 +617,9 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |range
 |Required. Two element list of numeric literals, e.g. `[1,10]` or `[1.5,10.45]`. Both boundaries are inclusive.
 
+|ignore-nulls
+|Optional. If `true` then range check will pass for a null value, or if `false` will fail. Defaults to `false`.
+
 ||
 |_regex_|
 

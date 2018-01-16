@@ -17,7 +17,6 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
@@ -48,9 +47,9 @@ public class TestRangeRowRule {
     });
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put("fields", Lists.newArrayList("age"));
-    configMap.put("fieldtype", "int");
-    configMap.put("range", Lists.newArrayList(0,105));
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
@@ -79,8 +78,8 @@ public class TestRangeRowRule {
     });
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put("fields", Lists.newArrayList("age"));
-    configMap.put("range", Lists.newArrayList(0l,105l));
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0l,105l));
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
@@ -109,9 +108,9 @@ public class TestRangeRowRule {
     });
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put("fields", Lists.newArrayList("age"));
-    configMap.put("fieldtype", "float");
-    configMap.put("range", Lists.newArrayList(0.1,105.0));
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "float");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0.1,105.0));
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
@@ -140,9 +139,9 @@ public class TestRangeRowRule {
     });
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put("fields", Lists.newArrayList("age"));
-    configMap.put("fieldtype", "float");
-    configMap.put("range", Lists.newArrayList(0.1,105.0));
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "float");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0.1,105.0));
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
@@ -171,9 +170,9 @@ public class TestRangeRowRule {
     });
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put("fields", Lists.newArrayList("candycrushscore"));
-    configMap.put("fieldtype", "decimal");
-    configMap.put("range", Lists.newArrayList("-1.56","400.45"));
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("candycrushscore"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "decimal");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList("-1.56","400.45"));
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
@@ -190,6 +189,50 @@ public class TestRangeRowRule {
 
     Row row4 = new RowWithSchema(schema, "First Last", "Ian Last", 100.0, new BigDecimal("400.45"));
     assertTrue("Row should pass rule", rule.check(row4));
+  }
+  
+  public void testDontIgnoreNulls() {
+    StructType schema = new StructType(new StructField[] {
+        new StructField("name", DataTypes.StringType, false, Metadata.empty()),
+        new StructField("nickname", DataTypes.StringType, false, Metadata.empty()),
+        new StructField("age", DataTypes.IntegerType, false, Metadata.empty()),
+        new StructField("candycrushscore", DataTypes.createDecimalType(), false, Metadata.empty())
+    });
+
+    Map<String, Object> configMap = new HashMap<>();
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
+    Config config = ConfigFactory.parseMap(configMap);
+
+    RangeRowRule rule = new RangeRowRule();
+    rule.configure("agerange", config);
+
+    Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));
+    assertFalse("Row should not pass rule", rule.check(row1));
+  }
+  
+  @Test
+  public void testIgnoreNulls() {
+    StructType schema = new StructType(new StructField[] {
+        new StructField("name", DataTypes.StringType, false, Metadata.empty()),
+        new StructField("nickname", DataTypes.StringType, false, Metadata.empty()),
+        new StructField("age", DataTypes.IntegerType, false, Metadata.empty()),
+        new StructField("candycrushscore", DataTypes.createDecimalType(), false, Metadata.empty())
+    });
+
+    Map<String, Object> configMap = new HashMap<>();
+    configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
+    configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
+    configMap.put(RangeRowRule.IGNORE_NULLS_CONFIG, true);
+    Config config = ConfigFactory.parseMap(configMap);
+
+    RangeRowRule rule = new RangeRowRule();
+    rule.configure("agerange", config);
+
+    Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));
+    assertTrue("Row should pass rule", rule.check(row1));
   }
 
 }
