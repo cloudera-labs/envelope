@@ -6,7 +6,7 @@ The configuration for this example is found link:fix.conf[here]. The messages do
 
 ## Running the example
 
-. Create the required Kudu tables using the provided Apache Impala (incubating) script:
+. Create the required Kudu tables using the provided Apache Impala script:
 
     impala-shell -f create_fix_tables.sql
 
@@ -73,7 +73,7 @@ The requirements are very well suited to a Cloudera EDH based solution because t
 - Apache Kafka for receiving the messages, and sending back the large orders
 - Apache Spark for processing the messages
 - Apache Kudu for storing the processed messages for querying
-- Apache Impala (incubating) for querying the processed messages in Kudu
+- Apache Impala for querying the processed messages in Kudu
 
 The Kafka->Spark->Kudu->Impala data flow makes up a powerful architecture for many streaming use cases.
 
