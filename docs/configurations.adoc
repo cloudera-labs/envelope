@@ -666,7 +666,7 @@ Partitioner configurations belong to data steps, and have the `steps.[stepname].
 |Configuration suffix|Description
 
 |type
-|The partitioner type to be used. Envelope provides `hash`, `range`, `uuid`. To use a custom partitioner, specify the fully qualified name or alias of the `ConfigurablePartitioner` implementation class. If no partitioner type is specified, Envelope will use the `hash` partitioner.
+|The partitioner type to be used. Envelope provides `range`, `hash`, `uuid`. To use a custom partitioner, specify the fully qualified name or alias of the `ConfigurablePartitioner` implementation class. If no partitioner type is specified, Envelope will use the `range` partitioner.
 
 |===
 

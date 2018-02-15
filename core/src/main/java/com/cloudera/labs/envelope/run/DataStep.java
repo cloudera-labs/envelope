@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -58,6 +57,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import scala.Tuple2;
 
@@ -395,14 +396,18 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     }
   }
   
-  private Partitioner getPartitioner(JavaPairRDD<Row, Row> keyedArriving) {    
+  private Partitioner getPartitioner(JavaPairRDD<Row, Row> keyedArriving) {
+    Config partitionerConfig;
+    
     if (hasPartitioner()) {
-      Config partitionerConfig = config.getConfig("partitioner");      
-      return PartitionerFactory.create(partitionerConfig, keyedArriving); 
+      partitionerConfig = config.getConfig("partitioner");      
     }
     else {
-      return new HashPartitioner(keyedArriving.getNumPartitions());
+      partitionerConfig = ConfigFactory.empty().withValue(
+          PartitionerFactory.TYPE_CONFIG_NAME, ConfigValueFactory.fromAnyRef("range"));
     }
+    
+    return PartitionerFactory.create(partitionerConfig, keyedArriving);
   }
   
   @SuppressWarnings("serial")
