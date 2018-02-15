@@ -35,6 +35,7 @@ Envelope provides three example pipelines that you can run for yourself:
 
 - [FIX](examples/fix/): simulates receiving financial orders and executions and tracking the history of the orders over time.
     - This example includes a [walkthrough](examples/fix/README.adoc#walkthrough) that explains in detail how it meets the requirements.
+- [FIX HBase](examples/fix-hbase/): simulates receiving financial orders and executions and tracking the history of the orders over time in HBase.
 - [Traffic](examples/traffic/): simulates receiving traffic conditions and calculating an aggregate view of traffic congestion.
 - [Filesystem](examples/filesystem/): demonstrates a batch job that reads a JSON file from HDFS and writes the data back to Avro files on HDFS.
 
