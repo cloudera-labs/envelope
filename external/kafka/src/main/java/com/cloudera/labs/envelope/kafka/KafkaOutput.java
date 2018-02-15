@@ -113,8 +113,10 @@ public class KafkaOutput implements BulkOutput {
       
       Map<String, Object> producerProps = Maps.newHashMap();
       producerProps.put("bootstrap.servers", brokers);
+
+      KafkaCommon.addCustomParams(producerProps, config);
       
-      producer = new KafkaProducer<Row, Row>(producerProps, keySerializer, valueSerializer);
+      producer = new KafkaProducer<>(producerProps, keySerializer, valueSerializer);
     }
 
     @Override

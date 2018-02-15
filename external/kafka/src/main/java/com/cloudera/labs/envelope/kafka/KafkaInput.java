@@ -65,7 +65,6 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
   public static final String BROKERS_CONFIG = "brokers";
   public static final String TOPIC_CONFIG = "topic";
   public static final String ENCODING_CONFIG = "encoding";
-  public static final String PARAMETER_CONFIG_PREFIX = "parameter.";
   public static final String WINDOW_ENABLED_CONFIG = "window.enabled";
   public static final String WINDOW_MILLISECONDS_CONFIG = "window.milliseconds";
   public static final String OFFSETS_MANAGE_CONFIG = "offsets.manage";
@@ -116,7 +115,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
     
     kafkaParams.put("enable.auto.commit", "false");
 
-    addCustomParams(kafkaParams);
+    KafkaCommon.addCustomParams(kafkaParams, config);
 
     JavaStreamingContext jssc = Contexts.getJavaStreamingContext();
     JavaDStream<?> dStream = null;
@@ -154,20 +153,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress {
     return dStream;
   }
 
-  void addCustomParams(Map<String, Object> params) {
-    for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
-      String propertyName = entry.getKey();
-      if (propertyName.startsWith(PARAMETER_CONFIG_PREFIX)) {
-        String paramName = propertyName.substring(PARAMETER_CONFIG_PREFIX.length());
-        String paramValue = config.getString(propertyName);
 
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Adding Kafka property: {} = \"{}\"", paramName, paramValue);
-        }
-        params.put(paramName, paramValue);
-      }
-    }
-  }
 
   @Override
   public PairFunction<?, ?, ?> getPrepareFunction() {

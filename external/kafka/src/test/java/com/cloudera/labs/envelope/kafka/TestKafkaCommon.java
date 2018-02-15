@@ -27,20 +27,13 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestKafkaInput {
+public class TestKafkaCommon {
   private static Config appConfig = ConfigUtils.configFromResource("/kafka/kafka-input-test.conf").getConfig("input");
-  private KafkaInput kafka;
-
-  @Before
-  public void before() throws Exception {
-    kafka = new KafkaInput();
-    kafka.configure(appConfig);
-  }
 
   @Test
   public void testCustomParams() throws Exception {
     Map<String, Object> kafkaParams = Maps.newHashMap();
-    kafka.addCustomParams(kafkaParams);
+    KafkaCommon.addCustomParams(kafkaParams, appConfig);
     assertEquals("SSL", kafkaParams.get("security.protocol"));
     assertEquals("/path/to/truststore.jks", kafkaParams.get("ssl.truststore.location"));
     assertEquals("changeme", kafkaParams.get("ssl.truststore.password"));

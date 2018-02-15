@@ -944,6 +944,9 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |serializer.schema.path
 |Required if `serializer.type` is `avro`. The path to the Avro schema file for serializing the rows, e.g. `hdfs:/your/path/to/schema.avsc`.
 
+|parameter.*
+|Used to pass configurations directly to the Kafka client. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the KafkaProducer.
+
 ||
 |`_kudu_`
 |Note: For Envelope pipelines with a Kudu output, and with security enabled, and in YARN cluster mode, and where using a random planner (such as history or bitemporal), then you must add `--conf spark.kudu.master.addresses=yourkuduconnectionstringhere` to your `spark2-submit` call.
