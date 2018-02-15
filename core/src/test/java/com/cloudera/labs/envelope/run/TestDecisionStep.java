@@ -55,7 +55,8 @@ public class TestDecisionStep {
     
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
     step1ConfigMap.put("dependencies", Lists.newArrayList());
-    step1ConfigMap.put(DataStep.CACHE_PROPERTY, false);
+    step1ConfigMap.put(DataStep.CACHE_ENABLED_PROPERTY, false);
+    step1ConfigMap.put(DataStep.CACHE_STORAGE_LEVEL_PROPERTY, "MEMORY_ONLY");
     Config step1Config = ConfigFactory.parseMap(step1ConfigMap);
     step1 = new BatchStep("step1", step1Config);
     steps.add(step1);

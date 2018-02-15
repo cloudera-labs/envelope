@@ -108,8 +108,13 @@ Data steps can, additionally to the step configurations, have the below configur
 |===
 |Configuration suffix|Description
 
-|cache
-|If `true` then Envelope will cache the step's DataFrame at the `MEMORY_ONLY` storage level. Default `false`.
+|cache.enabled
+| If `true` then Envelope will cache the step’s DataFrame at the storage level specified by `cache.storage.level`. Default false.
+
+|cache.storage.level
+|If specified then Envelope will change the step's DataFrame cache storage levels to value specified. 
+Available storage levels are `DISK_ONLY` , `DISK_ONLY_2` , `MEMORY_ONLY` , `MEMORY_ONLY_2` , `MEMORY_ONLY_SER` , `MEMORY_ONLY_SER_2` , `MEMORY_AND_DISK` , `MEMORY_AND_DISK_2` , `MEMORY_AND_DISK_SER` , `MEMORY_AND_DISK_SER_2` and `OFF_HEAP`.
+Default `MEMORY_ONLY`.
 
 |hint.small
 |If `true` then Envelope will mark the step's DataFrame as small enough to be used in broadcast joins. Default `false`.

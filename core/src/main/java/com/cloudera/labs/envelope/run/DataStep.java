@@ -69,7 +69,8 @@ import scala.Tuple2;
  */
 public abstract class DataStep extends Step implements UsesAccumulators {
 
-  public static final String CACHE_PROPERTY = "cache";
+  public static final String CACHE_ENABLED_PROPERTY = "cache.enabled";
+  public static final String CACHE_STORAGE_LEVEL_PROPERTY = "cache.storage.level";
   public static final String SMALL_HINT_PROPERTY = "hint.small";
   public static final String PRINT_SCHEMA_ENABLED_PROPERTY = "print.schema.enabled";
   public static final String PRINT_DATA_ENABLED_PROPERTY = "print.data.enabled";
@@ -174,13 +175,54 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private boolean doesCache() {
-    if (!config.hasPath(CACHE_PROPERTY)) return false;
+    if (!config.hasPath(CACHE_ENABLED_PROPERTY)) return false;
 
-    return config.getBoolean(CACHE_PROPERTY);
+    return config.getBoolean(CACHE_ENABLED_PROPERTY);
   }
-
+  
   private void cache() {
-    data = data.persist(StorageLevel.MEMORY_ONLY());
+    String cacheLevel = "MEMORY_ONLY";
+    if (config.hasPath(CACHE_STORAGE_LEVEL_PROPERTY)) { 
+      cacheLevel = config.getString(CACHE_STORAGE_LEVEL_PROPERTY);
+    }
+    
+    switch(cacheLevel){
+      case "DISK_ONLY":
+        data.persist(StorageLevel.DISK_ONLY());
+        break;
+      case "DISK_ONLY_2":
+        data.persist(StorageLevel.DISK_ONLY_2());
+        break;
+      case "MEMORY_ONLY":
+        data.persist(StorageLevel.MEMORY_ONLY());
+        break;
+      case "MEMORY_ONLY_2":
+        data.persist(StorageLevel.MEMORY_ONLY_2());
+        break;
+      case "MEMORY_ONLY_SER":
+        data.persist(StorageLevel.MEMORY_ONLY_SER());
+        break;
+      case "MEMORY_ONLY_SER_2":
+        data.persist(StorageLevel.MEMORY_ONLY_SER_2());
+        break;
+      case "MEMORY_AND_DISK":
+        data.persist(StorageLevel.MEMORY_AND_DISK());
+        break;
+      case "MEMORY_AND_DISK_2":
+        data.persist(StorageLevel.MEMORY_AND_DISK_2());
+        break;
+      case "MEMORY_AND_DISK_SER":
+        data.persist(StorageLevel.MEMORY_AND_DISK_SER());
+        break;
+      case "MEMORY_AND_DISK_SER_2":
+        data.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
+        break;
+      case "OFF_HEAP":
+        data.persist(StorageLevel.OFF_HEAP());
+        break;
+      default:
+        throw new RuntimeException("Invalid value for cache.storage.level property");
+    }
   }
 
   public void clearCache() {
