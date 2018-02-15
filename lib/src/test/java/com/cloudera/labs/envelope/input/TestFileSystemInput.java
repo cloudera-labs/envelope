@@ -236,24 +236,6 @@ public class TestFileSystemInput {
     assertEquals(DataTypes.LongType, first.schema().fields()[0].dataType());
   }
 
-  @Test (expected = SparkException.class)
-  public void readCsvWithMismatchedSchema() throws Exception {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.CSV_HEADER_CONFIG, "true");
-    paramMap.put(FileSystemInput.FIELD_NAMES_CONFIG, Lists.newArrayList("A Long", "A Boolean"));
-    paramMap.put(FileSystemInput.FIELD_TYPES_CONFIG, Lists.newArrayList("long", "boolean"));
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput csvInput = new FileSystemInput();
-    csvInput.configure(config);
-
-    Dataset<Row> dataFrame = csvInput.read();
-    dataFrame.printSchema();
-    dataFrame.show();
-  }
-
   @Test
   public void readJsonNoOptions() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();

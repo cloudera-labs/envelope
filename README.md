@@ -17,7 +17,7 @@ Some examples of what you can easily do with Envelope:
 
 Envelope requires a CDH5.7+ cluster with:
 
-- Cloudera's distribution of Apache Spark 2.1.0, or above
+- Cloudera's distribution of Apache Spark 2.2.0 Release 2 or above
 - Cloudera's distribution of Apache Kafka 2.1.0 (based on Apache Kafka 0.10) or above, if using that component
 - Cloudera's distribution of Apache Kudu 1.3.0 or above, if using that component
 

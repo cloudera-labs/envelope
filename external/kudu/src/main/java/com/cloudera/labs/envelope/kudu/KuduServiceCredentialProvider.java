@@ -47,7 +47,7 @@ public class KuduServiceCredentialProvider implements ServiceCredentialProvider 
   private static Logger LOG = LoggerFactory.getLogger(KuduServiceCredentialProvider.class);
 
   @Override
-  public boolean credentialsRequired(Configuration conf) {
+  public boolean credentialsRequired(SparkConf sparkConf, Configuration conf) {
     return UserGroupInformation.isSecurityEnabled();
   }
 
