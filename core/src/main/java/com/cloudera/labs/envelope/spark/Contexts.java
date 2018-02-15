@@ -162,6 +162,9 @@ public enum Contexts {
       // Override the Spark SQL shuffle partitions with the default number of cores. Otherwise
       // the default is typically 200 partitions, which is very high for micro-batches.
       sparkConf.set("spark.sql.shuffle.partitions", "2");
+      // Override the caching of KafkaConsumers which has been shown to be problematic with multi-core executors
+      // (see SPARK-19185)
+      sparkConf.set("spark.streaming.kafka.consumer.cache.enabled", "false");
     }
     else if (mode.equals(ExecutionMode.UNIT_TEST)) {
       sparkConf.set("spark.sql.catalogImplementation", "in-memory");
