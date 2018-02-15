@@ -1135,11 +1135,15 @@ Spark SQL user-defined functions (UDFs) are provided with a list of UDF specific
 Envelope supports the following Spark data types when defining a StructType schema inline (commonly via the `field.types` parameter):
 
 * `string`
+* `byte`
+* `short`
 * `int`
 * `long`
 * `float`
 * `double`
 * `boolean`
+* `binary`
+* `timestamp`
 
 When using an Avro schema to define the StructType, either via an inline Avro literal or a supporting Avro file, the following Spark data types are supported:
 

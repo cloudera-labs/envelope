@@ -54,6 +54,7 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowResult;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.spark.kudu.KuduContext;
+import org.apache.kudu.spark.kudu.KuduRelation;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
@@ -66,6 +67,7 @@ import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
@@ -219,6 +221,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
         case FLOAT:
           values.add(result.getFloat(columnName));
           break;
+        case INT8:
+          values.add(result.getByte(columnName));
+          break;
+        case INT16:
+          values.add(result.getShort(columnName));
+          break;
         case INT32:
           values.add(result.getInt(columnName));
           break;
@@ -230,6 +238,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
           break;
         case BOOL:
           values.add(result.getBoolean(columnName));
+          break;
+        case BINARY:
+          values.add(result.getBinaryCopy(columnName));
+          break;
+        case UNIXTIME_MICROS:
+          values.add(KuduRelation.microsToTimestamp(result.getLong(columnName)));
           break;
         default:
           throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -256,6 +270,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
         case FLOAT:
           fieldType = "float";
           break;
+        case INT8:
+          fieldType = "byte";
+          break;
+        case INT16:
+          fieldType = "short";
+          break;
         case INT32:
           fieldType = "int";
           break;
@@ -267,6 +287,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
           break;
         case BOOL:
           fieldType = "boolean";
+          break;
+        case BINARY:
+          fieldType = "binary";
+          break;
+        case UNIXTIME_MICROS:
+          fieldType = "timestamp";
           break;
         default:
           throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -365,6 +391,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
             case FLOAT:
               kuduRow.addFloat(fieldName, plan.getFloat(fieldIndex));
               break;
+            case INT8:
+              kuduRow.addByte(fieldName, plan.getByte(fieldIndex));
+              break;
+            case INT16:
+              kuduRow.addShort(fieldName, plan.getShort(fieldIndex));
+              break;
             case INT32:
               kuduRow.addInt(fieldName, plan.getInt(fieldIndex));
               break;
@@ -376,6 +408,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
               break;
             case BOOL:
               kuduRow.addBoolean(fieldName, plan.getBoolean(fieldIndex));
+              break;
+            case BINARY:
+              kuduRow.addBinary(fieldName, plan.<byte[]>getAs(fieldIndex));
+              break;
+            case UNIXTIME_MICROS:
+              kuduRow.addLong(fieldName, KuduRelation.timestampToMicros(plan.getTimestamp(fieldIndex)));
               break;
             default:
               throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -421,7 +459,8 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
 
   @Override
   public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {
-    KuduContext kc = new KuduContext(config.getString(CONNECTION_CONFIG_NAME));
+    KuduContext kc = new KuduContext(
+        config.getString(CONNECTION_CONFIG_NAME), Contexts.getSparkSession().sparkContext());
 
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();

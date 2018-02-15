@@ -734,6 +734,12 @@ public class RowUtils {
         case "double":
           field = DataTypes.createStructField(fieldName, DataTypes.DoubleType, true);
           break;
+        case "byte":
+          field = DataTypes.createStructField(fieldName, DataTypes.ByteType, true);
+          break;
+        case "short":
+          field = DataTypes.createStructField(fieldName, DataTypes.ShortType, true);
+          break;
         case "int":
           field = DataTypes.createStructField(fieldName, DataTypes.IntegerType, true);
           break;
@@ -745,6 +751,9 @@ public class RowUtils {
           break;
         case "binary":
           field = DataTypes.createStructField(fieldName, DataTypes.BinaryType, true);
+          break;
+        case "timestamp":
+          field = DataTypes.createStructField(fieldName, DataTypes.TimestampType, true);
           break;
         default:
           throw new RuntimeException("Unsupported provided field type: " + fieldType);
