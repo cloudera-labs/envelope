@@ -223,10 +223,13 @@ public class BitemporalHistoryPlanner implements RandomPlanner {
           break;
         }
         // The input record is arriving after all existing records of the same key. This
-        // is the 'normal' case where data arrives in order. We insert the input record
-        // effective until the far future, and we update the previous existing record
-        // to be effective until just prior to the input record.
-        else if (PlannerUtils.after(timestampTimeModel, arriving, plan) && nextPlanned == null) {
+        // is the 'normal' case where data arrives in order. If the values are different 
+        // we insert the input record effective until the far future, and we update the
+        // previous existing record to be effective until just prior to the input record.
+        else if (PlannerUtils.after(timestampTimeModel, arriving, plan) &&
+                 RowUtils.different(arriving, plan, getValueFieldNames()) &&
+                 nextPlanned == null)
+        {
           arriving = PlannerUtils.copyTime(arriving, timestampTimeModel, arriving, eventEffectiveFromTimeModel);
           arriving = eventEffectiveToTimeModel.setFarFutureTime(arriving);
           arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);

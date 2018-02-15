@@ -261,6 +261,20 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(2), "systemend"), 253402214400000L);
     assertEquals(RowUtils.get(planned.get(2), "currentflag"), CURRENT_FLAG_DEFAULT_YES);
   }
+  
+  @Test
+  public void testOneArrivingOneExistingWhereArrivingLaterThanExistingButSameValues() {
+    p = new BitemporalHistoryPlanner();
+    p.configure(config);
+
+    existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 0);
+  }
 
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExistingNoCurrentFlag() {

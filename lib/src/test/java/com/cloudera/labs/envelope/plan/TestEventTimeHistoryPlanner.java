@@ -143,6 +143,20 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
     assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
+  
+  @Test
+  public void testOneArrivingOneExistingWhereArrivingLaterThanExistingButSameValues() {
+    p = new EventTimeHistoryPlanner();
+    p.configure(config);
+
+    existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 200L));
+    key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 0);
+  }
 
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValues() {
