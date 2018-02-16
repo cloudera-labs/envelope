@@ -12,7 +12,7 @@ This example demonstrates a simple HDFS-based data processing pipeline.
 
 **Run the Envelope job**
 
-    spark2-submit target/envelope-*.jar examples/filesystem/filesystem.conf
+    spark2-submit build/envelope/target/envelope-*.jar examples/filesystem/filesystem.conf
 
 **Grab the results**
 

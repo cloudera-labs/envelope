@@ -6,6 +6,8 @@ The configuration for this example is found link:fix.conf[here]. The messages do
 
 ## Running the example
 
+. Modify `create_fix_tables.sql`, `fix.conf`, and `fix_generator.conf` to point to your cluster. If your cluster has secured Kafka, you will also need to modify the configuration files and below `spark2-submit` calls (see the FIX HBase example for more details) and the `kafka-topics` and `kafka-console-consumer` calls (see the test steps in the link:https://www.cloudera.com/documentation/kafka/latest/topics/kafka_security.html#concept_lcn_4mm_s5[Cloudera Kafka documentation] for more details).
+
 . Create the required Kudu tables using the provided Apache Impala script:
 
     impala-shell -f create_fix_tables.sql
