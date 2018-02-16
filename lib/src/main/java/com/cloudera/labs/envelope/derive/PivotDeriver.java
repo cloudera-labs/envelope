@@ -25,12 +25,13 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.RelationalGroupedDataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 
-public class PivotDeriver implements Deriver {
+public class PivotDeriver implements Deriver, ProvidesAlias {
   
   public static final String STEP_NAME_CONFIG = "step.name";
   public static final String ENTITY_KEY_FIELD_NAMES_CONFIG = "entity.key.field.names";

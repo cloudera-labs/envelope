@@ -26,6 +26,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
@@ -35,7 +36,7 @@ import com.typesafe.config.Config;
 /**
  * A translator implementation for text key-value pair messages.
  */
-public class KVPTranslator implements Translator<String, String> {
+public class KVPTranslator implements Translator<String, String>, ProvidesAlias {
 
   private String kvpDelimiter;
   private String fieldDelimiter;

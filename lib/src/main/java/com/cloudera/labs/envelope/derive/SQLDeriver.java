@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
@@ -35,7 +36,7 @@ import com.typesafe.config.Config;
 /**
  * Execute Spark SQL on Datasets.
  */
-public class SQLDeriver implements Deriver {
+public class SQLDeriver implements Deriver, ProvidesAlias {
 
   public static final String QUERY_LITERAL_CONFIG_NAME = "query.literal";
   public static final String QUERY_FILE_CONFIG_NAME = "query.file";

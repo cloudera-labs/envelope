@@ -168,11 +168,6 @@ public class TestPlannerUtils {
     public Row getPrecedingTime(Row row) {
       return new RowWithSchema(getSchema(), row.<Long>getAs(field.name()) - 1);
     }
-
-    @Override
-    public String getAlias() {
-      return "";
-    }
   }
   
 }

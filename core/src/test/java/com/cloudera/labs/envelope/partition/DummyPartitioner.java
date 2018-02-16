@@ -44,9 +44,4 @@ public class DummyPartitioner extends ConfigurablePartitioner {
   public boolean hasBeenConfigured() {
     return configured;
   }
-
-  @Override
-  public String getAlias() {
-    return "dummy";
-  }
 }

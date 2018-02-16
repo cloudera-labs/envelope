@@ -25,12 +25,13 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
-public class TimestampTimeModel implements TimeModel {
+public class TimestampTimeModel implements TimeModel, ProvidesAlias {
 
   private StructField field;
   private Timestamp current;

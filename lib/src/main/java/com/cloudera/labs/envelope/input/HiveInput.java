@@ -20,10 +20,11 @@ package com.cloudera.labs.envelope.input;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
 
-public class HiveInput implements BatchInput {
+public class HiveInput implements BatchInput, ProvidesAlias {
 
   public static final String TABLE_CONFIG_NAME = "table";
 

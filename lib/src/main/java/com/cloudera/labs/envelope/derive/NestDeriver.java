@@ -30,13 +30,14 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class NestDeriver implements Deriver {
+public class NestDeriver implements Deriver, ProvidesAlias {
 
   public static final String NEST_INTO_CONFIG_NAME = "nest.into";
   public static final String NEST_FROM_CONFIG_NAME = "nest.from";

@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.labs.envelope.input.translate.TranslateFunction;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -44,7 +45,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class FileSystemInput implements BatchInput {
+public class FileSystemInput implements BatchInput, ProvidesAlias {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
 
   public static final String FORMAT_CONFIG = "format";

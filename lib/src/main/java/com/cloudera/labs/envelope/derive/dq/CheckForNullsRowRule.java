@@ -18,6 +18,7 @@
 package com.cloudera.labs.envelope.derive.dq;
 
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import org.apache.spark.sql.Row;
@@ -26,7 +27,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CheckForNullsRowRule implements RowRule {
+public class CheckForNullsRowRule implements RowRule, ProvidesAlias {
 
   private static final String FIELDS_CONFIG = "fields";
 

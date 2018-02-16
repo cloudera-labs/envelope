@@ -28,6 +28,7 @@ import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -36,7 +37,7 @@ import com.typesafe.config.Config;
 /**
  *
  */
-public class MorphlineDeriver implements Deriver {
+public class MorphlineDeriver implements Deriver, ProvidesAlias {
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineDeriver.class);
 

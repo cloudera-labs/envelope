@@ -25,6 +25,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -39,7 +40,7 @@ import com.typesafe.config.ConfigFactory;
  * A planner implementation for storing all versions of the values of a key (its history) using
  * Type II SCD modeling.
  */
-public class EventTimeHistoryPlanner implements RandomPlanner {
+public class EventTimeHistoryPlanner implements RandomPlanner, ProvidesAlias {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";

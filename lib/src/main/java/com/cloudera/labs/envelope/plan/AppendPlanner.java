@@ -26,6 +26,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.functions;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -35,7 +36,7 @@ import scala.Tuple2;
 /**
  * A planner implementation for appending the stream to the storage table. Only plans insert mutations.
  */
-public class AppendPlanner implements BulkPlanner {
+public class AppendPlanner implements BulkPlanner, ProvidesAlias {
 
   public final static String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public final static String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";

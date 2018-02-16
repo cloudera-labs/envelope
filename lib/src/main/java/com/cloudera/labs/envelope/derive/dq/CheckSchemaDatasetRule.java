@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -37,7 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CheckSchemaDatasetRule implements DatasetRule {
+public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
 
   public static final String FIELDS_CONFIG = "fields";
   public static final String FIELD_NAME_CONFIG = "name";

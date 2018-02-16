@@ -21,6 +21,7 @@ import com.cloudera.labs.envelope.derive.dq.DatasetRule;
 import com.cloudera.labs.envelope.derive.dq.DatasetRuleFactory;
 import com.cloudera.labs.envelope.derive.dq.RowRule;
 import com.cloudera.labs.envelope.derive.dq.RowRuleFactory;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -45,7 +46,7 @@ import java.util.Map;
  * The deriver can operate at a whole dataset level (e.g. count) or on a row-level (e.g. fields match
  * a regex).
  */
-public class DataQualityDeriver implements Deriver {
+public class DataQualityDeriver implements Deriver, ProvidesAlias {
 
   public static final String SCOPE_CONFIG = "scope";
   public static final String RULES_CONFIG = "rules";

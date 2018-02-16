@@ -28,12 +28,13 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
-public class StringDatetimeTimeModel implements TimeModel {
+public class StringDatetimeTimeModel implements TimeModel, ProvidesAlias {
 
   public static final String DATETIME_FORMAT_CONFIG = "format";
   

@@ -26,10 +26,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.expressions.Aggregator;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.typesafe.config.Config;
 
-public class DatasetRowRuleWrapper implements DatasetRule {
+public class DatasetRowRuleWrapper implements DatasetRule, ProvidesAlias {
 
   private String name;
   private RowRule rowRule;

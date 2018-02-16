@@ -27,6 +27,7 @@ import org.apache.spark.sql.SaveMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Sets;
@@ -34,7 +35,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class FileSystemOutput implements BulkOutput {
+public class FileSystemOutput implements BulkOutput, ProvidesAlias {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemOutput.class);
 
   public final static String FORMAT_CONFIG = "format";

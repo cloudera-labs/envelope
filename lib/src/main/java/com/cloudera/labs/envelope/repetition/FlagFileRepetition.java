@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.repetition;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -34,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Repeat the associated step when a flag file is either present or modified on a Hadoop compatible file system.
  */
-public class FlagFileRepetition extends AbstractRepetition implements Runnable {
+public class FlagFileRepetition extends AbstractRepetition implements Runnable, ProvidesAlias {
 
   private static final Logger LOG = LoggerFactory.getLogger(FlagFileRepetition.class);
 

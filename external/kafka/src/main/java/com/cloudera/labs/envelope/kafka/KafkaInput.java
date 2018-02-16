@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.typesafe.config.ConfigValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.spark.api.java.JavaRDD;
@@ -39,9 +38,12 @@ import org.apache.spark.streaming.kafka010.HasOffsetRanges;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.OffsetRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.Output;
 import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
@@ -54,11 +56,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
-public class KafkaInput implements StreamInput, CanRecordProgress {
+public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias {
 
   private static Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
 

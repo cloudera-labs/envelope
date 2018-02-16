@@ -34,6 +34,7 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
@@ -45,7 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
-public class ZooKeeperOutput implements RandomOutput, Watcher {
+public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
 
   public static final String CONNECTION_CONFIG = "connection";
   public static final String FIELD_NAMES_CONFIG = "field.names";

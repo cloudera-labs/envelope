@@ -26,6 +26,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
@@ -37,7 +38,7 @@ import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-public class BitemporalHistoryPlanner implements RandomPlanner {
+public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";

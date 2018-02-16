@@ -25,13 +25,14 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.functions;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class SystemTimeUpsertPlanner implements BulkPlanner {
+public class SystemTimeUpsertPlanner implements BulkPlanner, ProvidesAlias {
 
   public final static String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
 

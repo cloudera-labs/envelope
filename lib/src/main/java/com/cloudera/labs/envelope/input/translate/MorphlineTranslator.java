@@ -27,6 +27,7 @@ import org.kitesdk.morphline.base.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
@@ -36,7 +37,7 @@ import com.typesafe.config.Config;
 /**
  * Morphline
  */
-public class MorphlineTranslator<K, V> implements Translator<K, V> {
+public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlias {
 
   // TODO : Move default parameter values to reference.conf? How? Each Translator is separate/nested?
   // This most likely should use Config.withFallback() on a per instance basis.

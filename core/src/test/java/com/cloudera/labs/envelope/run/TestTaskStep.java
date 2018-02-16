@@ -64,11 +64,6 @@ public class TestTaskStep {
     public void run(Map<String, Dataset<Row>> dependencies) {
       customTaskGlobal = this.value;
     }
-
-    @Override
-    public String getAlias() {
-      return "custom";
-    }
   }
   
 }

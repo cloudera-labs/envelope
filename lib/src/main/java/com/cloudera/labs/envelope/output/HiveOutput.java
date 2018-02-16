@@ -26,6 +26,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Sets;
@@ -34,7 +35,7 @@ import com.typesafe.config.ConfigValue;
 
 import scala.Tuple2;
 
-public class HiveOutput implements BulkOutput {
+public class HiveOutput implements BulkOutput, ProvidesAlias {
 
   public final static String TABLE_CONFIG = "table";
   public final static String PARTITION_BY_CONFIG = "partition.by";

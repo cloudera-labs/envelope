@@ -57,11 +57,6 @@ public class DummyBatchInput implements BatchInput {
     }
   }
 
-  @Override
-  public String getAlias() {
-    return "dummy";
-  }
-
   private static class LongToRowFunction implements MapFunction<Long, Row> {
     @Override
     public Row call(Long value) throws Exception {

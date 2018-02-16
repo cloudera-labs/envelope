@@ -269,9 +269,7 @@ Custom developed planners can be provided by giving the fully-qualified class na
 
 ### Using aliases
 
-To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
-  the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.planner.Planner` file
-  on the class path - the usual method is to package the file with your JAR.
+To use an alias in configuration files, Envelope needs to be able to find your class. First, your class will need to implement the `ProvidesAlias` interface. Next, place the implementation's fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.planner.Planner` file on the class path - the usual method is to package the file with your JAR.
 
 ## Bulk vs random planners
 

@@ -25,13 +25,14 @@ import java.util.Set;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class JdbcOutput implements BulkOutput  {
+public class JdbcOutput implements BulkOutput, ProvidesAlias  {
 
   public static final String JDBC_CONFIG_URL = "url";
   public static final String JDBC_CONFIG_TABLENAME = "tablename";

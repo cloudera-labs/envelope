@@ -368,15 +368,12 @@ steps {
 
 ==== Developing Custom Rules
 
-Users wishing to specify custom rules can extend either the `RowRule` or `DatasetRule` interface. Row
-level rules should implement a `check(Row row)` method returning a boolean result. Dataset
+Users wishing to specify custom rules can extend either the `RowRule` or `DatasetRule` interface. Row level rules should implement a `check(Row row)` method returning a boolean result. Dataset
 scope rules should implement a `check(Dataset<Row> dataset, Map<String, Dataset<Row>> stepDependencies)`
 method which returns a Dataset with a row per rule with the schema `name: String, result: Boolean`.
 Row level rules are automatically wrapped in `DatasetRowRuleWrapper` when used in a dataset scope.
 
-The custom rules also must implement a `getAlias()` method which allows an alias to be used instead of the fully-qualified
-class name in Envelope config files. The implementation must be placed in a `META-INF/services/com.cloudera.labs.envelope.derive.dq.DatasetRule`
- or `META-INF/services/com.cloudera.labs.envelope.derive.dq.RowRule` file on the classpath.
+The custom rules may also implement the `ProvidesAlias` interface which allows an alias to be used instead of the fully-qualified class name in Envelope config files. The implementation must be placed in a `META-INF/services/com.cloudera.labs.envelope.derive.dq.DatasetRule` or `META-INF/services/com.cloudera.labs.envelope.derive.dq.RowRule` file on the classpath.
 
 == Custom derivers
 
@@ -403,7 +400,6 @@ The two methods in the interface are:
 
 - `configure` to receive the configurations of the `deriver` section of the step. This can be used to retrieve any custom configurations required by the deriver.
 - `derive` to run a derivation. The `dependencies` argument provides the name and Spark DataFrame for each of the dependencies of the step that contains the deriver. The return value is the DataFrame that represents the derivation. Access to the SparkSession object is available from the static method `Contexts#getSparkSession`.
-- `getAlias` to provide a short alias for your new implementation (see Using Aliases below).
 
 To reference the deriver in your pipeline simply use the deriver's fully qualified class name (or alias--see below) as the deriver type. For example:
 
@@ -419,9 +415,7 @@ deriver {
 
 === Using Aliases
 
-To use the class alias in configuration files, Envelope needs to be able to find your class. In order to do that place
-  the implementation fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.derive.Deriver` file
-  on the class path - the usual method is to package the file with your JAR.
+To use an alias in configuration files, Envelope needs to be able to find your class. First, your class will need to implement the `ProvidesAlias` interface. Next, place the implementation's fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.deriver.Deriver` file on the class path - the usual method is to package the file with your JAR.
 
 === Adding at runtime
 

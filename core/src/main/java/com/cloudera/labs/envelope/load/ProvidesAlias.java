@@ -17,12 +17,12 @@
  */
 package com.cloudera.labs.envelope.load;
 
-public interface Loadable {
+public interface ProvidesAlias {
 
   /**
    * Get the short-name for this class used in Envelope config files
    * @return the short-name
    */
   String getAlias();
-
+  
 }

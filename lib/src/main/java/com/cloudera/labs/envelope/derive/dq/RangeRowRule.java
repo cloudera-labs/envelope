@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.typesafe.config.Config;
@@ -26,7 +27,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RangeRowRule implements RowRule {
+public class RangeRowRule implements RowRule, ProvidesAlias {
 
   public static final String RANGE_CONFIG = "range";
   public static final String FIELD_TYPE_CONFIG = "fieldtype";

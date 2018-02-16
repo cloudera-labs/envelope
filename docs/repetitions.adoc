@@ -91,8 +91,7 @@ The `Repetition` interface only requires that implementers include a `configure`
 accepts three parameters: the step instance for this repetition, a name for the repetition and the configuration
 sub-section for the repetition from the config file. The configure method should set up
 any resources required to run the repetition, such as scheduled threads, handles to external
-resources etc. In addition, because it extends the `Loadable` interfqce, the implementation should provide a short-name
-alias.
+resources etc.
 
 As an example, let's look at how `ScheduledRepetition` is implemented. It's short enough to simply
 paste the entire code here:
@@ -137,6 +136,6 @@ configuration we simply call `repeatStep` and `Runner` and `Repetitions` do the 
 
 ### Specifying an alias
 
-The `Loadable` interface allows for shorter aliases to be used in Envelope config files.
+The `ProvidesAlias` interface allows for shorter aliases to be used in Envelope config files.
 This functionality only works if the fully qualified classname is
 placed in a `META-INF/services/com.cloudera.labs.envelope.repetition.Repetition` file on the classpath.

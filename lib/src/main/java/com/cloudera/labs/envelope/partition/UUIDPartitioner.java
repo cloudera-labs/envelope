@@ -20,10 +20,11 @@ package com.cloudera.labs.envelope.partition;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
 
 @SuppressWarnings("serial")
-public class UUIDPartitioner extends ConfigurablePartitioner {
+public class UUIDPartitioner extends ConfigurablePartitioner implements ProvidesAlias {
 
   int numPartitions;
   

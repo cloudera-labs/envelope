@@ -30,6 +30,7 @@ import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.kafka.serde.AvroSerializer;
 import com.cloudera.labs.envelope.kafka.serde.DelimitedSerializer;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.google.common.collect.Maps;
@@ -39,7 +40,7 @@ import com.typesafe.config.ConfigValue;
 
 import scala.Tuple2;
 
-public class KafkaOutput implements BulkOutput {
+public class KafkaOutput implements BulkOutput, ProvidesAlias {
 
   public static final String BROKERS_CONFIG_NAME = "brokers";
   public static final String TOPIC_CONFIG_NAME = "topic";

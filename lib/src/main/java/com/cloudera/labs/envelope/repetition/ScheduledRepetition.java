@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.repetition;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Regularly run a repetition according to the configured frequency as defined by the {@code every} parameter.
  */
-public class ScheduledRepetition extends AbstractRepetition implements Runnable {
+public class ScheduledRepetition extends AbstractRepetition implements Runnable, ProvidesAlias {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScheduledRepetition.class);
 

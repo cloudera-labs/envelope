@@ -25,10 +25,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.typesafe.config.Config;
 
-public class CountDatasetRule implements DatasetRule {
+public class CountDatasetRule implements DatasetRule, ProvidesAlias {
 
   private static final String EXPECTED_LITERAL_CONFIG = "expected.literal";
   private static final String EXPECTED_DEPENDENCY_CONFIG = "expected.dependency";

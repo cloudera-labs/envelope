@@ -22,10 +22,11 @@ import java.util.Properties;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
 
-public class JdbcInput implements BatchInput{
+public class JdbcInput implements BatchInput, ProvidesAlias {
 
   public static final String JDBC_CONFIG_URL = "url";
   public static final String JDBC_CONFIG_TABLENAME = "tablename";

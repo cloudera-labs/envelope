@@ -53,10 +53,6 @@ public class DummyInputFormatTranslator implements Translator<LongWritable, Text
         DataTypes.createStructField("Value", DataTypes.StringType, false)
     ));
   }
-
-  @Override
-  public String getAlias() {
-    return "dummy";
-  }
+  
 }
 

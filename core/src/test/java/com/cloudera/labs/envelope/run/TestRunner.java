@@ -94,11 +94,6 @@ public class TestRunner {
       Dataset<Row> derived = Contexts.getSparkSession().sql(query);
       return derived;
     }
-
-    @Override
-    public String getAlias() {
-      return "sql";
-    }
   }
   
 }

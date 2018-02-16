@@ -38,6 +38,7 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -100,7 +101,7 @@ import scala.Tuple2;
  *     }
  * </pre>
  */
-public class HBaseOutput implements RandomOutput, BulkOutput {
+public class HBaseOutput implements RandomOutput, BulkOutput, ProvidesAlias {
 
   private static final Logger LOG = LoggerFactory.getLogger(HBaseOutput.class);
 

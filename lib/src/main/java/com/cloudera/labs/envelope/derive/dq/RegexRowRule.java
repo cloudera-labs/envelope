@@ -23,10 +23,11 @@ import java.util.regex.Pattern;
 
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 
-public class RegexRowRule implements RowRule {
+public class RegexRowRule implements RowRule, ProvidesAlias {
 
   private static final String REGEX_CONFIG = "regex";
   private static final String FIELDS_CONFIG = "fields";

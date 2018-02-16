@@ -24,13 +24,14 @@ import java.util.Set;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class DeletePlanner implements BulkPlanner {
+public class DeletePlanner implements BulkPlanner, ProvidesAlias {
 
   @Override
   public List<Tuple2<MutationType, Dataset<Row>>> planMutationsForSet(Dataset<Row> arriving) {

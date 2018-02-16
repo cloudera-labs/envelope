@@ -24,11 +24,12 @@ import java.util.Set;
 
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.typesafe.config.Config;
 
-public class EnumRowRule implements RowRule {
+public class EnumRowRule implements RowRule, ProvidesAlias {
 
   private static final String FIELDS_CONFIG = "fields";
   private static final String FIELD_TYPE_CONFIG = "fieldtype";

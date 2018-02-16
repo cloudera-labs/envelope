@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
@@ -36,7 +37,7 @@ import com.typesafe.config.ConfigFactory;
  * A planner implementation for updating existing and inserting new (upsert). This maintains the
  * most recent version of the values of a key, which is equivalent to Type I SCD modeling.
  */
-public class EventTimeUpsertPlanner implements RandomPlanner {
+public class EventTimeUpsertPlanner implements RandomPlanner, ProvidesAlias {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";

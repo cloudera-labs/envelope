@@ -23,9 +23,10 @@ import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
 
-public class PassthroughDeriver implements Deriver {
+public class PassthroughDeriver implements Deriver, ProvidesAlias {
 
   @Override
   public void configure(Config config) {}

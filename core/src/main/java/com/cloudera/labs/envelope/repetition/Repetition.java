@@ -17,14 +17,13 @@
  */
 package com.cloudera.labs.envelope.repetition;
 
-import com.cloudera.labs.envelope.load.Loadable;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.typesafe.config.Config;
 
 /**
  * A class which should contain functionality to repeat a step according to some regularly assessed criteria
  */
-public interface Repetition extends Loadable {
+public interface Repetition {
 
   /**
    * Configure the repetition instance

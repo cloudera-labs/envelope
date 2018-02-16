@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.repetition;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.google.common.collect.Lists;
@@ -57,9 +58,5 @@ public class DummyBatchOutput implements BulkOutput {
   public static List<Row> getOutputs() {
     return outputs;
   }
-
-  @Override
-  public String getAlias() {
-    return "dummy";
-  }
+  
 }

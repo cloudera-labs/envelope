@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
-import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 
 /**
@@ -36,7 +35,7 @@ import com.typesafe.config.Config;
  * instance does not belong to any particular Row object so that it
  * can be reused across rows.
  */
-public interface TimeModel extends Comparator<Row>, Loadable {
+public interface TimeModel extends Comparator<Row> {
 
   /**
    * Configure the time model instance.

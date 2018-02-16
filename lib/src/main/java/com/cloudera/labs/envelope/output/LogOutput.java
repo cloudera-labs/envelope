@@ -26,6 +26,7 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -34,7 +35,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class LogOutput implements BulkOutput {
+public class LogOutput implements BulkOutput, ProvidesAlias {
 
   public static final String DELIMITER_CONFIG_NAME = "delimiter";
   public static final String LOG_LEVEL_CONFIG_NAME = "level";

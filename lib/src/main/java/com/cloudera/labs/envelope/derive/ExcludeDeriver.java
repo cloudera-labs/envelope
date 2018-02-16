@@ -17,6 +17,7 @@
  */
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ import scala.collection.JavaConversions;
  * </pre>
  * <p>Note that both datasets must have identically named columns/fields in the USING statement.</p>
  */
-public class ExcludeDeriver implements Deriver {
+public class ExcludeDeriver implements Deriver, ProvidesAlias {
 
   public static final String EXCLUSION_COMPARE_CONFIG = "compare";
   public static final String EXCLUSION_WITH_CONFIG = "with";

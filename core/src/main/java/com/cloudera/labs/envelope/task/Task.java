@@ -22,10 +22,9 @@ import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.Loadable;
 import com.typesafe.config.Config;
 
-public interface Task extends Loadable {
+public interface Task {
   
   void configure(Config config);
 

@@ -38,6 +38,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
@@ -49,7 +50,7 @@ import com.typesafe.config.Config;
 /**
  * A translator implementation for binary Apache Avro generic record messages.
  */
-public class AvroTranslator implements Translator<byte[], byte[]> {
+public class AvroTranslator implements Translator<byte[], byte[]>, ProvidesAlias {
 
   private Schema avroSchema;
   private StructType schema;

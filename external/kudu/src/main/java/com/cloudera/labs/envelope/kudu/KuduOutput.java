@@ -62,6 +62,7 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -79,7 +80,7 @@ import com.typesafe.config.Config;
 
 import scala.Tuple2;
 
-public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators {
+public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, ProvidesAlias {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_CONFIG_NAME = "table.name";

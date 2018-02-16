@@ -21,10 +21,11 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
 
-public class KuduInput implements BatchInput {
+public class KuduInput implements BatchInput, ProvidesAlias {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_NAME_CONFIG_NAME = "table.name";

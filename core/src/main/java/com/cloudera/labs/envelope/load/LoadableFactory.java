@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-public abstract class LoadableFactory<T extends Loadable> {
+public abstract class LoadableFactory<T> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -32,14 +32,17 @@ public abstract class LoadableFactory<T extends Loadable> {
    * @param clazz - a class implementing {@link Loadable}
    * @return - a map of alias to FQDN for all loadable classes
    */
-  protected synchronized static <T extends Loadable> Map<String, String> getLoadables(Class<T> clazz) {
+  protected synchronized static <T> Map<String, String> getLoadables(Class<T> clazz) {
     ServiceLoader<T> loader = ServiceLoader.load(clazz);
     Map<String, String> loadableMap = new HashMap<>();
-    for (T t : loader) {
-      if (loadableMap.containsKey(t.getAlias())) {
-        throw new RuntimeException("More than one loadable with alias: " + t.getAlias());
+    for (T loadable : loader) {
+      if (loadable instanceof ProvidesAlias) {
+        ProvidesAlias loadableWithAlias = (ProvidesAlias)loadable;
+        if (loadableMap.containsKey(loadableWithAlias.getAlias())) {
+          throw new RuntimeException("More than one loadable with alias: " + loadableWithAlias.getAlias());
+        }
+        loadableMap.put(loadableWithAlias.getAlias(), loadableWithAlias.getClass().getCanonicalName());
       }
-      loadableMap.put(t.getAlias(), t.getClass().getCanonicalName());
     }
     return loadableMap;
   }
@@ -50,7 +53,7 @@ public abstract class LoadableFactory<T extends Loadable> {
    * @param aliasOrClassName - a class implementing/extending the baseClass type
    * @return - a map of alias to FQDN for all loadable classes
    */
-  protected static <T extends Loadable> T loadImplementation(Class<T> baseClass, String aliasOrClassName)
+  protected static <T> T loadImplementation(Class<T> baseClass, String aliasOrClassName)
       throws ClassNotFoundException {
     String actualClazz = aliasOrClassName;
 
