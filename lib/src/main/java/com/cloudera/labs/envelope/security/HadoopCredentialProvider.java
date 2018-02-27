@@ -86,8 +86,11 @@ public class HadoopCredentialProvider implements CredentialProvider, ProvidesAli
                 coreConfiguration.set(
                     AbstractJavaKeyStoreProvider.CREDENTIAL_PASSWORD_FILE_KEY,
                     passwordfile);
+                 ClassLoader cl = Thread.currentThread().getContextClassLoader();
             }
+
         }
+
         List<org.apache.hadoop.security.alias.CredentialProvider> providers
             = org.apache.hadoop.security.alias.CredentialProviderFactory.getProviders(
                 coreConfiguration);
@@ -96,11 +99,9 @@ public class HadoopCredentialProvider implements CredentialProvider, ProvidesAli
             throw new RuntimeException("Provider did not match configured "
                 + "implementation");
         } else {
-            System.out.println(config);
             for (org.apache.hadoop.security.alias.CredentialProvider item : providers) {
 
-                org.apache.hadoop.security.alias.CredentialProvider.CredentialEntry
-                    credentialEntry = item.getCredentialEntry(alias);
+                org.apache.hadoop.security.alias.CredentialProvider.CredentialEntry credentialEntry = item.getCredentialEntry(alias);
                 if (credentialEntry != null) {
                     password = new String(credentialEntry.getCredential());
                     break;

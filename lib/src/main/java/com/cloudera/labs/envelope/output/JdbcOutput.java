@@ -18,6 +18,7 @@
 package com.cloudera.labs.envelope.output;
 
 
+import static com.cloudera.labs.envelope.input.JdbcInput.JDBC_CONFIG_PASSWORD;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -27,8 +28,12 @@ import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.security.CredentialProvider;
+import com.cloudera.labs.envelope.security.CredentialProviderFactory;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import scala.Tuple2;
 
@@ -58,8 +63,10 @@ public class JdbcOutput implements BulkOutput, ProvidesAlias  {
       throw new RuntimeException("JDBC output requires '" + JDBC_CONFIG_USERNAME + "' property");
     }
 
-    if (!config.hasPath(JDBC_CONFIG_PASSWORD)) {
-      throw new RuntimeException("JDBC output requires '" + JDBC_CONFIG_PASSWORD + "' property");
+    if(!config.hasPath(CredentialProvider.CEDENTIAL_PROVIDER_CONF)) {
+      if (!config.hasPath(JDBC_CONFIG_PASSWORD)) {
+        throw new RuntimeException("JDBC Output requires '" + JDBC_CONFIG_PASSWORD + "' property");
+      }
     }
   }
 
@@ -73,11 +80,18 @@ public class JdbcOutput implements BulkOutput, ProvidesAlias  {
     String url = config.getString(JDBC_CONFIG_URL);
     String tablename = config.getString(JDBC_CONFIG_TABLENAME);
     String username = config.getString(JDBC_CONFIG_USERNAME);
-    String password = config.getString(JDBC_CONFIG_PASSWORD);
     Properties properties = new Properties();
     properties.put("user",username);
-    properties.put("password",password);
-
+    if(config.hasPath(CredentialProvider.CEDENTIAL_PROVIDER_CONF)) {
+        try {
+            properties.put(JDBC_CONFIG_PASSWORD,
+                CredentialProviderFactory.create(config).getPassword());
+        } catch (Exception ex) {
+            Logger.getLogger(JdbcOutput.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    } else {
+      properties.put(JDBC_CONFIG_PASSWORD,config.getString(JDBC_CONFIG_PASSWORD));
+    }
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
       Dataset<Row> mutation = plan._2();
