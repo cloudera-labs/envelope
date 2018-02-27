@@ -23,10 +23,17 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.output.JdbcOutput;
+import  com.cloudera.labs.envelope.security.CredentialProvider;
+import com.cloudera.labs.envelope.security.CredentialProviderFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class JdbcInput implements BatchInput, ProvidesAlias {
+public class JdbcInput  implements BatchInput, ProvidesAlias {
 
   public static final String JDBC_CONFIG_URL = "url";
   public static final String JDBC_CONFIG_TABLENAME = "tablename";
@@ -51,8 +58,10 @@ public class JdbcInput implements BatchInput, ProvidesAlias {
       throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_USERNAME + "' property");
     }
 
-    if (!config.hasPath(JDBC_CONFIG_PASSWORD)) {
-      throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_PASSWORD + "' property");
+    if(!config.hasPath(CredentialProvider.CEDENTIAL_PROVIDER_CONF)) {
+      if (!config.hasPath(JDBC_CONFIG_PASSWORD)) {
+        throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_PASSWORD + "' property");
+      }
     }
   }
 
@@ -61,11 +70,16 @@ public class JdbcInput implements BatchInput, ProvidesAlias {
     String url = config.getString(JDBC_CONFIG_URL);
     String tablename = config.getString(JDBC_CONFIG_TABLENAME);
     String username = config.getString(JDBC_CONFIG_USERNAME);
-    String password = config.getString(JDBC_CONFIG_PASSWORD);
 
     Properties properties = new Properties();
     properties.put("user",username);
-    properties.put("password",password);
+    if(config.hasPath(CredentialProvider.CEDENTIAL_PROVIDER_CONF)) {
+        properties.put(JDBC_CONFIG_PASSWORD,
+            CredentialProviderFactory.create(config).getPassword());
+    } else {
+      String password = config.getString(JDBC_CONFIG_PASSWORD);
+      properties.put(JDBC_CONFIG_PASSWORD,password);
+    }
 
     return Contexts.getSparkSession().read().jdbc(url,tablename,properties);
   }
