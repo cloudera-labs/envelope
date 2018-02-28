@@ -389,7 +389,7 @@ For example, if you are using Maven:
 <dependency>
   <groupId>com.cloudera.labs</groupId>
   <artifactId>envelope-core</artifactId>
-  <version>0.5.0</version>
+  <version>**Envelope version being used here**</version>
   <scope>provided</scope>
 </dependency>
 ----

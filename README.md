@@ -27,7 +27,7 @@ You can build the Envelope application from the top-level directory of the sourc
 
     mvn clean package
 
-This will create `envelope-0.5.0.jar` in the `build/envelope/target` directory.
+This will create `envelope-0.6.0-SNAPSHOT.jar` in the `build/envelope/target` directory.
 
 ### Finding examples
 
@@ -43,7 +43,7 @@ Envelope provides three example pipelines that you can run for yourself:
 
 You can run Envelope by submitting it to Spark with the configuration file for your pipeline:
 
-    spark2-submit envelope-0.5.0.jar yourpipeline.conf
+    spark2-submit envelope-0.6.0-SNAPSHOT.jar yourpipeline.conf
 
 A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI, which can be found in Cloudera Manager by navigating to the YARN service and then to the ResourceManager Web UI link.
 
