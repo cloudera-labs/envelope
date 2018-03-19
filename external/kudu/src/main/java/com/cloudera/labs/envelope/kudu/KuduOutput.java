@@ -55,6 +55,7 @@ import org.apache.kudu.client.RowResult;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.spark.kudu.KuduContext;
 import org.apache.kudu.spark.kudu.KuduRelation;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
@@ -85,11 +86,12 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_CONFIG_NAME = "table.name";
   public static final String INSERT_IGNORE_CONFIG_NAME = "insert.ignore";
+  public static final String IGNORE_MISSING_COLUMNS_CONFIG_NAME = "ignore.missing.columns";
   
   private static final String ACCUMULATOR_NUMBER_OF_SCANNERS = "Number of Kudu scanners";
   private static final String ACCUMULATOR_NUMBER_OF_FILTERS_SCANNED = "Number of filters scanned in Kudu";
   private static final String ACCUMULATOR_SECONDS_SCANNING = "Seconds spent scanning Kudu";
-  
+
   private Config config;
   private Accumulators accumulators;
 
@@ -378,9 +380,23 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
       
       plan = PlannerUtils.removeMutationTypeField(plan);
 
+      List<String> kuduFieldNames = null;
+
       for (StructField field : plan.schema().fields()) {
         String fieldName = field.name();
-        
+
+        if (ignoreMissingColumns()) {
+          if (kuduFieldNames == null) {
+            kuduFieldNames = Lists.newArrayList();
+            for (ColumnSchema columnSchema : table.getSchema().getColumns()) {
+              kuduFieldNames.add(columnSchema.getName());
+            }
+          }
+          if (!kuduFieldNames.contains(fieldName)) {
+            continue;
+          }
+        }
+
         ColumnSchema columnSchema = table.getSchema().getColumn(fieldName);
 
         if (!plan.isNullAt(plan.fieldIndex(fieldName))) {
@@ -463,10 +479,29 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
     KuduContext kc = new KuduContext(
         config.getString(CONNECTION_CONFIG_NAME), Contexts.getSparkSession().sparkContext());
 
+    String tableName = config.getString(TABLE_CONFIG_NAME);
+
+    Column[] kuduColumns = null;
+    if (ignoreMissingColumns()) {
+        try {
+          KuduTable table = connectToTable();
+          kuduColumns = new Column[table.getSchema().getColumns().size()];
+          for (int i = 0; i < kuduColumns.length; i++) {
+            ColumnSchema columnSchema = table.getSchema().getColumns().get(i);
+            kuduColumns[i] = new Column(columnSchema.getName());
+          }
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+    }
+
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
       Dataset<Row> mutation = plan._2();
-      String tableName = config.getString(TABLE_CONFIG_NAME);
+
+      if (ignoreMissingColumns()) {
+        mutation = mutation.select(kuduColumns);
+      }
 
       switch (mutationType) {
         case DELETE:
@@ -496,6 +531,13 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
    */
   private boolean isInsertIgnore() {
     return config.hasPath(INSERT_IGNORE_CONFIG_NAME) && config.getBoolean(INSERT_IGNORE_CONFIG_NAME);
+  }
+
+  /**
+   * Returns whether or not we should ignore missing columns when writing to Kudu
+   */
+  private boolean ignoreMissingColumns() {
+    return config.hasPath(IGNORE_MISSING_COLUMNS_CONFIG_NAME) && config.getBoolean(IGNORE_MISSING_COLUMNS_CONFIG_NAME);
   }
   
   private boolean hasAccumulators() {
