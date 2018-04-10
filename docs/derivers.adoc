@@ -49,6 +49,8 @@ The ID of the specific transformation within the Morphline file is specified wit
 
 The deriver requires the output schema of the Morphline transformation to be provided using the `field.names` and `field.types` configurations.
 
+Each input row must correlate to a single output row, unless `error.on.empty` is set to `false`, in which case an empty output is permissible. Any fields that are not nullable must be specified in the output record.
+
 === Nest
 
 The `nest` deriver is used to nest the data of one step within another by a common join key. This is useful for denormalizing a one-to-many relationship without repeating values on the one-cardinality side. This type of data modeling is known as a supernova schema.

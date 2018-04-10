@@ -483,6 +483,9 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |append.raw.value.field.name
 |The name of the appended field that contains the raw input value. Default `_value`.
 
+|error.on.empty
+|If `true` then all input rows must map to an output row, otherwise an error will be thrown. Default `true`.
+
 |===
 
 === Derivers

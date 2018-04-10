@@ -138,6 +138,22 @@ public class TestMorphlineUtils {
   }
 
   @Test
+  public void executePipelineNoRecordsNoError(
+      final @Mocked MorphlineUtils.Pipeline pipeline,
+      final @Mocked Command morphline
+  ) throws Exception {
+
+    final Record inputRecord = new Record();
+
+    new Expectations() {{
+      morphline.process(inputRecord); result = true;
+      pipeline.getCollector().getRecords(); result = Lists.newArrayList();
+    }};
+
+    assertEquals("Invalid number of Rows returned", 0, MorphlineUtils.executePipeline(pipeline, inputRecord, false).size());
+  }
+
+  @Test
   public void morphlineMapper(
       final @Mocked MorphlineUtils.Pipeline pipeline,
       final @Mocked Row row,
@@ -146,20 +162,20 @@ public class TestMorphlineUtils {
 
     new Expectations(MorphlineUtils.class) {{
       MorphlineUtils.getPipeline("file", "id"); result = pipeline; times = 1;
-      MorphlineUtils.executePipeline(pipeline, (Record) any); result = Lists.newArrayList(); times = 1;
+      MorphlineUtils.executePipeline(pipeline, (Record) any, true); result = Lists.newArrayList(); times = 1;
       row.schema(); result = schema;
       row.get(anyInt); returns("val1", "val2"); times = 2;
       schema.fieldNames(); result = new String[] { "one", "two"};
     }};
 
-    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
+    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema, true);
     Iterator<Row> results = function.call(row);
 
     assertEquals("Invalid number of Rows returned", 0, Lists.newArrayList(results).size());
 
     new Verifications() {{
       Record record;
-      MorphlineUtils.executePipeline(pipeline, record = withCapture());
+      MorphlineUtils.executePipeline(pipeline, record = withCapture(), true);
       assertEquals(2, record.getFields().size());
       assertEquals("val1", record.get("one").get(0));
     }};
@@ -175,20 +191,20 @@ public class TestMorphlineUtils {
     new Expectations(MorphlineUtils.class) {{
       MorphlineUtils.getPipeline("file", "id"); result = null; times = 1;
       MorphlineUtils.setPipeline("file", "id", (MorphlineUtils.Collector) any, true); result = pipeline; times = 1;
-      MorphlineUtils.executePipeline(pipeline, (Record) any); result = Lists.newArrayList(); times = 1;
+      MorphlineUtils.executePipeline(pipeline, (Record) any, true); result = Lists.newArrayList(); times = 1;
       row.schema(); result = schema;
       row.get(anyInt); returns("val1", "val2"); times = 2;
       schema.fieldNames(); result = new String[] { "one", "two"};
     }};
 
-    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
+    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema, true);
     Iterator<Row> results = function.call(row);
 
     assertEquals("Invalid number of Rows returned", 0, Lists.newArrayList(results).size());
 
     new Verifications() {{
       Record record;
-      MorphlineUtils.executePipeline(pipeline, record = withCapture());
+      MorphlineUtils.executePipeline(pipeline, record = withCapture(), true);
       assertEquals(2, record.getFields().size());
       assertEquals("val1", record.get("one").get(0));
     }};
@@ -206,7 +222,7 @@ public class TestMorphlineUtils {
       row.schema(); result = null;
     }};
 
-    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema);
+    FlatMapFunction<Row, Row> function = MorphlineUtils.morphlineMapper("file", "id", schema, true);
     function.call(row);
   }
 
@@ -336,7 +352,7 @@ public class TestMorphlineUtils {
       MorphlineUtils.convertToRow(schema, record);
       fail("Did not throw a RuntimeException");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Error converting Record"));
+      assertThat(e.getMessage(), JUnitMatchers.containsString("DataType cannot contain 'null'"));
     }
 
     new Verifications() {{
@@ -356,12 +372,7 @@ public class TestMorphlineUtils {
         DataTypes.createStructField("field1", DataTypes.StringType, true))
     );
 
-    try {
-      MorphlineUtils.convertToRow(schema, record);
-      fail("Did not throw a RuntimeException");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Error converting Record"));
-    }
+    MorphlineUtils.convertToRow(schema, record);
 
     new Verifications() {{
       RowUtils.toRowValue(any, (DataType) any); times = 0;

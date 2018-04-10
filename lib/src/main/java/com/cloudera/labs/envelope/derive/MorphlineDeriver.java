@@ -46,11 +46,13 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias {
   public static final String MORPHLINE_ID = "morphline.id";
   public static final String FIELD_NAMES = "field.names";
   public static final String FIELD_TYPES = "field.types";
+  public static final String ERROR_ON_EMPTY = "error.on.empty";
 
   private String stepName;
   private StructType schema;
   private String morphlineFile;
   private String morphlineId;
+  private boolean errorOnEmpty;
 
   @Override
   public void configure(Config config) {
@@ -75,6 +77,12 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias {
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
     List<String> fieldTypes = config.getStringList(FIELD_TYPES);
     this.schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+
+    if (!config.hasPath(ERROR_ON_EMPTY) || config.getString(ERROR_ON_EMPTY).trim().isEmpty()) {
+      errorOnEmpty = true;
+    } else {
+      errorOnEmpty = config.getBoolean(ERROR_ON_EMPTY);
+    }
   }
 
   @Override
@@ -87,7 +95,7 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias {
 
     // For each partition in the DataFrame / RDD
     JavaRDD<Row> outputRDD = sourceStep.toJavaRDD().flatMap(
-        MorphlineUtils.morphlineMapper(this.morphlineFile, this.morphlineId, getSchema()));
+        MorphlineUtils.morphlineMapper(this.morphlineFile, this.morphlineId, getSchema(), errorOnEmpty));
 
     // Convert all the Rows into a new DataFrame
     return Contexts.getSparkSession().createDataFrame(outputRDD, getSchema());

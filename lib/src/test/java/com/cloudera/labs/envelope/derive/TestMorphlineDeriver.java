@@ -167,7 +167,7 @@ public class TestMorphlineDeriver {
     final Config config = ConfigFactory.parseMap(paramMap);
 
     new Expectations() {{
-      MorphlineUtils.morphlineMapper(anyString, anyString, (StructType) any); result =
+      MorphlineUtils.morphlineMapper(anyString, anyString, (StructType) any, true); result =
           new MorphlineCompilationException("Compile exception", config);
     }};
 

@@ -119,6 +119,10 @@ public class MorphlineUtils {
   }
 
   public static List<Record> executePipeline(Pipeline pipeline, Record inputRecord) {
+    return executePipeline(pipeline, inputRecord, true);
+  }
+
+  public static List<Record> executePipeline(Pipeline pipeline, Record inputRecord, boolean errorOnEmpty) {
     Command morphline = pipeline.getMorphline();
 
     try {
@@ -135,7 +139,7 @@ public class MorphlineUtils {
 
       // Collect the output
       List<Record> outputRecords = pipeline.getCollector().getRecords();
-      if (!outputRecords.iterator().hasNext()) {
+      if (errorOnEmpty && !outputRecords.iterator().hasNext()) {
         throw new MorphlineRuntimeException("Morphline did not produce output Record(s)");
       }
       LOG.trace("Output Record(s): {}", outputRecords);
@@ -152,7 +156,7 @@ public class MorphlineUtils {
 
   @SuppressWarnings("serial")
   public static FlatMapFunction<Row, Row> morphlineMapper(final String morphlineFile, final String morphlineId,
-                                                          final StructType outputSchema) {
+                                                          final StructType outputSchema, final boolean errorOnEmpty) {
     return new FlatMapFunction<Row, Row>() {
       @Override
       public Iterator<Row> call(Row row) throws Exception {
@@ -178,7 +182,7 @@ public class MorphlineUtils {
         }
 
         // Process each Record via the Command pipeline
-        List<Record> outputRecords = MorphlineUtils.executePipeline(pipeline, inputRecord);
+        List<Record> outputRecords = MorphlineUtils.executePipeline(pipeline, inputRecord, errorOnEmpty);
 
         // Convert each Record into a new Row
         List<Row> outputRows = Lists.newArrayListWithCapacity(outputRecords.size());
@@ -210,32 +214,30 @@ public class MorphlineUtils {
       String fieldName = field.name();
       DataType fieldDataType = field.dataType();
 
+      Object recordValue = null;
       if (activeFields.containsKey(fieldName)) {
-        Object recordValue = record.getFirstValue(fieldName);
+        recordValue = record.getFirstValue(fieldName);
+      }
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Converting Field[{} => {}] to DataType[{}]]", fieldName, recordValue, fieldDataType);
+      }
 
-        if (LOG.isTraceEnabled()) {
-          LOG.trace("Converting Field[{} => {}] to DataType[{}]]", fieldName, recordValue, fieldDataType);
-        }
-
-        if (null != recordValue) {
-          try {
-            Object result = RowUtils.toRowValue(recordValue, field.dataType());
-            values.add(result);
-          } catch (Exception e) {
-            throw new RuntimeException(String.format("Error converting Field[%s => %s] to DataType[%s]", fieldName,
-                recordValue, fieldDataType), e);
-          }
-        } else {
-          if (field.nullable()) {
-            LOG.trace("Setting Field[{} => null] for DataType[{}]", fieldName, fieldDataType);
-            values.add(null);
-          } else {
-            throw new RuntimeException(String.format("Error converting Field[%s => null] for DataType[%s]: DataType " +
-                "cannot contain 'null'", fieldName, fieldDataType));
-          }
+      if (null != recordValue) {
+        try {
+          Object result = RowUtils.toRowValue(recordValue, field.dataType());
+          values.add(result);
+        } catch (Exception e) {
+          throw new RuntimeException(String.format("Error converting Field[%s => %s] to DataType[%s]", fieldName,
+              recordValue, fieldDataType), e);
         }
       } else {
-        throw new RuntimeException(String.format("Error converting Record: missing Field[%s]'", fieldName));
+        if (field.nullable()) {
+          LOG.trace("Setting Field[{} => null] for DataType[{}]", fieldName, fieldDataType);
+          values.add(null);
+        } else {
+          throw new RuntimeException(String.format("Error converting Field[%s => null] for DataType[%s]: DataType " +
+              "cannot contain 'null'", fieldName, fieldDataType));
+        }
       }
     }
 
