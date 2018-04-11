@@ -52,8 +52,12 @@ public class RegexRowRule implements RowRule, ProvidesAlias {
     boolean check = true;
     for (String field : fields) {
       String value = row.getAs(field);
-      Matcher matcher = pattern.matcher(value);
-      check = check && matcher.matches();
+      if (value != null) {
+        Matcher matcher = pattern.matcher(value);
+        check = check && matcher.matches();
+      } else {
+          check = false;
+      }
       if (!check) {
         // No point continuing if failed
         break;
