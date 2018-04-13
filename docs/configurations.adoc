@@ -968,6 +968,9 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |insert.ignore
 |Ignore duplicate rows in Kudu (default: false)
 
+|ignore.missing.columns
+|Ignore writing columns that do not exist in the Kudu schema (default: false)
+
 ||
 |`_log_`|
 
