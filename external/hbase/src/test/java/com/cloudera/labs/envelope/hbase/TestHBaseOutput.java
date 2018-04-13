@@ -155,15 +155,18 @@ public class TestHBaseOutput {
   @BeforeClass
   public static void beforeClass() throws Exception {
     utility = new HBaseTestingUtility();
-    utility.startMiniCluster();
+    utility.startMiniZKCluster();
+    utility.startMiniHBaseCluster(1,1);
     connection = utility.getConnection();
 
     Contexts.initialize(appConfig, Contexts.ExecutionMode.UNIT_TEST);
   }
 
   @AfterClass
-  public static void afterClass() {
+  public static void afterClass() throws Exception {
     Contexts.closeSparkSession(true);
+    utility.shutdownMiniHBaseCluster();
+    utility.shutdownMiniZKCluster();
   }
 
   @Before
