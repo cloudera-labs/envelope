@@ -45,6 +45,40 @@ The `jdbc` input reads the contents of a `table` at a given JDBC `url`. A `usern
 
 The `kudu` input reads a table (specified by `table.name`) from Kudu. The Kudu masters are specified with `connection`.
 
+#### Example
+
+The Kudu `connection` configuration can be supplied by a system environment variable, which allows the Kudu master addresses to be provided at runtime. This technique could also be used for other Envelope configurations.
+
+The system environment variable can be referenced in configuration as follows:
+
+----
+...
+  input {
+    type = kudu
+    connection = ${KUDU_MASTER_CONNECTION_STRING}
+    table.name = "impala::default.mykudutable1"
+  }
+...
+----
+
+##### yarn-client mode
+
+The system environment variable can be provided as follows when executed in client deployment mode:
+
+----
+export KUDU_MASTER_CONNECTION_STRING="master1:7051,master2:7051,master3:7051"
+
+spark2-submit --master yarn --deploy-mode client envelope-<version>.jar application.conf
+----
+
+##### yarn-cluster mode
+
+The system environment variable can be provided as follows when executed in cluster deployment mode:
+
+----
+spark2-submit --master yarn --deploy-mode cluster --files application.conf --conf spark.yarn.appMasterEnv.KUDU_MASTER_CONNECTION_STRING="master1:7051,master2:7051,master3:7051"  envelope-<version>.jar application.conf
+----
+
 ### Kafka
 
 The `kafka` input reads a Kafka topic as a stream. Envelope will use the given `translator` to turn each micro-batch into a DataFrame. The Kafka brokers are specified with `brokers` and the topic with `topic`.
