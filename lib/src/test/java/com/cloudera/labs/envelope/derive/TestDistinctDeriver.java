@@ -42,110 +42,94 @@ import com.typesafe.config.ConfigValueFactory;
  */
 public class TestDistinctDeriver {
 
-	
 	@Test
 	public void derive() throws Exception {
-		Dataset<Row> source = createTestDataframe() ;
+		Dataset<Row> source = createTestDataframe();
 		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
 		dependencies.put("df1", source);
 
 		DistinctDeriver deriver = new DistinctDeriver();
 
-		Config config = ConfigFactory.empty() ;
-	    deriver.configure(config);
-	    List<Row> results = deriver.derive(dependencies).collectAsList();
-	    assertEquals(results.size(), 11);
-	    assertTrue(results.containsAll(createTestData()));
+		Config config = ConfigFactory.empty();
+		deriver.configure(config);
+		List<Row> results = deriver.derive(dependencies).collectAsList();
+		assertEquals(results.size(), 11);
+		assertTrue(results.containsAll(createTestData()));
 
-	    
-	    config = ConfigFactory.empty()
-	            .withValue(DistinctDeriver.DISTINCT_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
-	            ;
-	    deriver.configure(config);
-	    results = deriver.derive(dependencies).collectAsList();
-	    assertEquals(results.size(), 11);
-	    assertTrue(results.containsAll(createTestData()));
+		config = ConfigFactory.empty().withValue(DistinctDeriver.DISTINCT_STEP_CONFIG,
+				ConfigValueFactory.fromAnyRef("df1"));
+		deriver.configure(config);
+		results = deriver.derive(dependencies).collectAsList();
+		assertEquals(results.size(), 11);
+		assertTrue(results.containsAll(createTestData()));
 
-	    
-	    dependencies.put("df2", null) ;
-	    dependencies.put("df3", null) ;
-	    results = deriver.derive(dependencies).collectAsList();
-	    assertEquals(results.size(), 11);
-	    assertTrue(results.containsAll(createTestData()));
-	    
+		dependencies.put("df2", null);
+		dependencies.put("df3", null);
+		results = deriver.derive(dependencies).collectAsList();
+		assertEquals(results.size(), 11);
+		assertTrue(results.containsAll(createTestData()));
+
 	}
 
-	@Test (expected = RuntimeException.class)
-  	public void missingDependencies() throws Exception {
+	@Test(expected = RuntimeException.class)
+	public void missingDependencies() throws Exception {
 		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-//		dependencies.put("df1", null);
-//		dependencies.put("df2", null);
+		// dependencies.put("df1", null);
+		// dependencies.put("df2", null);
 		Config config = ConfigFactory.empty()
-//            .withValue(DistinctDeriver.DISTINCT_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
+		// .withValue(DistinctDeriver.DISTINCT_STEP_CONFIG,
+		// ConfigValueFactory.fromAnyRef("df1"))
 		;
-	    DistinctDeriver deriver = new DistinctDeriver();
-	    deriver.configure(config);
-	    deriver.derive(dependencies);
-  	}
-
-	@Test (expected = RuntimeException.class)
-  	public void missingConfig() throws Exception {
-		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-		dependencies.put("df1", null);
-		dependencies.put("df2", null);
-		Config config = ConfigFactory.empty()
-//            .withValue(DistinctDeriver.DISTINCT_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
-		;
-	    DistinctDeriver deriver = new DistinctDeriver();
-	    deriver.configure(config);
-	    deriver.derive(dependencies);
-  	}
-
-	@Test (expected = RuntimeException.class)
-	public void wrongConfig() throws Exception {
-		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-		dependencies.put("df1", null);
-		dependencies.put("df2", null);
-		Config config = ConfigFactory.empty()
-    		.withValue(DistinctDeriver.DISTINCT_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df3"))
-    	;
 		DistinctDeriver deriver = new DistinctDeriver();
 		deriver.configure(config);
 		deriver.derive(dependencies);
 	}
 
+	@Test(expected = RuntimeException.class)
+	public void missingConfig() throws Exception {
+		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+		dependencies.put("df1", null);
+		dependencies.put("df2", null);
+		Config config = ConfigFactory.empty()
+		// .withValue(DistinctDeriver.DISTINCT_STEP_CONFIG,
+		// ConfigValueFactory.fromAnyRef("df1"))
+		;
+		DistinctDeriver deriver = new DistinctDeriver();
+		deriver.configure(config);
+		deriver.derive(dependencies);
+	}
+
+	@Test(expected = RuntimeException.class)
+	public void wrongConfig() throws Exception {
+		Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+		dependencies.put("df1", null);
+		dependencies.put("df2", null);
+		Config config = ConfigFactory.empty().withValue(DistinctDeriver.DISTINCT_STEP_CONFIG,
+				ConfigValueFactory.fromAnyRef("df3"));
+		DistinctDeriver deriver = new DistinctDeriver();
+		deriver.configure(config);
+		deriver.derive(dependencies);
+	}
 
 	private static Dataset<Row> createTestDataframe() {
-// 16 rows , 11 - unique   
-		List<Row> rows = createTestData() ;
-	  	StructType schema = DataTypes.createStructType(Lists.newArrayList(
-	        DataTypes.createStructField("id", DataTypes.StringType, true),
-	        DataTypes.createStructField("descr", DataTypes.StringType, true),
-	        DataTypes.createStructField("value", DataTypes.IntegerType, true))
-		);
-	  	return Contexts.getSparkSession().createDataFrame(rows, schema);
+		List<Row> rows = createTestData();
+		StructType schema = DataTypes
+				.createStructType(Lists.newArrayList(DataTypes.createStructField("id", DataTypes.StringType, true),
+						DataTypes.createStructField("descr", DataTypes.StringType, true),
+						DataTypes.createStructField("value", DataTypes.IntegerType, true)));
+		return Contexts.getSparkSession().createDataFrame(rows, schema);
 	}
+
 	private static List<Row> createTestData() {
-// 16 rows , 11 - unique   
-		return Lists.newArrayList(
-	  		RowFactory.create("A", "Alfa", 1),
-	  		RowFactory.create("A", "Alfa", 1),
-	  		RowFactory.create("A", "Alfa", 1),
-	        RowFactory.create("B", "Bravo", 2),
-	        RowFactory.create("B", "Bravo", 2),
-	        RowFactory.create("B", "Bravo", 3),
-	        RowFactory.create("B", "Bravo", 3),
-	        RowFactory.create("B", "Bravo", 4),
-	        RowFactory.create("B", "Bravo", 4),
-	        RowFactory.create("C", "Charlie", 5),
-	        RowFactory.create("D", "Delta", 5),
-	        RowFactory.create("E", "Echo", 6),
-	        RowFactory.create("Z", "Zulu", 26),
-	        RowFactory.create("Z", "Zulu", null),
-	        RowFactory.create("Z", null, null),
-	        RowFactory.create(null, null, null)
-		);
+		// 16 rows , 11 - unique
+		return Lists.newArrayList(RowFactory.create("A", "Alfa", 1), RowFactory.create("A", "Alfa", 1),
+				RowFactory.create("A", "Alfa", 1), RowFactory.create("B", "Bravo", 2),
+				RowFactory.create("B", "Bravo", 2), RowFactory.create("B", "Bravo", 3),
+				RowFactory.create("B", "Bravo", 3), RowFactory.create("B", "Bravo", 4),
+				RowFactory.create("B", "Bravo", 4), RowFactory.create("C", "Charlie", 5),
+				RowFactory.create("D", "Delta", 5), RowFactory.create("E", "Echo", 6),
+				RowFactory.create("Z", "Zulu", 26), RowFactory.create("Z", "Zulu", null),
+				RowFactory.create("Z", null, null), RowFactory.create(null, null, null));
 	}
-  
 
 }

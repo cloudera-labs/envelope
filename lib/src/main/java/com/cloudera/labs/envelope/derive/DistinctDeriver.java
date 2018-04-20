@@ -26,56 +26,64 @@ import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
 
 /**
- * <p>Returns new dataset containing only unique rows from the dataset specified in "dependencies".</p>
- * <p>If "dependencies" is a list, a <code>step</code> config parameter is required to disambiguate operand for distinct() operation. 
+ * <p>
+ * Returns new dataset containing only unique rows from the dataset specified in
+ * "dependencies".
+ * </p>
+ * <p>
+ * If "dependencies" is a list, a <code>step</code> config parameter is required
+ * to disambiguate operand for distinct() operation.
  */
 
 public class DistinctDeriver implements Deriver, ProvidesAlias {
 
-	  public static final String DISTINCT_STEP_CONFIG = "step";
+	public static final String DISTINCT_STEP_CONFIG = "step";
 
-	  private String stepName = null ;
+	private String stepName = null;
 
-  @Override
-  public void configure(Config config) {
-	  if (config.hasPath(DISTINCT_STEP_CONFIG)) {
-		  stepName = config.getString(DISTINCT_STEP_CONFIG);
-	  }
-  }
+	@Override
+	public void configure(Config config) {
+		if (config.hasPath(DISTINCT_STEP_CONFIG)) {
+			stepName = config.getString(DISTINCT_STEP_CONFIG);
+		}
+	}
 
-  @Override
-  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-	  validate(dependencies) ;
-	  Dataset<Row> temp = dependencies.get(stepName) ;
-	  return temp.distinct() ;
-  }
+	@Override
+	public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
+		validate(dependencies);
+		Dataset<Row> temp = dependencies.get(stepName);
+		return temp.distinct();
+	}
 
-  @Override
-  public String getAlias() {
-    return "distinct";
-  }
+	@Override
+	public String getAlias() {
+		return "distinct";
+	}
 
-  private void validate(Map<String, Dataset<Row>> dependencies) {
-	  switch( dependencies.size() ) {
-	  case 0:
-		  throw new RuntimeException("Distinct deriver requires at least one dependency");
-	  case 1:
-		  if (stepName==null || stepName.trim().length()==0) {
-			  stepName = dependencies.keySet().toArray(new String[0])[0] ;
-		  }
-		  else {
-			  if (!dependencies.containsKey(stepName)) {
-				  String cause = "Invalid \"step\" configuration: "+stepName+" is not a dependency: "+dependencies.keySet()+"" ;
-				  throw new RuntimeException(cause);
-			  }
-		  }
-		  break ;
-	  default: 
-		  if (stepName==null || stepName.trim().length()==0)
-			  throw new RuntimeException("Distinct deriver requires a \"step\" configuration when multiple dependencies have been listed: "+dependencies.keySet()+"");
-		  if (!dependencies.containsKey(stepName)) 
-			  throw new RuntimeException("Invalid \"step\" configuration: "+stepName+" is not listed as dependency: "+dependencies.keySet()+"");
-	  }
-  }
-  
+	private void validate(Map<String, Dataset<Row>> dependencies) {
+		switch (dependencies.size()) {
+		case 0:
+			throw new RuntimeException("Distinct deriver requires at least one dependency");
+		case 1:
+			if (stepName == null || stepName.trim().length() == 0) {
+				stepName = dependencies.keySet().toArray(new String[0])[0];
+			} else {
+				if (!dependencies.containsKey(stepName)) {
+					String cause = "Invalid \"step\" configuration: " + stepName + " is not a dependency: "
+							+ dependencies.keySet() + "";
+					throw new RuntimeException(cause);
+				}
+			}
+			break;
+		default:
+			if (stepName == null || stepName.trim().length() == 0)
+				throw new RuntimeException(
+						"Distinct deriver requires a \"step\" configuration when multiple dependencies have been listed: "
+								+ dependencies.keySet() + "");
+			if (!dependencies.containsKey(stepName))
+				throw new RuntimeException("Invalid \"step\" configuration: " + stepName
+						+ " is not listed as dependency: " + dependencies.keySet() + "");
+		}
+	}
+
 }
