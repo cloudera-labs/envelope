@@ -19,17 +19,22 @@ package com.cloudera.labs.envelope.output;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.RowUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import mockit.Deencapsulation;
+import com.google.common.collect.Lists;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -122,6 +127,40 @@ public class TestHiveOutput {
     Map<String, String> optionsMap = Deencapsulation.getField(hiveOutput, "options");
     assertNotNull("Options are null", optionsMap);
     assertEquals("Invalid option", "badabing", optionsMap.get("hive-option"));
+  }
+
+  @Test
+  public void alignColumns() throws Exception {
+    SparkSession spark = Contexts.getSparkSession();
+    String targetTable = "temp_target_table";
+    Map<String, Object> paramMap = new HashMap<>();
+    paramMap.put(HiveOutput.TABLE_CONFIG, targetTable);
+    config = ConfigFactory.parseMap(paramMap);
+    HiveOutput hiveOutput = new HiveOutput();
+    hiveOutput.configure(config);
+
+    StructType targetSchema = RowUtils.structTypeFor(
+        Lists.newArrayList("zip_code", "city", "state", "Fname", "lname"), 
+        Lists.newArrayList("int", "string", "string", "string", "string"));
+    spark.createDataFrame(spark.emptyDataFrame().rdd(), targetSchema)
+         .createOrReplaceTempView(targetTable);
+
+    String stepDef = "SELECT \"foo\" AS fname, \"bar\" AS lname, 18 AS age, 12345 AS ZIP_CODE";
+    Dataset<Row> stepDataframe = spark.sql(stepDef);
+
+    Dataset<Row> alignedDataframe =  hiveOutput.alignColumns(stepDataframe);
+
+    Row alignedData = alignedDataframe.first();
+    String expectedDef = "SELECT 12345 AS zip_code, NULL as city, NULL as state, " +
+                         "\"foo\" AS fname, \"bar\" AS lname";
+    Row expectedData = spark.sql(expectedDef).first();
+
+    assertEquals(expectedData.size(), alignedData.size());
+    for (int i = 0; i < alignedData.length(); i++) {
+      assertEquals(alignedData.get(i), expectedData.get(i));
+    }
+    assertEquals(Arrays.asList(alignedData.schema().fieldNames()), 
+                 Arrays.asList(expectedData.schema().fieldNames()));
   }
 
   @Ignore ("Needs review of Hive temporary folder creation")

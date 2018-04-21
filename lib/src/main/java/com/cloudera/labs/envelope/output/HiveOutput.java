@@ -20,11 +20,16 @@ package com.cloudera.labs.envelope.output;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.functions;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.MutationType;
@@ -32,6 +37,7 @@ import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
+import com.cloudera.labs.envelope.spark.Contexts;
 
 import scala.Tuple2;
 
@@ -41,6 +47,8 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
   public final static String PARTITION_BY_CONFIG = "partition.by";
   public final static String LOCATION_CONFIG = "location";
   public final static String OPTIONS_CONFIG = "options";
+  public final static String ALIGN_COLUMNS_CONFIG = "align.columns";
+  public final static String SPARK_SQL_CASE_SENSITIVE_CONFIG = "spark.sql.caseSensitive";
 
   private Config config;
   private ConfigUtils.OptionMap options;
@@ -77,7 +85,7 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
   public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {    
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      Dataset<Row> mutation = plan._2();
+      Dataset<Row> mutation = (getAlignColumns()) ? alignColumns(plan._2()) : plan._2();
       DataFrameWriter<Row> writer = mutation.write();
 
       if (hasPartitionColumns()) {
@@ -108,6 +116,29 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
     return Sets.newHashSet(MutationType.INSERT, MutationType.OVERWRITE);
   }
 
+  public Dataset<Row> alignColumns(Dataset<Row> input) {
+    Boolean caseSensitive = Contexts.getSparkSession().sparkContext().getConf().
+                            getBoolean(SPARK_SQL_CASE_SENSITIVE_CONFIG, false);
+
+    Set<String> inputCols = new HashSet<String>();
+    for (String col : Arrays.asList(input.schema().fieldNames())) {
+      inputCols.add((caseSensitive) ? col : col.toLowerCase());
+    }
+
+    List<String> tableCols = new ArrayList<String>();
+    for (String col : Contexts.getSparkSession().table(getTableName()).schema().fieldNames()) {
+      tableCols.add((caseSensitive) ? col : col.toLowerCase());
+    }
+
+    List<Column> alignedCols = new ArrayList<Column>();
+    for (String column : tableCols) {
+      alignedCols.add((inputCols.contains(column)) ? functions.col(column) : 
+                                                     functions.lit(null).alias(column));
+    } 
+
+    return input.select(alignedCols.toArray(new Column[alignedCols.size()]));
+  }
+
   private boolean hasPartitionColumns() {
     return config.hasPath(PARTITION_BY_CONFIG);
   }
@@ -123,6 +154,10 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
 
   private String getTableName() {
     return config.getString(TABLE_CONFIG);
+  }
+
+  private boolean getAlignColumns() {
+    return config.hasPath(ALIGN_COLUMNS_CONFIG) && config.getBoolean(ALIGN_COLUMNS_CONFIG);
   }
 
   @Override

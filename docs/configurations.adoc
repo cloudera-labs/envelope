@@ -916,6 +916,9 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |partition.by
 |Optional. The list of Hive table partition names to dynamically partition the write by.
 
+|align.columns
+|If `true` then Envelope will attempt to align the output schema by matching (case-insensitive, unless `spark.sql.caseSensitive` is set) the step's column names with those of the target Hive table.  Step columns without a match in the target table will not be included in the aligned output, and similarly, target Hive table columns not available in the step schema will be NULL.
+
 |options
 |Used to pass additional configuration parameters. The parameters are set as a Map object and passed directly to the Spark DataFrameWriter.
 
