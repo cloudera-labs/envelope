@@ -5,3 +5,4 @@ com.cloudera.labs.envelope.derive.NestDeriver
 com.cloudera.labs.envelope.derive.PassthroughDeriver
 com.cloudera.labs.envelope.derive.PivotDeriver
 com.cloudera.labs.envelope.derive.SQLDeriver
+com.cloudera.labs.envelope.derive.DistinctDeriver
