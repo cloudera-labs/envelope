@@ -377,6 +377,27 @@ Row level rules are automatically wrapped in `DatasetRowRuleWrapper` when used i
 
 The custom rules may also implement the `ProvidesAlias` interface which allows an alias to be used instead of the fully-qualified class name in Envelope config files. The implementation must be placed in a `META-INF/services/com.cloudera.labs.envelope.derive.dq.DatasetRule` or `META-INF/services/com.cloudera.labs.envelope.derive.dq.RowRule` file on the classpath.
 
+=== Distinct
+
+The `distinct` deriver simply returns the distinct rows from its dependency. If there is more than one dependency then configuration parameter `step` must be used to identify which step should `distinct` operation be applied to. This parameter is optional when deriver has only one dependency. 
+
+==== Example Configuration
+
+A step with multiple dependencies that deduplicates rows in `mydata` dataset:
+----
+  ...
+  dedup {
+    dependencies = [some_dependency, mydata, other_dependency, one_more_dependency]
+    deriver {
+      type = distinct
+      step = mydata
+    }
+  }
+  ... 
+----
+
+
+
 == Custom derivers
 
 In cases that Envelope does not provide a deriver that meets the requirements for a particular derivation a custom deriver can be developed and provided instead.
