@@ -42,8 +42,10 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
   private boolean doesAppendRaw;
+  private boolean delimiterRegex;
 
   public static final String DELIMITER_CONFIG_NAME = "delimiter";
+  public static final String DELIMITER_REGEX_CONFIG_NAME = "delimiter-regex";
   public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
   public static final String FIELD_TYPES_CONFIG_NAME = "field.types";
 
@@ -52,7 +54,8 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    
+    delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) && 
+                     config.getBoolean(DELIMITER_REGEX_CONFIG_NAME);
     doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
     if (doesAppendRaw) {
       fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
@@ -66,12 +69,12 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
 
   @Override
   public Iterable<Row> translate(String key, String value) {
-    String[] stringValues = value.split(Pattern.quote(delimiter), fieldNames.size());
+    String[] stringValues = value.split((delimiterRegex) ? 
+                            delimiter : Pattern.quote(delimiter), fieldNames.size());
     values.clear();
 
     for (int valuePos = 0; valuePos < stringValues.length; valuePos++) {
       String fieldValue = stringValues[valuePos];
-      
       if (fieldValue.length() == 0) {
         values.add(null);
       }

@@ -417,8 +417,11 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |delimiter
 |The delimiter that separates the fields of the message.
 
+|delimiter-regex
+|If `true`, the `delimiter` string will be interpreted as a regular expression. Default `false` (interpret as a literal value).
+
 |field.names
-|The list of fields to read from the Avro record.
+|The list of fields to read from the delimited record.
 
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.

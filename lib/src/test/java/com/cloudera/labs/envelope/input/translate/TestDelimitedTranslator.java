@@ -119,4 +119,30 @@ public class TestDelimitedTranslator {
     assertEquals(r2.get(3), "TYPE");
     assertEquals(r2.get(4), null);
   }
+
+  @Test
+  public void testRegexDelimiter() throws Exception {
+    String delimited = "val1 \"val2 ...\" val3 \"val4 val5\"";
+    
+    Config config = ConfigFactory.empty()
+        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("field1", "field2", "field3", "field4")))
+        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("string", "string", "string", "string")))
+        .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, 
+            ConfigValueFactory.fromAnyRef(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
+        .withValue(DelimitedTranslator.DELIMITER_REGEX_CONFIG_NAME, 
+            ConfigValueFactory.fromAnyRef(true));
+    
+    Translator<String, String> t = new DelimitedTranslator();
+    t.configure(config);
+    
+    Row r = t.translate("testkey", delimited).iterator().next();
+    
+    assertEquals(r.length(), 4);
+    assertEquals(r.get(0), "val1");
+    assertEquals(r.get(1), "\"val2 ...\"");
+    assertEquals(r.get(2), "val3");
+    assertEquals(r.get(3), "\"val4 val5\"");
+  }
 }
