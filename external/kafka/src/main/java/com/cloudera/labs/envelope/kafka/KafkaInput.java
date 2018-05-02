@@ -67,6 +67,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   public static final String ENCODING_CONFIG = "encoding";
   public static final String WINDOW_ENABLED_CONFIG = "window.enabled";
   public static final String WINDOW_MILLISECONDS_CONFIG = "window.milliseconds";
+  public static final String WINDOW_SLIDE_MILLISECONDS_CONFIG = "window.slide.milliseconds";
   public static final String OFFSETS_MANAGE_CONFIG = "offsets.manage";
   public static final String OFFSETS_OUTPUT_CONFIG = "offsets.output";
   public static final String GROUP_ID_CONFIG = "group.id";
@@ -147,7 +148,12 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     if (config.hasPath(WINDOW_ENABLED_CONFIG) && config.getBoolean(WINDOW_ENABLED_CONFIG)) {
       int windowDuration = config.getInt(WINDOW_MILLISECONDS_CONFIG);
 
-      dStream = dStream.window(new Duration(windowDuration));
+      if (config.hasPath(WINDOW_SLIDE_MILLISECONDS_CONFIG)) {
+        int slideDuration = config.getInt(WINDOW_SLIDE_MILLISECONDS_CONFIG);
+        dStream = dStream.window(new Duration(windowDuration), new Duration(slideDuration));
+      } else {
+        dStream = dStream.window(new Duration(windowDuration));
+      }
     }
 
     return dStream;

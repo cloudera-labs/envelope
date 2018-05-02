@@ -359,6 +359,9 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |window.milliseconds
 |The duration in milliseconds of the Spark Streaming window for the input.
 
+|window.slide.milliseconds
+|The interval in milliseconds at which the Spark Streaming window operation is performed if using sliding windows.
+
 |offsets.manage
 |If `true` then Envelope will manage the Kafka offsets that have been processed so that application restarts will continue where in the topic that they left off. Default `false`.
 

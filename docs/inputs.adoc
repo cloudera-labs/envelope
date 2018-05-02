@@ -87,7 +87,7 @@ The group ID (`group.id`) is the unique identifier of the input across all execu
 
 The `encoding` determines how Envelope should read the messages from the topic. Use `string` to read the messages as strings and `bytearray` to read the messages as raw binary. The encoding must match the given translator.
 
-To enable Spark Streaming's windowing support, which allows each micro-batch to contain a window of its previous micro-batches, set `window.enable` to `true` and set `window.milliseconds` to the duration of the window.
+To enable Spark Streaming's windowing support, which allows each micro-batch to contain a window of its previous micro-batches, set `window.enable` to `true` and set `window.milliseconds` to the duration of the window. `window.slide.milliseconds` allows you to specify a sliding window.
 
 #### Offset management
 
