@@ -54,7 +54,7 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) && 
+    delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) &&
                      config.getBoolean(DELIMITER_REGEX_CONFIG_NAME);
     doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
     if (doesAppendRaw) {
@@ -69,40 +69,45 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
 
   @Override
   public Iterable<Row> translate(String key, String value) {
-    String[] stringValues = value.split((delimiterRegex) ? 
+    int numFields = (doesAppendRaw) ? (fieldNames.size() - 2) : fieldNames.size();
+    String[] stringValues = value.split((delimiterRegex) ?
                             delimiter : Pattern.quote(delimiter), fieldNames.size());
     values.clear();
 
-    for (int valuePos = 0; valuePos < stringValues.length; valuePos++) {
-      String fieldValue = stringValues[valuePos];
-      if (fieldValue.length() == 0) {
+    for (int valuePos = 0; valuePos < numFields; valuePos++) {
+      if (valuePos < stringValues.length) {
+        String fieldValue = stringValues[valuePos];
+     
+        if (fieldValue.length() == 0) {
+          values.add(null);
+        }
+        else {
+          switch (fieldTypes.get(valuePos)) {
+            case "string":
+              values.add(fieldValue);
+              break;
+            case "float":
+              values.add(Float.parseFloat(fieldValue));
+              break;
+            case "double":
+              values.add(Double.parseDouble(fieldValue));
+              break;
+            case "int":
+              values.add(Integer.parseInt(fieldValue));
+              break;
+            case "long":
+              values.add(Long.parseLong(fieldValue));
+              break;
+            case "boolean":
+              values.add(Boolean.parseBoolean(fieldValue));
+              break;
+            default:
+              throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
+          }
+        }
+      } else {
         values.add(null);
       }
-      else {
-        switch (fieldTypes.get(valuePos)) {
-          case "string":
-            values.add(fieldValue);
-            break;
-          case "float":
-            values.add(Float.parseFloat(fieldValue));
-            break;
-          case "double":
-            values.add(Double.parseDouble(fieldValue));
-            break;
-          case "int":
-            values.add(Integer.parseInt(fieldValue));
-            break;
-          case "long":
-            values.add(Long.parseLong(fieldValue));
-            break;
-          case "boolean":
-            values.add(Boolean.parseBoolean(fieldValue));
-            break;
-          default:
-            throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
-        }
-      }
-
     }
 
     Row row = RowFactory.create(values.toArray());

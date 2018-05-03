@@ -121,6 +121,30 @@ public class TestDelimitedTranslator {
   }
 
   @Test
+  public void testNullMissing() throws Exception {
+    String delimited = "val1 2 34";
+    
+    Config config = ConfigFactory.empty()
+        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("field1", "field2", "field3", "field4", "field5")))
+        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("string", "int", "long", "int", "boolean")))
+        .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef(" "));
+    
+    Translator<String, String> t = new DelimitedTranslator();
+    t.configure(config);
+    
+    Row r = t.translate("testkey", delimited).iterator().next();
+    
+    assertEquals(r.length(), 5);
+    assertEquals(r.get(0), "val1");
+    assertEquals(r.get(1), 2);
+    assertEquals(r.get(2), 34L);
+    assertEquals(r.get(3), null);
+    assertEquals(r.get(4), null);
+  }
+
+  @Test
   public void testRegexDelimiter() throws Exception {
     String delimited = "val1 \"val2 ...\" val3 \"val4 val5\"";
     
