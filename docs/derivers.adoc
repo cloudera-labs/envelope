@@ -222,6 +222,11 @@ The equivalent SQL statement would read:
 SELECT Left.* FROM Left LEFT ANTI JOIN Right USING (field1, field2)
 ----
 
+=== Select
+
+The `select` deriver includes or excludes required set of columns in output from an input dependency. Deriver takes either a `include-fields` list of columns that needs to be included in output or a `exclude-fields` list of columns that needs to be removed from output. Both `include-fields` and `exclude-fields` list of column cannot be provided at the same time. 
+
+
 === Data Quality
 
 The `dq` deriver can be used to perform data quality checks on a dataset using a set of user-defined
