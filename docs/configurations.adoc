@@ -964,6 +964,9 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |serializer.field.delimiter
 |Required if `serializer.type` is `delimited`. The delimiter string to separate the field values with.
 
+|serializer.use.for.null
+|Used if `serializer.type` is `delimited`. The string to use if a field value is null. Defaults to the empty string.
+
 |serializer.schema.path
 |Required if `serializer.type` is `avro`. The path to the Avro schema file for serializing the rows, e.g. `hdfs:/your/path/to/schema.avsc`.
 

@@ -29,6 +29,8 @@ import com.google.common.base.Joiner;
 public class DelimitedSerializer implements Serializer<Row> {
 
   public static final String FIELD_DELIMITER_CONFIG_NAME = "field.delimiter";
+  public static final String USE_FOR_NULL_CONFIG_NAME = "use.for.null";
+  public static final String USE_FOR_NULL_DEFAULT_VALUE = "";
   
   private StringSerializer stringSerializer;
   private Joiner joiner;
@@ -38,7 +40,13 @@ public class DelimitedSerializer implements Serializer<Row> {
     stringSerializer = new StringSerializer();
     
     String delimiter = configs.get(FIELD_DELIMITER_CONFIG_NAME).toString();
-    joiner = Joiner.on(delimiter);
+    String useForNull;
+    if (configs.containsKey(USE_FOR_NULL_CONFIG_NAME)) {
+      useForNull = configs.get(USE_FOR_NULL_CONFIG_NAME).toString();
+    } else {
+      useForNull = USE_FOR_NULL_DEFAULT_VALUE;
+    }
+    joiner = Joiner.on(delimiter).useForNull(useForNull);
   }
 
   @Override

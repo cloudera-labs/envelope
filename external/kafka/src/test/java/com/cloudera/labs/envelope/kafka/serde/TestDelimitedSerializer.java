@@ -50,5 +50,42 @@ public class TestDelimitedSerializer {
     
     assertEquals(new String(serialized), "hello||1||false");
   }
+
+  @Test
+  public void testDelimitedWithNullSerialization() {
+    StructType structType = RowUtils.structTypeFor(
+        Lists.newArrayList("field1", "field2", "field3"),
+        Lists.newArrayList("string", "int", "boolean"));
+    Row row = new RowWithSchema(structType, null, 1, false);
+
+    Map<String, String> configs = Maps.newHashMap();
+    configs.put(DelimitedSerializer.FIELD_DELIMITER_CONFIG_NAME, "||");
+    configs.put(DelimitedSerializer.USE_FOR_NULL_CONFIG_NAME, "BANG");
+    Serializer<Row> serializer = new DelimitedSerializer();
+    serializer.configure(configs, false);
+
+    byte[] serialized = serializer.serialize("test", row);
+    serializer.close();
+
+    assertEquals(new String(serialized), "BANG||1||false");
+  }
+
+  @Test
+  public void testDelimitedWithDefaultNullSerialization() {
+    StructType structType = RowUtils.structTypeFor(
+        Lists.newArrayList("field1", "field2", "field3"),
+        Lists.newArrayList("string", "int", "boolean"));
+    Row row = new RowWithSchema(structType, null, 1, false);
+
+    Map<String, String> configs = Maps.newHashMap();
+    configs.put(DelimitedSerializer.FIELD_DELIMITER_CONFIG_NAME, "||");
+    Serializer<Row> serializer = new DelimitedSerializer();
+    serializer.configure(configs, false);
+
+    byte[] serialized = serializer.serialize("test", row);
+    serializer.close();
+
+    assertEquals(new String(serialized), DelimitedSerializer.USE_FOR_NULL_DEFAULT_VALUE + "||1||false");
+  }
   
 }
