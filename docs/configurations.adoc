@@ -1,5 +1,6 @@
 = Configuration specification
 :toc: left
+:toclevels: 5
 
 This page specifies the configurations available in Envelope.
 
@@ -219,8 +220,15 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |coalesce.partitions
 |The number of DataFrame partitions to coalesce the input by. This configuration is only valid for batch inputs. In Spark this will run `DataFrame#coalesce`. If this configuration is not provided then Envelope will not coalesce the input.
 
-||
-|`_filesystem_`|
+|===
+
+==== Filesystem
+
+Input `type` = `filesystem`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |path
 |The Hadoop filesystem path to read as the input. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
@@ -317,14 +325,28 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |translator
 |(input-format, text) The Translator class to use to convert the InputFormat's Key/Value pairs into Dataset Rows. See <<Translators>> for details. This is optional for `text`, and if it is omitted then the input will read the whole lines into a single string field named `value`.
 
-||
-|`_hive_`|
+|===
+
+==== Hive
+
+Input `type` = `hive`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |table
 |The Hive metastore table name (including database prefix, if required) to read as the input.
 
-||
-|`_jdbc_`|
+|===
+
+==== JDBC
+
+Input `type` = `jdbc`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |url
 |The JDBC URL for the remote database.
@@ -338,8 +360,15 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |password
 |The password to use to connect to the remote database.
 
-||
-|`_kafka_`|
+|===
+
+==== Kafka
+
+Input `type` = `kafka`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |brokers
 |The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
@@ -371,8 +400,15 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 |parameter.*
 |Used to pass configurations directly to Kafka. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the Kafka direct stream.
 
-||
-|`_kudu_`|
+|===
+
+==== Kudu
+
+Input `type` = `kudu`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |connection
 |The hosts and ports of the masters of the Kudu cluster, in the form "host1:port1,host2:port2,...,hostn:portn".
@@ -393,8 +429,15 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |type
 |The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
 
-||
-|`_avro_`|
+|===
+
+==== Avro
+
+Translator `type` = `avro`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |schema.literal
 |The Avro JSON read schema string for the values being translated. This configuration and `schema.path` are mutually exclusive.
@@ -411,8 +454,15 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |append.raw.value.field.name
 |The name of the appended field that contains the raw input value. Default `_value`.
 
-||
-|`_delimited_`|
+|===
+
+==== Delimited
+
+Translator `type` = `delimited`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |delimiter
 |The delimiter that separates the fields of the message.
@@ -435,8 +485,15 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |append.raw.value.field.name
 |The name of the appended field that contains the raw input value. Default `_value`.
 
-||
-|`_kvp_`|
+|===
+
+==== KVP
+
+Translator `type` = `kvp`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |delimiter.kvp
 |The delimiter that separates the key-value pairs of the message.
@@ -459,8 +516,15 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |append.raw.value.field.name
 |The name of the appended field that contains the raw input value. Default `_value`.
 
-||
-|`_morphline_`|
+|===
+
+==== Morphline
+
+Translator `type` = `morphline`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |encoding.key
 |The character set of the incoming key and is stored in the Record field, `_attachment_key_charset`. This must match the encoding of the Envelope input. The key value is stored in the field, `_attachment_key`.
@@ -517,8 +581,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |coalesce.partitions
 |The number of DataFrame partitions to coalesce the deriver results by. In Spark this will run `DataFrame#coalesce`. If this configuration is not provided then Envelope will not coalesce the deriver results.
 
-||
-|`_morphline_`|
+|===
+
+==== Morphline
+
+Deriver `type` = `morphline`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |step.name
 |The name of the dependency step whose records will be run through the Morphline pipeline.
@@ -535,8 +606,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
-||
-|`_nest_`|
+|===
+
+==== Nest
+
+Deriver `type` = `nest`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |nest.into
 |The name of the step whose records will be appended with the nesting of `nest.from`. Must be a dependency of the encapsulating step.
@@ -550,12 +628,21 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |nested.field.name
 |The name to be given to the appended field that contains the nested records.
 
-||
-|`_passthrough_`
-|_This deriver has no custom configurations_.
+|===
 
-||
-|`_sql_`|
+==== Passthrough
+
+Deriver `type` = `passthrough`.
+
+_This deriver has no custom configurations_.
+
+==== SQL
+
+Deriver `type` = `sql`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |query.literal
 |The literal query to be submitted to Spark SQL. Previously submitted steps can be referenced as tables by their step name.
@@ -563,8 +650,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |query.file
 |The path to the file containing the query to be submitted to Spark SQL.
 
-||
-|`_pivot_`|
+|===
+
+==== Pivot
+
+Deriver `type` = `pivot`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |step.name
 |The name of the dependency step that will be pivoted.
@@ -584,8 +678,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |pivot.keys.list
 |The list of keys to pivot into additional columns. Only used if `pivot.keys.source` is set to `static`.
 
-||
-|`_exclude_`|
+|===
+
+==== Exclude
+
+Deriver `type` = `exclude`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |compare
 |The name of the dataset whose records will be compared and if matched, then excluded from the output of the current step.
@@ -596,8 +697,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |field.names
 |The name of the fields used to match between the two datasets. The field names must be identical in name and type. A row is excluded if all of the fields are equal between the datasets.
 
-||
-|`_select_`|
+|===
+
+==== Select
+
+Deriver `type` = `select`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |step
 |The name of the dependency step from which to select columns as output of the current step.
@@ -608,8 +716,15 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |exclude-fields
 |List of column names that are not required in output for the current step. If input dataset schema doesn't contain column name(s) then deriver will generate a runtime error. Both include-fields and exclude-fields cannot be provided at same time.
 
-||
-|`_dq_`|
+|===
+
+==== Data quality
+
+Deriver `type` = `dq`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |scope
 |Required. The scope at which to apply the DQ deriver. `dataset` or `row`.
@@ -687,8 +802,15 @@ two fields: `name` and `type`. Valid types are: `string`, `byte`, `short`, `int`
 other fields not specified in the `fields` configuration. Those that are specified must match both name and type. Defaults
 to false.
 
-||
-|`_distinct_`|
+|===
+
+==== Distinct
+
+Deriver `type` = `distinct`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |step
 |The name of the dataset whose records will be deduplicated. Only required if there is more than one dependency, otherwise optional. 
@@ -719,8 +841,15 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |type
 |The planner type to be used. Envelope provides `append`, `bitemporal`, `delete`, `eventtimeupsert`, `history`, `overwrite`, `upsert`. To use a custom planner, specify the fully qualified name or alias of the `Planner` implementation class.
 
-||
-|`_append_`|
+|===
+
+==== Append
+
+Planner `type` = `append`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |fields.key
 |The list of field names that make up the natural key of the record. Only required if `uuid.key.enabled` is true.
@@ -731,8 +860,15 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |uuid.key.enabled
 |If `true` then Envelope will overwrite the first key field with a UUID string.
 
-||
-|`_bitemporal_`|
+|===
+
+==== Bitemporal
+
+Planner `type` = `bitemporal`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |fields.key
 |The list of field names that make up the natural key of the record.
@@ -773,8 +909,15 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |time.model.system
 |The time model for interpreting the system time of the existing records, and for generating the system time effective from/to values.
 
-||
-|`_eventtimeupsert_`|
+|===
+
+==== Event time upsert
+
+Planner `type` = `eventtimeupsert`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |fields.key
 |The list of field names that make up the natural key of the record.
@@ -794,8 +937,15 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |time.model.last.updated
 |The time model for generating the last updated values.
 
-||
-|`_history_`|
+|===
+
+==== History
+
+Planner `type` = `history`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |fields.key
 |The list of field names that make up the natural key of the record.
@@ -833,14 +983,27 @@ Planner configurations belong to data steps, and have the `steps.[stepname].plan
 |time.model.last.updated
 |The time model for generating the last updated values.
 
-||
-|`_overwrite_`|_This deriver has no custom configurations_.
+|===
 
-||
-|`_delete_`|_This deriver has no custom configurations_.
+==== Overwrite
 
-||
-|`_upsert_`|
+Planner `type` = `overwrite`.
+
+_This deriver has no custom configurations_.
+
+==== Delete
+
+Planner `type` = `delete`.
+
+_This deriver has no custom configurations_.
+
+==== Upsert
+
+Planner `type` = `upsert`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |field.last.updated
 |The field name for the last updated attribute. If specified then Envelope will add this field and populate it with the system timestamp string.
@@ -858,28 +1021,51 @@ Time model configurations belong to planners, and have the `steps.[stepname].pla
 |type
 |The time model type to be used. Envelope provides `longmillis`, `nanoswithseqnum`, `stringdate`, `stringdatetime`, `timestamp`. To use a custom output, specify the fully qualified name or alias of the `TimeModel` implementation class.
 
-||
-|`_longmillis_`|_This time model has no custom configurations_.
+|===
 
-||
-|`_nanoswithseqnum_`|_This time model has no custom configurations_.
+===== Long milliseconds
 
-||
-|`_stringdate_`|
+Time model `type` = `longmillis`.
+
+_This time model has no custom configurations_.
+
+===== Nanoseconds with sequence number
+
+Time model `type` = `nanoswithseqnum`.
+
+_This time model has no custom configurations_.
+
+===== String date
+
+Time model `type` = `stringdate`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |format
 |The link:http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java SimpleDateFormat] format of the date values. Default "yyyy-MM-dd".
 
-||
-|`_stringdatetime_`|
+|===
+
+===== String date-time
+
+Time model `type` = `stringdatetime`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |format
 |The link:http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java SimpleDateFormat] format of the date-time values. Default "yyyy-MM-dd HH:mm:ss.SSS".
 
-||
-|`_timestamp_`|_This time model has no custom configurations_.
-
 |===
+
+===== Timestamp
+
+Time model `type` = `timestamp`.
+
+_This time model has no custom configurations_.
 
 === Outputs
 
@@ -892,8 +1078,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |type
 |The output type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`, `log`, `hbase`, `zookeeper`. To use a custom output, specify the fully qualified name or alias of the `Output` implementation class.
 
-||
-|`_filesystem_`|
+|===
+
+==== Filesystem
+
+Output `type` = `filesystem`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |path
 |The Hadoop filesystem path to write as the output. Typically a Cloudera EDH will point to HDFS by default. Use `s3a://` for Amazon S3.
@@ -934,8 +1127,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |timestamp-format
 |(csv) Spark option `timestampFormat`; sets the string that indicates a timestamp format. Custom date formats follow the formats at `java.text.SimpleDateFormat`. This applies to `timestamp` type. (default `yyyy-MM-dd'T'HH:mm:ss.SSSZZ`)
 
-||
-|`_hive_`|
+|===
+
+==== Hive
+
+Output `type` = `hive`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |table
 |The name of the Hive table targeted for write. The name can include the database prefix, e.g. `example.SampleTableName`. If the table does not exist, Envelope will create a Parquet-formatted table. If the table has been created outside of Envelope, the format is determined and managed by Hive itself, i.e. any Hive SerDe.
@@ -952,8 +1152,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |options
 |Used to pass additional configuration parameters. The parameters are set as a Map object and passed directly to the Spark DataFrameWriter.
 
-||
-|`_jdbc_`|
+|===
+
+==== JDBC
+
+Output `type` = `jdbc`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |url
 |The JDBC URL for the remote database.
@@ -967,8 +1174,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |password
 |The password to use to connect to the remote database.
 
-||
-|`_kafka_`|
+|===
+
+==== Kafka
+
+Output `type` = `kafka`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |brokers
 |Required. The hosts and ports of the brokers of the Kafka cluster, in the form `host1:port1,host2:port2,...,hostn:portn`.
@@ -991,9 +1205,17 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |parameter.*
 |Used to pass configurations directly to the Kafka client. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the KafkaProducer.
 
-||
-|`_kudu_`
-|Note: For Envelope pipelines with a Kudu output, and with security enabled, and in YARN cluster mode, and where using a random planner (such as history or bitemporal), then you must add `--conf spark.kudu.master.addresses=yourkuduconnectionstringhere` to your `spark2-submit` call.
+|===
+
+==== Kudu
+
+Output `type` = `kudu`.
+
+Note: For Envelope pipelines with a Kudu output, and with security enabled, and in YARN cluster mode, and where using a random planner (such as history or bitemporal), then you must add `--conf spark.kudu.master.addresses=yourkuduconnectionstringhere` to your `spark2-submit` call.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |connection
 |The hosts and ports of the masters of the Kudu cluster, in the form "host1:port1,host2:port2,...,hostn:portn".
@@ -1007,8 +1229,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |ignore.missing.columns
 |Ignore writing columns that do not exist in the Kudu schema (default: false)
 
-||
-|`_log_`|
+|===
+
+==== Log
+
+Output `type` = `log`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |delimiter
 |The delimiter string to separate the field values with. Default is `,`.
@@ -1016,8 +1245,15 @@ Output configurations belong to data steps, and have the `steps.[stepname].outpu
 |level
 |The log4j level for the written logs. Default is `INFO`.
 
-||
-|`_hbase_`|
+|===
+
+==== HBase
+
+Output `type` = `hbase`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |table.name
 |Required. The table for the output, specified in the format `[namespace:]name`, e.g. `envelopetest:test`.
@@ -1091,8 +1327,15 @@ mapping.columns {
 |Optional. An integer value with default 1000. The number of mutations to accumulate before making an HBase RPC call. For larger
 cell sizes you may want to reduce this number or increase the relevant client buffers.
 
-||
-|`_zookeeper_`|
+|===
+
+==== ZooKeeper
+
+Output `type` = `zookeeper`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |connection
 |The ZooKeeper quorum to connect to, in the format `host1:port1,...`.
@@ -1131,15 +1374,29 @@ The general configuration parameters for repetitions are:
 |Optional. To prevent steps being reloaded too frequently, this represents the minimum interval between repetitions. The value is interpreted as a
 Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw milliseconds, e.g. `3600000`. Defaults to 60s.
 
-||
-|`_scheduled_`|
+|===
+
+==== Scheduled
+
+Repetition `type` = `scheduled`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |every
 |Required. The interval between repetitions. The value is interpreted as a
 Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw milliseconds, e.g. `3600000`. No default.
 
-||
-|`_flagfile_`|
+|===
+
+==== Flag file
+
+Repetition `type` = `flagfile`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
 
 |file
 |Required. The path to the flag file. Accepts a fully qualified URI (recommended). If not qualified with a filesystem scheme,
