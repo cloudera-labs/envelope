@@ -492,6 +492,12 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |error.on.empty
 |If `true` then all input rows must map to an output row, otherwise an error will be thrown. Default `true`.
 
+||
+|`_rawstring_`|_This translator has no custom configurations_.
+
+||
+|`_rawbinary_`|_This translator has no custom configurations_.
+
 |===
 
 === Derivers
