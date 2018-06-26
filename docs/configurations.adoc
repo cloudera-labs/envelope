@@ -653,6 +653,9 @@ Deriver `type` = `sql`.
 |query.file
 |The path to the file containing the query to be submitted to Spark SQL.
 
+|parameter.parameter_name (or any parameter.*)
+|All references to '${parameter_name}' within the query string will be replaced with the value of this configuration. For more information see the link:derivers.adoc[derivers guide].
+
 |===
 
 ==== Pivot
@@ -714,7 +717,7 @@ Deriver `type` = `select`.
 |The name of the dependency step from which to select columns as output of the current step.
 
 |include-fields
-|List of column names that are required in output for the current step. If input dataset schema doesn't contain column name(s) then deriver will generate a runtime error. 
+|List of column names that are required in output for the current step. If input dataset schema doesn't contain column name(s) then deriver will generate a runtime error.
 
 |exclude-fields
 |List of column names that are not required in output for the current step. If input dataset schema doesn't contain column name(s) then deriver will generate a runtime error. Both include-fields and exclude-fields cannot be provided at same time.

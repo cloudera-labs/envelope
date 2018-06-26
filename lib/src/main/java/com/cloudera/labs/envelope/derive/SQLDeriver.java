@@ -20,6 +20,7 @@ package com.cloudera.labs.envelope.derive;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -40,6 +41,7 @@ public class SQLDeriver implements Deriver, ProvidesAlias {
 
   public static final String QUERY_LITERAL_CONFIG_NAME = "query.literal";
   public static final String QUERY_FILE_CONFIG_NAME = "query.file";
+  public static final String PARAMETER_PREFIX_CONFIG_NAME = "parameter";
 
   private Config config;
 
@@ -62,6 +64,10 @@ public class SQLDeriver implements Deriver, ProvidesAlias {
       throw new RuntimeException("SQL deriver query not provided. Use '" + QUERY_LITERAL_CONFIG_NAME + "' or '" + QUERY_FILE_CONFIG_NAME + "'.");
     }
 
+    if (config.hasPath(PARAMETER_PREFIX_CONFIG_NAME)) {
+      query = resolveParameters(query, config.getConfig(PARAMETER_PREFIX_CONFIG_NAME));
+    }
+
     Dataset<Row> derived = Contexts.getSparkSession().sql(query);
 
     return derived;
@@ -78,6 +84,16 @@ public class SQLDeriver implements Deriver, ProvidesAlias {
     stream.close();
 
     return contents;
+  }
+
+  private String resolveParameters(String query, Config parameterConfig) {
+    for (String parameterName : parameterConfig.root().keySet()) {
+      String parameterValue = parameterConfig.getAnyRef(parameterName).toString();
+
+      query = query.replaceAll(Pattern.quote("${" + parameterName + "}"), parameterValue);
+    }
+
+    return query;
   }
 
   @Override

@@ -1,5 +1,5 @@
 = Derivers Guide
-::toc:: left
+:toc: left
 
 Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
 
@@ -23,21 +23,35 @@ A query can be provided to a SQL deriver instance in one of two ways:
 
 Note that the SQL deriver should only be used to run SELECT queries that derive new data. To write data outside of the pipeline the step should additionally specify a planner and output.
 
+==== Parameters
+
+Query parameters can be populated at runtime in two different ways:
+
+- If the query is provided using `query.literal` then an environment variable reference can be concatenated with the query string.
+- If the query is provided using either `query.file` or `query.literal` then a parameter string encoded in the form `${parameter_name}` that is embedded within the query string itself will be replaced by the value of the deriver configuration `parameter.parameter_name`.
+
+==== Example
+
 For example, where `traffic` was a previous step in the pipeline:
 ----
 deriver {
   type = sql
   query.literal = """
     SELECT
-      UNIX_TIMESTAMP() * 1000 as_of_time
-    , ROUND(AVG(number_of_vehicles), 2) avg_num_veh
+      UNIX_TIMESTAMP() * ${timestamp_multiplier} as_of_time
+    , ROUND(AVG(number_of_vehicles), """${DECIMAL_PLACES}""") avg_num_veh
     , MIN(number_of_vehicles) min_num_veh
     , MAX(number_of_vehicles) max_num_veh
     , MIN(measurement_time) first_meas_time
     , MAX(measurement_time) last_meas_time
     FROM traffic"""
+  parameter {
+    timestamp_multiplier = ${TIMESTAMP_MULTIPLIER}
+  }
 }
 ----
+
+This shows both methods for populating parameters. In this example `${DECIMAL_PLACES}` and `${TIMESTAMP_MULTIPLIER}` are both populated from the environment variables `DECIMAL_PLACES` and `TIMESTAMP_MULTIPLIER`. The concatentation usage of `${DECIMAL_PLACES}` does not require the `parameter` section entry, but only applies if the query is provided by `query.literal`. The embedded usage of `${timestamp_multiplier}` does require the parameter section entry, but will also apply if the query is provided by `query.file`.
 
 === Morphline
 
