@@ -17,17 +17,6 @@
  */
 package com.cloudera.labs.envelope.kafka;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.kafka.serde.AvroSerializer;
 import com.cloudera.labs.envelope.kafka.serde.DelimitedSerializer;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
@@ -37,8 +26,20 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
-
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.spark.api.java.function.VoidFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class KafkaOutput implements BulkOutput, ProvidesAlias {
 
@@ -48,7 +49,9 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias {
   public static final String SERIALIZER_TYPE_CONFIG_NAME = SERIALIZER_CONFIG_PREFIX + "type";
   public static final String DELIMITED_SERIALIZER = "delimited";
   public static final String AVRO_SERIALIZER = "avro";
-  
+
+  private static Logger LOG = LoggerFactory.getLogger(KafkaOutput.class);
+
   private Config config;
 
   @Override
@@ -63,7 +66,7 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias {
       Dataset<Row> mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
-        mutationDF.javaRDD().foreach(new SendRowToKafkaFunction(config));
+        mutationDF.javaRDD().foreachPartition(new SendRowToKafkaFunction(config));
       }
     }
   }
@@ -79,7 +82,7 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias {
   }
 
   @SuppressWarnings("serial")
-  private static class SendRowToKafkaFunction implements VoidFunction<Row> {
+  private static class SendRowToKafkaFunction implements VoidFunction<Iterator<Row>> {
     private KafkaProducer<Row, Row> producer;
     private String topic;
     private String brokers;
@@ -118,15 +121,27 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias {
       KafkaCommon.addCustomParams(producerProps, config);
       
       producer = new KafkaProducer<>(producerProps, keySerializer, valueSerializer);
+
+      LOG.info("Producer initialized");
     }
 
     @Override
-    public void call(Row mutation) throws Exception {
-      if (producer == null) {
-        initialize();
+    public void call(Iterator<Row> mutations) throws Exception {
+      initialize();
+
+      while (mutations.hasNext()) {
+        Row mutation = mutations.next();
+
+        producer.send(new ProducerRecord<Row, Row>(topic, mutation));
       }
-      
-      producer.send(new ProducerRecord<Row, Row>(topic, mutation));
+      LOG.info("Finished sending messages");
+
+      // This will block until all mutations have been acked by Kafka
+      producer.flush();
+      LOG.info("Producer flushed");
+
+      producer.close();
+      LOG.info("Producer closed");
     }
     
     private Map<String, ?> getSerializerConfiguration() {
