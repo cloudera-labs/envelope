@@ -84,18 +84,20 @@ public class Runner {
 
     initializeThreadPool(config);
 
-    if (StepUtils.hasStreamingStep(steps)) {
-      LOG.debug("Streaming step(s) identified");
+    try {
+      if (StepUtils.hasStreamingStep(steps)) {
+        LOG.debug("Streaming step(s) identified");
 
-      runStreaming(steps);
-    }
-    else {
-      LOG.debug("No streaming steps identified");
+        runStreaming(steps);
+      } else {
+        LOG.debug("No streaming steps identified");
 
-      runBatch(steps);
+        runBatch(steps);
+      }
     }
-    
-    shutdownThreadPool();
+    finally {
+      shutdownThreadPool();
+    }
 
     LOG.debug("Runner finished");
   }
