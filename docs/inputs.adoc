@@ -81,17 +81,17 @@ spark2-submit --master yarn --deploy-mode cluster --files application.conf --con
 
 ### Kafka
 
-The `kafka` input reads a Kafka topic as a stream. Envelope will use the given `translator` to turn each micro-batch into a DataFrame. The Kafka brokers are specified with `brokers` and the topic with `topic`.
+The `kafka` input reads one or more Kafka topics as a stream. Envelope will use the given `translator` to turn each micro-batch into a DataFrame. The Kafka brokers are specified with `brokers` and the list of topics with `topics`.
 
 The group ID (`group.id`) is the unique identifier of the input across all executions of the pipeline. It is used to identify multiple runs of the same pipeline even when other pipelines might be reading from the same topic. If no group ID is provided a random UUID will be generated for each pipeline execution, and so the progress across runs will not be maintained.
 
-The `encoding` determines how Envelope should read the messages from the topic. Use `string` to read the messages as strings and `bytearray` to read the messages as raw binary. The encoding must match the given translator.
+The `encoding` determines how Envelope should read the messages from the topics. Use `string` to read the messages as strings and `bytearray` to read the messages as raw binary. The encoding must match the given translator.
 
 To enable Spark Streaming's windowing support, which allows each micro-batch to contain a window of its previous micro-batches, set `window.enable` to `true` and set `window.milliseconds` to the duration of the window. `window.slide.milliseconds` allows you to specify a sliding window.
 
 #### Offset management
 
-The Kafka input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topic between runs.
+The Kafka input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topics between runs.
 
 To enable the offset management set `offset.manage` to `true`, and then provide an output to store the offsets in with `offset.output`.
 
@@ -103,7 +103,7 @@ The output must be support random upsert mutations (i.e. implement `RandomOutput
 input {
   type = kafka
   brokers = "broker1:9092,..."
-  topic = topicname
+  topics = [topicname1,topicname2]
   group.id = applicationname
   encoding = string
   translator {

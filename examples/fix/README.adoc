@@ -310,7 +310,7 @@ fix {
   input {
     type = kafka
     brokers = "REPLACEME:9092"
-    topics = fix
+    topics = [fix]
     encoding = string
     translator {
       type = kvp
