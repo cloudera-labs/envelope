@@ -11,7 +11,7 @@ the results to S3 in Parquet might have the following configuration.
 ----
 application {
   name = Envelope configuration example
-  executors = 3
+  executor.instances = 3
   executor.memory = 4G
 }
 steps {
@@ -61,7 +61,7 @@ Application-level configurations have the `application.` prefix.
 |name
 |The application name in YARN.
 
-|executors
+|executor.instances
 |The number of executors to be requested for the application. If not specified then Spark dynamic allocation will be used.
 
 |executor.cores

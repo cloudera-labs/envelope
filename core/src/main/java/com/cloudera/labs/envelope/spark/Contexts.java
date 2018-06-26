@@ -47,9 +47,7 @@ public enum Contexts {
 
   public static final String APPLICATION_NAME_PROPERTY = "application.name";
   public static final String BATCH_MILLISECONDS_PROPERTY = "application.batch.milliseconds";
-  public static final String CHECKPOINT_ENABLED_PROPERTY = "application.checkpoint.enabled";
-  public static final String CHECKPOINT_PATH_PROPERTY = "application.checkpoint.path";
-  public static final String NUM_EXECUTORS_PROPERTY = "application.executors";
+  public static final String NUM_EXECUTORS_PROPERTY = "application.executor.instances";
   public static final String NUM_EXECUTOR_CORES_PROPERTY = "application.executor.cores";
   public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
