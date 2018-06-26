@@ -205,22 +205,31 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
           }
           arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
           plannedForKey.add(arriving);
-
-          plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
-          if (hasCurrentFlagField()) {
-            plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
-          }
-          if (!PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
-            plan = PlannerUtils.setMutationType(plan, MutationType.UPDATE);
-          }
-          plannedForKey.set(position, plan);
           
-          plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
-          plan = systemEffectiveFromTimeModel.setCurrentSystemTime(plan);
-          plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
-          plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
-          plannedForKey.add(plan);
-
+          // We only need to supersede a record that has already become visible in the output.
+          // We know this has happened if the record in the plan has an earlier system
+          // time than the current system time.
+          if (PlannerUtils.before(systemEffectiveFromTimeModel, plan, currentSystemTimeRow)) {
+            plan = systemEffectiveToTimeModel.setPrecedingSystemTime(plan);
+            if (hasCurrentFlagField()) {
+              plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
+            }
+            if (!PlannerUtils.getMutationType(plan).equals(MutationType.INSERT)) {
+              plan = PlannerUtils.setMutationType(plan, MutationType.UPDATE);
+            }
+            plannedForKey.set(position, plan);
+            
+            plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
+            plan = systemEffectiveFromTimeModel.setCurrentSystemTime(plan);
+            plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
+            plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
+            plannedForKey.add(plan);
+          }
+          else {
+            plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
+            plannedForKey.set(position, plan);
+          }
+          
           break;
         }
         // The input record is arriving after all existing records of the same key. This

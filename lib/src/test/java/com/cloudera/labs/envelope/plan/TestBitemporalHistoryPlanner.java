@@ -432,6 +432,41 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(0), "systemend"), 253402214400000L);
     assertEquals(RowUtils.get(planned.get(0), "currentflag"), CURRENT_FLAG_DEFAULT_NO);
   }
+  
+  @Test
+  public void testTwoArrivingOneExistingWhereArrivingEarlierThanExisting() {
+    p = new BitemporalHistoryPlanner();
+    p.configure(config);
+
+    existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 50L));
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world!", 75L));
+
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
+
+    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+
+    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
+    assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
+    assertEquals(RowUtils.get(planned.get(0), "eventend"), 74L);
+    assertTrue(systemStart0 >= preplanSystemTime);
+    assertTrue(systemStart0 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(0), "systemend"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(0), "currentflag"), CURRENT_FLAG_DEFAULT_NO);
+    
+    assertEquals(RowUtils.get(planned.get(1), "value"), "world!");
+    assertEquals(RowUtils.get(planned.get(1), "eventstart"), 75L);
+    assertEquals(RowUtils.get(planned.get(1), "eventend"), 99L);
+    assertTrue(systemStart0 >= preplanSystemTime);
+    assertTrue(systemStart0 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(1), "systemend"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(1), "currentflag"), CURRENT_FLAG_DEFAULT_NO);
+  }
 
   @Test
   public void testOneArrivingOneExistingWhereArrivingEarlierThanExistingNoCurrentFlag() {
