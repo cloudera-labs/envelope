@@ -196,6 +196,7 @@ public class Runner {
 
           Set<Step> batchSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
           batchSteps.add(streamingStep);
+          batchSteps.addAll(independentNonStreamingSteps);
           runBatch(batchSteps);
 
           StepUtils.resetDataSteps(batchSteps);
@@ -239,9 +240,13 @@ public class Runner {
           if (!batchStep.hasSubmitted()) {
             LOG.debug("Step has not been submitted");
 
+            // Get the dependency steps that exist so far. Steps can be created
+            // during runtime by refactor steps, so this set may be smaller than
+            // the full list of dependencies the step needs to wait for.
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
 
-            if (StepUtils.allStepsSubmitted(dependencies)) {
+            if (dependencies.size() == step.getDependencyNames().size() &&
+                StepUtils.allStepsSubmitted(dependencies)) {
               LOG.debug("Step dependencies have been submitted, running step off main thread");
               // Batch steps are run off the main thread so that if they contain outputs they will
               // not block the parallel execution of independent steps.
