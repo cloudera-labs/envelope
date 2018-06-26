@@ -65,6 +65,9 @@ Application-level configurations have the `application.` prefix.
 |executor.instances
 |The number of executors to be requested for the application. If not specified then Spark dynamic allocation will be used.
 
+|executor.initial.instances
+|The initial number of executors to be requested for the application when using Spark dynamic allocation. This can help more quickly warm up the job's resources without using a static allocation.
+
 |executor.cores
 |The number of cores per executor. Default is 1.
 

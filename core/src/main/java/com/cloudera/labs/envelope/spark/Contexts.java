@@ -47,6 +47,7 @@ public enum Contexts {
 
   public static final String APPLICATION_NAME_PROPERTY = "application.name";
   public static final String BATCH_MILLISECONDS_PROPERTY = "application.batch.milliseconds";
+  public static final String NUM_INITIAL_EXECUTORS_PROPERTY = "application.executor.initial.instances";
   public static final String NUM_EXECUTORS_PROPERTY = "application.executor.instances";
   public static final String NUM_EXECUTOR_CORES_PROPERTY = "application.executor.cores";
   public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
@@ -174,6 +175,9 @@ public enum Contexts {
     if (config.hasPath(NUM_EXECUTORS_PROPERTY)) {
       sparkConf.set("spark.executor.instances", config.getString(NUM_EXECUTORS_PROPERTY));
     }
+    if (config.hasPath(NUM_INITIAL_EXECUTORS_PROPERTY)) {
+      sparkConf.set("spark.dynamicAllocation.initialExecutors", config.getString(NUM_INITIAL_EXECUTORS_PROPERTY));
+    }
     if (config.hasPath(NUM_EXECUTOR_CORES_PROPERTY)) {
       sparkConf.set("spark.executor.cores", config.getString(NUM_EXECUTOR_CORES_PROPERTY));
     }
@@ -220,7 +224,7 @@ public enum Contexts {
       return SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT;
     }
   }
-  
+
   public enum ExecutionMode {
     BATCH,
     STREAMING,
