@@ -75,7 +75,6 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   private Config config;
   private String groupID;
   private String topic;
-  private OffsetRange[] offsetRanges;
   private RandomOutput offsetsOutput;
 
   @Override
@@ -191,15 +190,10 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   }
 
   @Override
-  public void stageProgress(JavaRDD<?> batch) {
+  public void recordProgress(JavaRDD<?> batch) throws Exception {
     if (doesRecordProgress()) {
-      offsetRanges = ((HasOffsetRanges)batch.rdd()).offsetRanges();
-    }
-  }
+      OffsetRange[] offsetRanges = ((HasOffsetRanges)batch.rdd()).offsetRanges();
 
-  @Override
-  public void recordProgress() throws Exception {
-    if (doesRecordProgress()) {
       // Plan the offset ranges as an upsert 
       List<Row> planned = Lists.newArrayList();
       StructType schema = DataTypes.createStructType(Lists.newArrayList(

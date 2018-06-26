@@ -21,8 +21,6 @@ import org.apache.spark.api.java.JavaRDD;
 
 public interface CanRecordProgress {
 
-  void stageProgress(JavaRDD<?> batch);
-  
-  void recordProgress() throws Exception;
+  void recordProgress(JavaRDD<?> batch) throws Exception;
   
 }

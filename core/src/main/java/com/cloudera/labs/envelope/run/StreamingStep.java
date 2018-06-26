@@ -64,16 +64,9 @@ public class StreamingStep extends DataStep implements CanRecordProgress {
   }
   
   @Override
-  public void stageProgress(JavaRDD<?> batch) {
-    if (((StreamInput)getInput()) instanceof CanRecordProgress) {
-      ((CanRecordProgress)getInput()).stageProgress(batch);
-    }
-  }
-  
-  @Override
-  public void recordProgress() throws Exception {
-    if (((StreamInput)getInput()) instanceof CanRecordProgress) {
-      ((CanRecordProgress)getInput()).recordProgress();
+  public void recordProgress(JavaRDD<?> batch) throws Exception {
+    if (getInput() instanceof CanRecordProgress) {
+      ((CanRecordProgress)getInput()).recordProgress(batch);
     }
   }
   

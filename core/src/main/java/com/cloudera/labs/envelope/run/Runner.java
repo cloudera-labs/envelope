@@ -187,9 +187,7 @@ public class Runner {
           StepUtils.resetRepeatingSteps(steps);
           // This will run any batch steps (and dependents) that are not submitted
           runBatch(independentNonStreamingSteps);
-          
-          streamingStep.stageProgress(raw);
-          
+
           JavaRDD<Row> translated = streamingStep.translate(raw);
           
           Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(translated, streamSchema);
@@ -202,7 +200,7 @@ public class Runner {
 
           StepUtils.resetDataSteps(batchSteps);
           
-          streamingStep.recordProgress();
+          streamingStep.recordProgress(raw);
         }
       });
 
