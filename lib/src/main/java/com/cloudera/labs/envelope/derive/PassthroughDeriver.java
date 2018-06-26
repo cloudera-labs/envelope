@@ -41,7 +41,13 @@ public class PassthroughDeriver implements Deriver, ProvidesAlias {
 
     Dataset<Row> unioned = dependencyIterator.next();
     while (dependencyIterator.hasNext()) {
-      unioned = unioned.union(dependencyIterator.next());
+      Dataset<Row> next = dependencyIterator.next();
+
+      if (!unioned.schema().equals(next.schema())) {
+        throw new RuntimeException("All dependencies of the passthrough deriver must have the same schema");
+      }
+
+      unioned = unioned.union(next);
     }
 
     return unioned;
