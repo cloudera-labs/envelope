@@ -194,12 +194,13 @@ public class Runner {
           streamingStep.setData(batchDF);
           streamingStep.setSubmitted(true);
 
-          Set<Step> batchSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
+          Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
+          Set<Step> batchSteps = Sets.newHashSet(dependentSteps);
           batchSteps.add(streamingStep);
           batchSteps.addAll(independentNonStreamingSteps);
           runBatch(batchSteps);
 
-          StepUtils.resetDataSteps(batchSteps);
+          StepUtils.resetSteps(dependentSteps);
           
           streamingStep.recordProgress(raw);
         }

@@ -134,15 +134,9 @@ public class StepUtils {
     return sb.toString();
   }
 
-  public static void resetDataSteps(Set<Step> steps) {
+  public static void resetSteps(Set<Step> steps) {
     for (Step step : steps) {
-      if (step instanceof DataStep) {
-        if (step.hasSubmitted()) {
-          LOG.debug("Resetting step [{}]", step.getName());
-          ((DataStep) step).clearCache();
-          step.setSubmitted(false);
-        }
-      }
+      step.reset();
     }
   }
 
@@ -155,7 +149,7 @@ public class StepUtils {
       resetSteps.add(step);
       resetSteps.addAll(getAllDependentSteps(step, allSteps));
     }
-    resetDataSteps(resetSteps);
+    resetSteps(resetSteps);
   }
   
   public static Set<DataStep> getDataSteps(Set<Step> steps) {

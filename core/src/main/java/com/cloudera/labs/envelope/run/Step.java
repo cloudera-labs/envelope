@@ -78,6 +78,11 @@ public abstract class Step {
   }
   
   public abstract Step copy();
+
+  // Can be overridden if the step holds additional state
+  public void reset() {
+    setSubmitted(false);
+  }
   
   @Override
   public String toString() {

@@ -220,7 +220,7 @@ public class TestStepUtils {
   }
 
   @Test
-  public void testResetDataSteps() throws Exception {
+  public void testResetSteps() throws Exception {
     DataStep step1 = new BatchStep("step1", ConfigFactory.empty());
     DataStep step2 = new BatchStep("step2", ConfigFactory.empty());
     DataStep step3 = new BatchStep("step3", ConfigFactory.empty());
@@ -235,7 +235,7 @@ public class TestStepUtils {
     
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
-    StepUtils.resetDataSteps(steps);
+    StepUtils.resetSteps(steps);
     
     assertFalse(step1.hasSubmitted());
     assertFalse(step2.hasSubmitted());

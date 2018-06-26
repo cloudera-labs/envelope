@@ -125,6 +125,14 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       writeOutput();
     }
   }
+
+  @Override
+  public void reset() {
+    if (hasSubmitted()) {
+      clearCache();
+      setSubmitted(false);
+    }
+  }
   
   protected Input getInput() {
     if (input == null) {
