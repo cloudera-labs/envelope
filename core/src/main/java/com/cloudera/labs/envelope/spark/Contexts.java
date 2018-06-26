@@ -53,6 +53,8 @@ public enum Contexts {
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
   public static final String SPARK_SESSION_ENABLE_HIVE_SUPPORT = "application.hive.enabled";
 
+  public static final boolean SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT = true;
+
   private Config config = ConfigFactory.empty();
   private ExecutionMode mode = ExecutionMode.UNIT_TEST;
   
@@ -130,8 +132,7 @@ public enum Contexts {
     }
 
     SparkSession.Builder sparkSessionBuilder = SparkSession.builder();
-    if (!INSTANCE.config.hasPath(SPARK_SESSION_ENABLE_HIVE_SUPPORT) ||
-        INSTANCE.config.getBoolean(SPARK_SESSION_ENABLE_HIVE_SUPPORT)) {
+    if (enablesHiveSupport()) {
       sparkSessionBuilder.enableHiveSupport();
     }
 
@@ -188,6 +189,11 @@ public enum Contexts {
       sparkConf.set("spark.sql.shuffle.partitions", shufflePartitions.toString());
     }
 
+    if (enablesHiveSupport()) {
+      // Allow dynamic partitioning into Hive tables without providing any static partition values
+      sparkConf.set("hive.exec.dynamic.partition.mode", "nonstrict");
+    }
+
     // Allow the user to provide any Spark configuration and we will just pass it on. These can
     // also override any of the configurations above.
     if (config.hasPath(SPARK_CONF_PROPERTY_PREFIX)) {
@@ -205,6 +211,14 @@ public enum Contexts {
     sparkConf.set("envelope.configuration", envelopeConf);
 
     return sparkConf;
+  }
+
+  private static boolean enablesHiveSupport() {
+    if (INSTANCE.config.hasPath(SPARK_SESSION_ENABLE_HIVE_SUPPORT)) {
+      return INSTANCE.config.getBoolean(SPARK_SESSION_ENABLE_HIVE_SUPPORT);
+    } else {
+      return SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT;
+    }
   }
   
   public enum ExecutionMode {
