@@ -1,10 +1,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <name>artifactory.mediamath.com-snapshots</name>
+      <url>http://artifactory.mediamath.com/artifactory/libs-snapshot-local</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <groupId>com.cloudera.labs.envelope</groupId>
   <artifactId>envelope-parent</artifactId>
-  <version>0.5.0</version>
+  <version>0.5.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   
   <inceptionYear>2016</inceptionYear>
@@ -42,11 +50,11 @@
   
   <properties>
     <scala.version>2.11</scala.version>
-    <spark.version>2.2.0.cloudera2</spark.version>
+    <spark.version>2.3.0.cloudera2</spark.version>
     <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
-    <kudu.version>1.4.0-cdh5.12.0</kudu.version>
+    <kudu.version>1.6.0-cdh5.14.0</kudu.version>
     <hbase.version>1.2.0-cdh5.7.0</hbase.version>
-    <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
+    <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
     <kite-sdk.version>1.0.0-cdh5.7.0</kite-sdk.version>
     <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
     <guava.version>16.0.1</guava.version>
