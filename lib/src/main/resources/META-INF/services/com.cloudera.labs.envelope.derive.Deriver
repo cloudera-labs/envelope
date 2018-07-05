@@ -7,3 +7,4 @@ com.cloudera.labs.envelope.derive.PivotDeriver
 com.cloudera.labs.envelope.derive.SQLDeriver
 com.cloudera.labs.envelope.derive.DistinctDeriver
 com.cloudera.labs.envelope.derive.SelectDeriver
+com.cloudera.labs.envelope.derive.InListDeriver

@@ -415,6 +415,45 @@ A step with multiple dependencies that deduplicates rows in `mydata` dataset:
   ... 
 ----
 
+=== In-List
+
+The `in-list` deriver filters rows in a dataset by comparing one of the columns to a list of values. 
+This list could be statically defined as a literal in the deriver's configuration, or it could be dynamically generated from one of the steps in `dependencies`. 
+In the latter case, the resulting list should not be larger than a "sensible" limit (currently 1000 elements). 
+ 
+==== Example Configurations
+
+Step that selects from the `airports` dataset only the rows that have `airport_code` for Newark (EWR) and Pittsburgh (PIT):
+----
+  ...
+  literal_list {
+    dependencies = [airports, other_dependencies, ...]
+    deriver {
+      type = in-list
+      step = airports
+      field = airport_code
+      values = [EWR, PIT]
+    }
+  }
+  ... 
+----
+
+Another example where `in-list` deriver filters data from the `airports` dataset, but this time the rows are selected by `airport_code` via look-up in another dataset:
+----
+  ...
+  reference_list {
+    dependencies = [airports, delays_top_ten, other_dependencies, ...]
+    deriver {
+      type = in-list
+      step = airports
+      field = airport_code
+      values-step = delays_top_ten
+      values-field = airport_fk
+    }
+  }
+  ... 
+
+----
 
 
 == Custom derivers
