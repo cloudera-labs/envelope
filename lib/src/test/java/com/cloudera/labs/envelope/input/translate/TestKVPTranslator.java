@@ -32,22 +32,20 @@ public class TestKVPTranslator {
 
   @Test
   public void testTranslation() throws Exception {
-    String kvps = "field3=100.9---field6=---field7=true---field2=-99.8---field1=hello---field4=-1---field5=120";
+    String kvps = "field3=100.9---field6=---field7=true---field2=-99.8---field1=hello---field4=-1---field5=120---field8=2018-03-03T20:23:33.897+04:00";
     
     Config config = ConfigFactory.empty()
         .withValue(KVPTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7")))
+            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
         .withValue(KVPTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean")))
+            Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean", "timestamp")))
         .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
         .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="));
     
     Translator<String, String> t = new KVPTranslator();
     t.configure(config);
-    
     Row r = t.translate(null, kvps).iterator().next();
-    
-    assertEquals(r.length(), 7);
+    assertEquals(r.length(), 8);
     assertEquals(r.get(0), "hello");
     assertEquals(r.get(1), -99.8f);
     assertEquals(r.get(2), 100.9d);
@@ -55,6 +53,7 @@ public class TestKVPTranslator {
     assertEquals(r.get(4), 120L);
     assertEquals(r.get(5), null);
     assertEquals(r.get(6), true);
+    assertEquals(r.get(7).toString(), "2018-03-03 11:23:33.897");
   }
   
   @Test
@@ -72,9 +71,7 @@ public class TestKVPTranslator {
     
     Translator<String, String> t = new KVPTranslator();
     t.configure(config);
-    
     Row r = t.translate("testkey", kvps).iterator().next();
-    
     assertEquals(r.length(), 9);
     assertEquals(r.get(0), "hello");
     assertEquals(r.get(1), -99.8f);
@@ -86,5 +83,33 @@ public class TestKVPTranslator {
     assertEquals(r.get(7), "testkey");
     assertEquals(r.get(8), kvps);
   }
-  
+
+  @Test
+  public void testTimestampFormats() throws Exception {
+    String kvps = "field3=100.9---field6=---field7=true---field2=2018-09-09 23:49:29.00000---field1=2018-09-19 23:49:29.92284---field4=-1---field5=120---field8=2018-09-19 00:00:00";
+
+    Config config = ConfigFactory.empty()
+        .withValue(KVPTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
+        .withValue(KVPTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("timestamp", "timestamp", "double", "int", "long", "int", "boolean", "timestamp")))
+        .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
+        .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="))
+        .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));
+
+    Translator<String, String> t = new KVPTranslator();
+    t.configure(config);
+    Row r = t.translate(null, kvps).iterator().next();
+    assertEquals(r.length(), 8);
+    // Timestamp microseconds to miliseconds truncation
+    assertEquals(r.get(0).toString(), "2018-09-19 23:49:29.922");
+    assertEquals(r.get(1).toString(), "2018-09-09 23:49:29.0");
+    assertEquals(r.get(2), 100.9d);
+    assertEquals(r.get(3), -1);
+    assertEquals(r.get(4), 120L);
+    assertEquals(r.get(5), null);
+    assertEquals(r.get(6), true);
+    assertEquals(r.get(7).toString(), "2018-09-19 00:00:00.0");
+  }
 }

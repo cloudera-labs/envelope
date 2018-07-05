@@ -17,10 +17,12 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
@@ -39,6 +41,7 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
   private String delimiter;
   private List<String> fieldNames;
   private List<String> fieldTypes;
+  private DateTimeParser dateTimeParser;
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
   private boolean doesAppendRaw;
@@ -48,9 +51,10 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
   public static final String DELIMITER_REGEX_CONFIG_NAME = "delimiter-regex";
   public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
   public static final String FIELD_TYPES_CONFIG_NAME = "field.types";
+  public static final String TIMESTAMP_FORMAT_CONFIG_NAME = "timestamp.formats";
 
   @Override
-  public void configure(Config config) {
+  public void configure(Config config) throws IllegalArgumentException {
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
@@ -63,7 +67,13 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
       fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
       fieldTypes.add("string");
     }
-    
+
+    dateTimeParser = new DateTimeParser();
+    if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
+      dateTimeParser.configureFormat(
+          config.getStringList(TIMESTAMP_FORMAT_CONFIG_NAME));
+    }
+
     schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
@@ -101,8 +111,13 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
             case "boolean":
               values.add(Boolean.parseBoolean(fieldValue));
               break;
+            case "timestamp":
+              values.add(new Timestamp(
+                  dateTimeParser.parse(fieldValue).getMillis()));
+              break;
             default:
-              throw new RuntimeException("Unsupported delimited field type: " + fieldTypes.get(valuePos));
+              throw new RuntimeException("Unsupported delimited field type: "
+                  + fieldTypes.get(valuePos));
           }
         }
       } else {

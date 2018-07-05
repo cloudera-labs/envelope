@@ -479,6 +479,9 @@ Translator `type` = `delimited`.
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
+|timestamp.formats
+|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered valid. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
+
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
 
@@ -509,6 +512,9 @@ Translator `type` = `kvp`.
 
 |field.types
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+
+|timestamp.formats
+|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered valid. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.

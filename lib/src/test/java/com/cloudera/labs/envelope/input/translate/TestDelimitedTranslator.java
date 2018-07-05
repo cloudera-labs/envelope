@@ -34,21 +34,19 @@ public class TestDelimitedTranslator {
 
   @Test
   public void testTranslation() throws Exception {
-    String delimited = "hello%$-100.1%$1000.5%$99%$888%$%$false";
+    String delimited = "hello%$-100.1%$1000.5%$99%$888%$%$false%$2018-03-03T20:23:33.897+04:00";
     
     Config config = ConfigFactory.empty()
         .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7")))
+            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
         .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean")))
+            Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean", "timestamp")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"));
     
     Translator<String, String> t = new DelimitedTranslator();
     t.configure(config);
-    
     Row r = t.translate(null, delimited).iterator().next();
-    
-    assertEquals(r.length(), 7);
+    assertEquals(r.length(), 8);
     assertEquals(r.get(0), "hello");
     assertEquals(r.get(1), -100.1f);
     assertEquals(r.get(2), 1000.5d);
@@ -56,6 +54,7 @@ public class TestDelimitedTranslator {
     assertEquals(r.get(4), 888L);
     assertEquals(r.get(5), null);
     assertEquals(r.get(6), false);
+    assertEquals(r.get(7).toString(), "2018-03-03 11:23:33.897");
   }
   
   @Test
@@ -72,9 +71,7 @@ public class TestDelimitedTranslator {
     
     Translator<String, String> t = new DelimitedTranslator();
     t.configure(config);
-    
     Row r = t.translate("testkey", delimited).iterator().next();
-    
     assertEquals(r.length(), 9);
     assertEquals(r.get(0), "hello");
     assertEquals(r.get(1), -100.1f);
@@ -133,9 +130,7 @@ public class TestDelimitedTranslator {
     
     Translator<String, String> t = new DelimitedTranslator();
     t.configure(config);
-    
     Row r = t.translate("testkey", delimited).iterator().next();
-    
     assertEquals(r.length(), 5);
     assertEquals(r.get(0), "val1");
     assertEquals(r.get(1), 2);
@@ -160,13 +155,40 @@ public class TestDelimitedTranslator {
     
     Translator<String, String> t = new DelimitedTranslator();
     t.configure(config);
-    
     Row r = t.translate("testkey", delimited).iterator().next();
-    
     assertEquals(r.length(), 4);
     assertEquals(r.get(0), "val1");
     assertEquals(r.get(1), "\"val2 ...\"");
     assertEquals(r.get(2), "val3");
     assertEquals(r.get(3), "\"val4 val5\"");
+  }
+
+  @Test
+  public void testTimestampFormats() throws Exception {
+    String delimited = "2018-09-19 23:49:29.92284%$2018-09-09 23:49:29.00000%$1000.5%$99%$888%$%$false%$2018-09-19 00:00:00";
+
+    Config config = ConfigFactory.empty()
+        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
+        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("timestamp", "timestamp", "double", "int", "long", "int", "boolean", "timestamp")))
+        .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"))
+        .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
+            Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));
+
+    Translator<String, String> t = new DelimitedTranslator();
+    t.configure(config);
+    Row r = t.translate(null, delimited).iterator().next();
+    assertEquals(r.length(), 8);
+    // Timestamp microseconds to miliseconds truncation
+    assertEquals(r.get(0).toString(), "2018-09-19 23:49:29.922");
+    // No truncation
+    assertEquals(r.get(1).toString(), "2018-09-09 23:49:29.0");
+    assertEquals(r.get(2), 1000.5d);
+    assertEquals(r.get(3), 99);
+    assertEquals(r.get(4), 888L);
+    assertEquals(r.get(5), null);
+    assertEquals(r.get(6), false);
+    assertEquals(r.get(7).toString(), "2018-09-19 00:00:00.0");
   }
 }
