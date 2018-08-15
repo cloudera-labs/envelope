@@ -17,14 +17,16 @@
  */
 package com.cloudera.labs.envelope.utils;
 
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -42,9 +44,6 @@ import org.kitesdk.morphline.base.Notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-
 /**
  *
  */
@@ -52,6 +51,10 @@ public class MorphlineUtils {
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineUtils.class);
   private static final ThreadLocal<Map<String, Pipeline>> pipelineCache = new ThreadLocal<>();
   private static final String SEPARATOR = "#";
+
+  static {
+    pipelineCache.set(new HashMap<String, Pipeline>());
+  }
 
   /**
    *
@@ -254,7 +257,11 @@ public class MorphlineUtils {
     private static final Logger LOG = LoggerFactory.getLogger(Collector.class);
     private static final int ESTIMATED_SIZE = 1;
 
-    private List<Record> collected = Lists.newArrayListWithExpectedSize(ESTIMATED_SIZE);
+    private final List<Record> collected;
+
+    public Collector() {
+      this.collected = new ArrayList<>(ESTIMATED_SIZE);
+    }
 
     public List<Record> getRecords() {
       return this.collected;
@@ -300,11 +307,11 @@ public class MorphlineUtils {
       this.collector = collector;
     }
 
-    public Command getMorphline() {
+    Command getMorphline() {
       return this.morphline;
     }
 
-    public Collector getCollector() {
+    Collector getCollector() {
       return this.collector;
     }
 

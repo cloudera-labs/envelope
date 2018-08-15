@@ -467,7 +467,7 @@ public class TestMorphlineTranslator {
     new Expectations() {{
       config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
       config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "default";
+      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "multi-record";
       config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("foo");
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int");
 
