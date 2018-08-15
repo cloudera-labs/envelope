@@ -27,7 +27,9 @@ import java.util.Properties;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
@@ -132,4 +134,46 @@ public class TestContexts {
     Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
     Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
   }
+
+  @Test
+  public void testDriverMemoryClusterMode() {
+    Properties props = new Properties();
+    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+        Contexts.SPARK_DEPLOY_MODE_CLUSTER);
+    props.setProperty(Contexts.DRIVER_MEMORY_PROPERTY, "2G");
+    Config config = ConfigFactory.parseProperties(props);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
+    SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
+    assertEquals(sparkConf.get(Contexts.SPARK_DRIVER_MEMORY_PROPERTY), "2G");
+  }
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
+
+  @Test
+  public void testDriverMemoryClientMode() {
+    Properties props = new Properties();
+    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+        Contexts.SPARK_DEPLOY_MODE_CLIENT);
+    props.setProperty(Contexts.DRIVER_MEMORY_PROPERTY, "2G");
+    Config config = ConfigFactory.parseProperties(props);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("Driver memory can not be set");
+    Contexts.getSparkSession().sparkContext().getConf();
+  }
+
+  @Test
+  public void testAppDriverMemoryClientMode() {
+    Properties props = new Properties();
+    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+        Contexts.SPARK_DEPLOY_MODE_CLIENT);
+    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DRIVER_MEMORY_PROPERTY, "2G");
+    Config config = ConfigFactory.parseProperties(props);
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("Driver memory can not be set");
+    Contexts.getSparkSession().sparkContext().getConf();
+  }
+  
 }

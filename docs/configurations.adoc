@@ -86,6 +86,9 @@ Application-level configurations have the `application.` prefix.
 |hive.enabled
 |Enables hive support. Default is true. Must be enabled before reading and writing data stored in Apache Hive. Setting the value to false when Hive integration is not required avoids the associated overhead.
 
+|driver.memory
+|The amount of memory allocated for a Spark driver. Please note that this configuration is only applicable when application is deployed in _cluster_ mode, and will cause an exception if deployment mode is _client_. To set driver memory for the applications running in client mode, use Spark's command line argument _--driver-memory_.
+
 |===
 
 == Steps

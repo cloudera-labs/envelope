@@ -36,8 +36,8 @@ import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
 
 /**
- * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts,
- * and have them instantiated automatically if they have not already been created.
+ * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts, and have them
+ * instantiated automatically if they have not already been created.
  */
 public enum Contexts {
 
@@ -53,31 +53,36 @@ public enum Contexts {
   public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
   public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
   public static final String SPARK_SESSION_ENABLE_HIVE_SUPPORT = "application.hive.enabled";
+  public static final String DRIVER_MEMORY_PROPERTY = "application.driver.memory";
+  public static final String SPARK_DRIVER_MEMORY_PROPERTY = "spark.driver.memory";
+  public static final String SPARK_DEPLOY_MODE_PROPERTY = "spark.submit.deployMode";
+  public static final String SPARK_DEPLOY_MODE_CLIENT = "client";
+  public static final String SPARK_DEPLOY_MODE_CLUSTER = "cluster";
 
   public static final boolean SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT = true;
 
   private Config config = ConfigFactory.empty();
   private ExecutionMode mode = ExecutionMode.UNIT_TEST;
-  
+
   private SparkSession ss;
   private JavaStreamingContext jsc;
-  
+
   public static synchronized SparkSession getSparkSession() {
     if (INSTANCE.ss == null) {
       initializeBatchJob();
     }
-    
+
     return INSTANCE.ss;
   }
-  
+
   public static synchronized JavaStreamingContext getJavaStreamingContext() {
     if (INSTANCE.jsc == null) {
       initializeStreamingJob();
     }
-    
+
     return INSTANCE.jsc;
   }
-  
+
   public static synchronized void closeSparkSession() {
     closeSparkSession(false);
   }
@@ -115,14 +120,15 @@ public enum Contexts {
     int batchMilliseconds = INSTANCE.config.getInt(BATCH_MILLISECONDS_PROPERTY);
     final Duration batchDuration = Durations.milliseconds(batchMilliseconds);
 
-    JavaStreamingContext jsc = new JavaStreamingContext(new JavaSparkContext(getSparkSession().sparkContext()), batchDuration);
-    
+    JavaStreamingContext jsc = new JavaStreamingContext(new JavaSparkContext(getSparkSession().sparkContext()),
+        batchDuration);
+
     INSTANCE.jsc = jsc;
   }
 
   private static void initializeBatchJob() {
     SparkConf sparkConf = getSparkConfiguration(INSTANCE.config, INSTANCE.mode);
-    
+
     if (!sparkConf.contains("spark.master")) {
       LOG.warn("Spark master not provided, instead using local mode");
       sparkConf.setMaster("local[*]");
@@ -142,7 +148,7 @@ public enum Contexts {
 
   private static synchronized SparkConf getSparkConfiguration(Config config, ExecutionMode mode) {
     SparkConf sparkConf = new SparkConf();
-    
+
     if (config.hasPath(APPLICATION_NAME_PROPERTY)) {
       String applicationName = config.getString(APPLICATION_NAME_PROPERTY);
       sparkConf.setAppName(applicationName);
@@ -165,8 +171,7 @@ public enum Contexts {
       // Override the caching of KafkaConsumers which has been shown to be problematic with multi-core executors
       // (see SPARK-19185)
       sparkConf.set("spark.streaming.kafka.consumer.cache.enabled", "false");
-    }
-    else if (mode.equals(ExecutionMode.UNIT_TEST)) {
+    } else if (mode.equals(ExecutionMode.UNIT_TEST)) {
       sparkConf.set("spark.sql.catalogImplementation", "in-memory");
       sparkConf.set("spark.sql.shuffle.partitions", "1");
       sparkConf.set("spark.sql.warehouse.dir", "target/spark-warehouse");
@@ -198,6 +203,10 @@ public enum Contexts {
       sparkConf.set("hive.exec.dynamic.partition.mode", "nonstrict");
     }
 
+    if (config.hasPath(DRIVER_MEMORY_PROPERTY)) {
+      sparkConf.set(SPARK_DRIVER_MEMORY_PROPERTY, config.getString(DRIVER_MEMORY_PROPERTY));
+    }
+
     // Allow the user to provide any Spark configuration and we will just pass it on. These can
     // also override any of the configurations above.
     if (config.hasPath(SPARK_CONF_PROPERTY_PREFIX)) {
@@ -210,7 +219,16 @@ public enum Contexts {
         }
       }
     }
-    
+
+    if ((!sparkConf.contains(SPARK_DEPLOY_MODE_PROPERTY)
+        || sparkConf.get(SPARK_DEPLOY_MODE_PROPERTY).equalsIgnoreCase(SPARK_DEPLOY_MODE_CLIENT))
+        && (config.hasPath(DRIVER_MEMORY_PROPERTY)
+            || config.hasPath(SPARK_CONF_PROPERTY_PREFIX + "." + SPARK_DRIVER_MEMORY_PROPERTY))) {
+      throw new RuntimeException(
+          "Driver memory can not be set in configuration file when application is running in client mode. "
+          + "Instead, use Spark's --driver-memory command line argument.");
+    }
+
     String envelopeConf = config.root().render(ConfigRenderOptions.concise());
     sparkConf.set("envelope.configuration", envelopeConf);
 
@@ -226,9 +244,7 @@ public enum Contexts {
   }
 
   public enum ExecutionMode {
-    BATCH,
-    STREAMING,
-    UNIT_TEST
+    BATCH, STREAMING, UNIT_TEST
   }
 
 }
