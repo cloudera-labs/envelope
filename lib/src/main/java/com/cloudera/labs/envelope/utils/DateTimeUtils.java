@@ -36,12 +36,12 @@ public class DateTimeUtils {
    * When patterns are not supplied, uses generic ISO datetime parser
    * as described in {@link org.joda.time.format.ISODateTimeFormat}
    * <p>
+   * When patterns are supplied, for performance sensitive processing,
+   * list patterns in order of probability of occurrence.
    * To supply patterns, use Joda pattern syntax as described here:
+   * @see <a href="https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html">Joda DateTimeFormat</a>
    *
    * @throws IllegalArgumentException
-   * @see <a href="https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html">Joda DateTimeFormat</a>
-   * For performance sensitive processing, list patterns in order
-   * of probability of occurrence.
    *
    * TODO: Migrate to JDK 8 Time API upon JDK 8 migration.
    */

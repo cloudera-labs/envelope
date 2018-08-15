@@ -21,12 +21,13 @@ import static org.junit.Assert.assertEquals;
 
 import com.clearspring.analytics.util.Lists;
 import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 public class TestDateTimeUtils {
-
   @Test
   public void testParserDefaultISOFormat() {
     DateTimeParser parser = new DateTimeParser();
@@ -39,8 +40,8 @@ public class TestDateTimeUtils {
     DateTimeParser parser = new DateTimeParser();
     parser.configureFormat(Lists.newArrayList(
         Arrays.asList("yyyy-MM-dd HH:mm:ss.SSSSS")));
-    assertEquals(parser.parse("2018-09-19 23:49:29.92284").getMillis(),
-        1537415369922L);
+    assertEquals(new LocalDateTime(parser.parse("2018-09-19 23:49:29.92284")).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T23:49:29.922Z");
   }
 
   @Test
@@ -50,14 +51,14 @@ public class TestDateTimeUtils {
         Arrays.asList("yyyy-MM-dd HH:mm:ss.SSSSS",
             "yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss",
             "dd")));
-    assertEquals(parser.parse("2018-09-19 23:49:29.92284").getMillis(),
-        1537415369922L);
-    assertEquals(parser.parse("2018-09-19 23:49:29").getMillis(),
-        1537415369000L);
-    assertEquals(parser.parse("2018-07-25").getMillis(),
-        1532491200000L);
-    assertEquals(parser.parse("08").getMillis(),
-        947307600000L);
+    assertEquals(new LocalDateTime(parser.parse("2018-09-19 23:49:29.92284")).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T23:49:29.922Z");
+    assertEquals(new LocalDateTime(parser.parse("2018-09-19 23:49:29")).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T23:49:29.000Z");
+    assertEquals(new LocalDateTime(parser.parse("2018-07-25")).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-07-25T00:00:00.000Z");
+    assertEquals(new LocalDateTime(parser.parse("08")).
+        toDateTime(DateTimeZone.UTC).toString(), "2000-01-08T00:00:00.000Z");
   }
 
   @Test(expected = IllegalArgumentException.class)

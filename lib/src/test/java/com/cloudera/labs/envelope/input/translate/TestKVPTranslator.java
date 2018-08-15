@@ -20,6 +20,8 @@ package com.cloudera.labs.envelope.input.translate;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.spark.sql.Row;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
 import org.junit.Test;
 
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
@@ -28,8 +30,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-public class TestKVPTranslator {
+import java.sql.Timestamp;
 
+public class TestKVPTranslator {
   @Test
   public void testTranslation() throws Exception {
     String kvps = "field3=100.9---field6=---field7=true---field2=-99.8---field1=hello---field4=-1---field5=120---field8=2018-03-03T20:23:33.897+04:00";
@@ -53,7 +56,7 @@ public class TestKVPTranslator {
     assertEquals(r.get(4), 120L);
     assertEquals(r.get(5), null);
     assertEquals(r.get(6), true);
-    assertEquals(r.get(7).toString(), "2018-03-03 11:23:33.897");
+    assertEquals(((Timestamp)r.get(7)).getTime(), 1520094213897L);
   }
   
   @Test
@@ -103,13 +106,16 @@ public class TestKVPTranslator {
     Row r = t.translate(null, kvps).iterator().next();
     assertEquals(r.length(), 8);
     // Timestamp microseconds to miliseconds truncation
-    assertEquals(r.get(0).toString(), "2018-09-19 23:49:29.922");
-    assertEquals(r.get(1).toString(), "2018-09-09 23:49:29.0");
+    assertEquals(new LocalDateTime(r.get(0)).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T23:49:29.922Z");
+    assertEquals(new LocalDateTime(r.get(1)).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-09T23:49:29.000Z");
     assertEquals(r.get(2), 100.9d);
     assertEquals(r.get(3), -1);
     assertEquals(r.get(4), 120L);
     assertEquals(r.get(5), null);
     assertEquals(r.get(6), true);
-    assertEquals(r.get(7).toString(), "2018-09-19 00:00:00.0");
+    assertEquals(new LocalDateTime(r.get(7)).
+        toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T00:00:00.000Z");
   }
 }
