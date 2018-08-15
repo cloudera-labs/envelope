@@ -49,8 +49,10 @@
     <kite-sdk.version>1.0.0-cdh5.7.0</kite-sdk.version>
     <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
     <guava.version>16.0.1</guava.version>
+    <protobuf.version>3.6.0</protobuf.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
-    <junit.version>4.10</junit.version>
+    <junit.version>4.12</junit.version>
+    <hamcrest.version>2.0.0.0</hamcrest.version>
     <jmockit.version>1.22</jmockit.version>
     <h2.version>1.4.193</h2.version>
     <curator.version>2.12.0</curator.version>
@@ -94,6 +96,12 @@
       <artifactId>spark-hive_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-all</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
@@ -116,6 +124,12 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-junit</artifactId>
+      <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

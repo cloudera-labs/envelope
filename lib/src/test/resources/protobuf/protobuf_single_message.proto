@@ -1,0 +1,81 @@
+// All datatypes, including nested types, with a single top-level message
+
+// To compile, run within the test resources directory:
+// protoc --descriptor_set_out=protobuf_single_message.desc --java_out=../../java protobuf_single_message.proto
+syntax = "proto3";
+
+package com.cloudera.labs.envelope.input.translate;
+
+message SingleExample {
+
+    //
+    // Scalars
+    // https://developers.google.com/protocol-buffers/docs/proto3#scalar
+    //
+
+    string string = 1;
+    double double = 2;
+    float float = 3;
+    int32 int32 = 4;
+    int64 int64 = 5;
+    uint32 uint32 = 6;
+    uint64 uint64 = 7;
+    sint32 sint32 = 8;
+    sint64 sint64 = 9;
+    fixed32 fixed32 = 10;
+    fixed64 fixed64 = 11;
+    sfixed32 sfixed32 = 12;
+    sfixed64 sfixed64 = 13;
+    bool boolean = 14;
+    bytes bytes = 15;
+
+    //
+    // Enum
+    // https://developers.google.com/protocol-buffers/docs/proto3#enum
+    //
+
+    enum EnumExample {
+        ONE = 0;
+        TWO = 12;
+        THREE = 2;
+    }
+    EnumExample enum = 16;
+
+    //
+    // Nested Message types
+    // https://developers.google.com/protocol-buffers/docs/proto3#nested
+    //
+
+    message NestedExample {
+        string nested = 1;
+    }
+    NestedExample nested = 17;
+
+    //
+    // Map
+    // https://developers.google.com/protocol-buffers/docs/proto3#maps
+    //
+    
+    map<string, int32> map_int = 18;
+
+    //
+    // Lists
+    // https://developers.google.com/protocol-buffers/docs/proto3#specifying-field-rules
+    //
+
+    repeated NestedExample repeating_message = 19;
+    repeated int32 repeating_int32 = 20;
+    repeated EnumExample repeating_enum = 21;
+
+    //
+    // oneof
+    // https://developers.google.com/protocol-buffers/docs/proto3#oneof
+    //
+
+    oneof oneof {
+        string oneof_string = 22;
+        int32 oneof_int = 23;
+        NestedExample oneof_nested = 24;
+    }
+
+}

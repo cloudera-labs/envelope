@@ -4,3 +4,4 @@ com.cloudera.labs.envelope.input.translate.KVPTranslator
 com.cloudera.labs.envelope.input.translate.MorphlineTranslator
 com.cloudera.labs.envelope.input.translate.RawBinaryTranslator
 com.cloudera.labs.envelope.input.translate.RawStringTranslator
+com.cloudera.labs.envelope.input.translate.ProtobufTranslator

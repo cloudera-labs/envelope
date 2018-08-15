@@ -426,14 +426,14 @@ Input `type` = `kudu`.
 
 === Translators
 
-Translator configurations belong to data steps, and have the `steps.[stepname].input.translator.` prefix.
+Translator configurations belong to data steps, and have the `steps.[stepname].input.translator.` prefix. For more information on translators, see the <<inputs.adoc#translators,Translators section>> of the <<inputs.adoc#,Inputs Guide>>.
 
 [cols="2,8", options="header"]
 |===
 |Configuration suffix|Description
 
 |type
-|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
+|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`, `protobuf`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
 
 |===
 
@@ -573,6 +573,31 @@ Translator `type` = `morphline`.
 
 ||
 |`_rawbinary_`|_This translator has no custom configurations_.
+
+|===
+
+==== Protobuf
+
+Translator `type` = `protobuf`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|descriptor.filepath
+|The Protobuf `Descriptor` file. The file is built with the `protoc` compiler. This binary schema file must be referencable from the Spark workspace, typically by including it with the `--files` option.
+
+|descriptor.message
+|The optional `Message` name of the root Protobuf object in the `Descriptor`. Only one top-level `Message` may be deserialized per Translator, even though the Descriptor may contain multiple top-level `Messages`.
+
+|append.raw.enabled
+|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+
+|append.raw.key.field.name
+|The name of the appended field that contains the raw input key. Default `_key`.
+
+|append.raw.value.field.name
+|The name of the appended field that contains the raw input value. Default `_value`.
 
 |===
 

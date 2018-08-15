@@ -1,0 +1,19 @@
+// Multiple top-level messages, some included
+
+// To compile and create test class:
+// protoc --descriptor_set_out=protobuf_multiple_message.desc --java_out=../../java protobuf_multiple_message.proto
+syntax = "proto3";
+
+package com.cloudera.labs.envelope.input.translate;
+
+message OtherExample {
+    string other = 1;
+}
+
+message IncludedExample {
+    string included = 1;
+}
+
+message MultipleExample {
+    IncludedExample included_example = 1;
+}

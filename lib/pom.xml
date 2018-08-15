@@ -20,6 +20,13 @@
       <version>${kite-sdk.version}</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>${protobuf.version}</version>
+      <scope>compile</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -39,6 +46,10 @@
                 <relocation>
                   <pattern>org.joda.time</pattern>
                   <shadedPattern>envelope.shaded.org.joda.time</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.google.protobuf</pattern>
+                  <shadedPattern>com.cloudera.labs.envelope.input.shaded.com.google.protobuf</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>
