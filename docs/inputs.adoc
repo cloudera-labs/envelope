@@ -93,11 +93,11 @@ To enable Spark Streaming's windowing support, which allows each micro-batch to 
 
 ==== Offset management
 
-The Kafka input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topics between runs.
+The Kafka input supports offset management that will store the latest processed offset of each partition of each topic of each group ID, and when the pipeline starts these offsets will be retrieved to start the stream from where it last successfully processed, even when data has arrived in the topics between runs.  Note that offset management (`offset.manage`) and stream windowing (`window.enable`) currently cannot be enabled at the same time.
 
-To enable the offset management set `offset.manage` to `true`, and then provide an output to store the offsets in with `offset.output`.
+By default, offsets will be stored using Kafka's offset commit API which uses a special Kafka topic for storage.  Alternatively, external storage can be specified using `offset.output`.  To disable offset management set `offset.manage` to `false`.
 
-The output must be support random upsert mutations (i.e. implement `RandomOutput` and support the UPSERT mutation type) and must contain the four fields `group_id` (string), `topic` (string), `partition` (int) and `offset` (long). If the output requires the key fields to be specified (e.g. HBase, ZooKeeper) then provide the fields `group_id`, `topic`, `partition`.
+The external output (if specified, using `offset.output`) must be support random upsert mutations (i.e. implement `RandomOutput` and support the UPSERT mutation type) and must contain the four fields `group_id` (string), `topic` (string), `partition` (int) and `offset` (long). If the output requires the key fields to be specified (e.g. HBase, ZooKeeper) then provide the fields `group_id`, `topic`, `partition`.
 
 ==== Example
 

@@ -398,10 +398,10 @@ Input `type` = `kafka`.
 |The interval in milliseconds at which the Spark Streaming window operation is performed if using sliding windows.
 
 |offsets.manage
-|If `true` then Envelope will manage the Kafka offsets that have been processed so that application restarts will continue where in the topic that they left off. Default `false`.
+|If `true`, Envelope will manage the Kafka offsets that have been processed so that application restarts will continue where in the topic that they left off. Default `true`.  Unless `offset.output` is set, Kafka's internal offset commit API will be used.
 
 |offsets.output
-|If `offsets.manage` is `true` then this is the output specification for where Envelope will store and retrieve the latest offsets that have been successfully processed. The output must be support random upsert mutations (e.g. Kudu, HBase).
+|If `offsets.manage` is `true` then this output specification can be used to define external alternatives (rather than Kafka's internal offset commit API) for where Envelope will store and retrieve the latest offsets that have been successfully processed. The output must be support random upsert mutations (e.g. Kudu, HBase).
 
 |parameter.*
 |Used to pass configurations directly to Kafka. The `parameter.` prefix is removed and the configuration is set in the Kafka parameters map object used to create the Kafka direct stream.

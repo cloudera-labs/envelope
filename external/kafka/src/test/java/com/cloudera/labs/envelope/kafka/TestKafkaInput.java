@@ -21,12 +21,18 @@ import com.cloudera.labs.envelope.output.OutputFactory;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import mockit.Expectations;
+import mockit.Verifications;
 import mockit.Mocked;
+import mockit.Tested;
+import mockit.MockUp;
+import mockit.Mock;
 import mockit.integration.junit4.JMockit;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
 import org.apache.spark.streaming.kafka010.KafkaRDD;
 import org.apache.spark.streaming.kafka010.OffsetRange;
+import org.apache.spark.streaming.kafka010.DirectKafkaInputDStream;
+import org.apache.spark.streaming.api.java.JavaDStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -40,6 +46,9 @@ public class TestKafkaInput {
   @Mocked Config config;
   @Mocked JavaRDD<?> javaRDD;
   @Mocked KafkaRDD<String, String> kafkaRDD;
+  @Mocked JavaDStream jDStream;
+  @Mocked DirectKafkaInputDStream dkiDStream;
+  @Tested KafkaInput mockedKafkaInput;
 
   @Test(expected=Throwable.class)
   public void testNoTopicConfigure() {
@@ -69,6 +78,48 @@ public class TestKafkaInput {
     assertTrue(kafkaInput.topics.contains("bar"));
   }
 
+  @Test
+  public void testKafkaManagedOffsets() throws Exception {
+    new MockUp<KafkaInput>() {
+      @Mock
+      public JavaDStream<?> getDStream() {
+        return jDStream;
+      }
+    };
+    
+    new Expectations() {
+      {
+        config.hasPath(KafkaInput.TOPICS_CONFIG);
+        returns(true);
+        config.getStringList(KafkaInput.TOPICS_CONFIG);
+        returns(Lists.newArrayList("foo"));
+        config.hasPath(KafkaInput.ENCODING_CONFIG);
+        returns(true);
+        config.getString(KafkaInput.ENCODING_CONFIG);
+        returns("string");
+        config.hasPath(KafkaInput.GROUP_ID_CONFIG);
+        returns(true);
+        config.hasPath(KafkaInput.OFFSETS_OUTPUT_CONFIG);
+        returns(false);
+        javaRDD.rdd();
+        returns(kafkaRDD);
+        kafkaRDD.offsetRanges();
+        returns(new OffsetRange[]{});
+        jDStream.dstream();
+        returns(dkiDStream);
+      }
+    };
+
+    mockedKafkaInput.configure(config);
+    mockedKafkaInput.recordProgress(javaRDD);
+
+    new Verifications() {
+      {
+        dkiDStream.commitAsync(new OffsetRange[]{}); times = 1;
+      }
+    };
+  }
+
   /**
    * Tests upserting offsets in a RandomOutput when
    * multiple topics are consumed.
@@ -94,6 +145,8 @@ public class TestKafkaInput {
         config.hasPath(KafkaInput.OFFSETS_MANAGE_CONFIG);
         returns(true);
         config.getBoolean(KafkaInput.OFFSETS_MANAGE_CONFIG);
+        returns(true);
+        config.hasPath(KafkaInput.OFFSETS_OUTPUT_CONFIG);
         returns(true);
         config.hasPath(KafkaInput.GROUP_ID_CONFIG);
         returns(true);

@@ -39,6 +39,7 @@ import org.apache.spark.streaming.kafka010.HasOffsetRanges;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.OffsetRange;
+import org.apache.spark.streaming.kafka010.CanCommitOffsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   private Config config;
   private String encoding;
   private Map<String, Object> kafkaParams;
+  private JavaDStream<?> dStream;
 
   @Override
   public void configure(Config config) {
@@ -104,6 +106,11 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
       throw new RuntimeException("Kafka input encoding type configuration is required.");
     }
 
+    if (config.hasPath(WINDOW_ENABLED_CONFIG) && (config.getBoolean(WINDOW_ENABLED_CONFIG) == true) &&
+        doesRecordProgress()) {
+      throw new RuntimeException("Kafka input offset management not currently compatible with stream windowing.");
+    }
+    
     encoding = config.getString(ENCODING_CONFIG);
     if (encoding.equals("string")) {
       kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -128,43 +135,44 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
 
   @Override
   public JavaDStream<?> getDStream() throws Exception {
-    JavaStreamingContext jssc = Contexts.getJavaStreamingContext();
-    JavaDStream<?> dStream;
-    Map<TopicPartition, Long> lastOffsets = null;
-    if (doesRecordProgress()) {
-      lastOffsets = getLastOffsets();
-    }
-
-    if (encoding.equals("string")) {
-      if (lastOffsets != null) {
-        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-            ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams, lastOffsets));
-      } else {
-        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-            ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams));
+    if (dStream == null)
+    {
+      JavaStreamingContext jssc = Contexts.getJavaStreamingContext();
+      Map<TopicPartition, Long> lastOffsets = null;
+      if (doesRecordProgress() && !usingKafkaManagedOffsets()) {
+        lastOffsets = getLastOffsets();
       }
-    } else if (encoding.equals("bytearray")) {
-      if (lastOffsets != null) {
-        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-            ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams, lastOffsets));
-      } else {
-        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-            ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams));
-      }
-    } else {
-      throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
-    }
 
-    if (config.hasPath(WINDOW_ENABLED_CONFIG) && config.getBoolean(WINDOW_ENABLED_CONFIG)) {
-      int windowDuration = config.getInt(WINDOW_MILLISECONDS_CONFIG);
-      if (config.hasPath(WINDOW_SLIDE_MILLISECONDS_CONFIG)) {
-        int slideDuration = config.getInt(WINDOW_SLIDE_MILLISECONDS_CONFIG);
-        dStream = dStream.window(new Duration(windowDuration), new Duration(slideDuration));
+      if (encoding.equals("string")) {
+        if (lastOffsets != null) {
+          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+              ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams, lastOffsets));
+        } else {
+          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+              ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams));
+        }
+      } else if (encoding.equals("bytearray")) {
+        if (lastOffsets != null) {
+          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+              ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams, lastOffsets));
+        } else {
+          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+              ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams));
+        }
       } else {
-        dStream = dStream.window(new Duration(windowDuration));
+        throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
+      }
+
+      if (config.hasPath(WINDOW_ENABLED_CONFIG) && config.getBoolean(WINDOW_ENABLED_CONFIG)) {
+        int windowDuration = config.getInt(WINDOW_MILLISECONDS_CONFIG);
+        if (config.hasPath(WINDOW_SLIDE_MILLISECONDS_CONFIG)) {
+          int slideDuration = config.getInt(WINDOW_SLIDE_MILLISECONDS_CONFIG);
+          dStream = dStream.window(new Duration(windowDuration), new Duration(slideDuration));
+        } else {
+          dStream = dStream.window(new Duration(windowDuration));
+        }
       }
     }
-
     return dStream;
   }
 
@@ -179,6 +187,10 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     return "kafka";
   }
 
+  private boolean usingKafkaManagedOffsets() {
+    return (doesRecordProgress() && !config.hasPath(OFFSETS_OUTPUT_CONFIG));
+  }
+
   @SuppressWarnings({ "serial", "rawtypes" })
   private static class UnwrapConsumerRecordFunction implements PairFunction {
     @Override
@@ -189,7 +201,8 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   }
   
   private boolean doesRecordProgress() {
-    boolean managed = config.hasPath(OFFSETS_MANAGE_CONFIG) && config.getBoolean(OFFSETS_MANAGE_CONFIG);
+    boolean managed = (config.hasPath(OFFSETS_MANAGE_CONFIG) && 
+        !config.getBoolean(OFFSETS_MANAGE_CONFIG)) ? false : true;
     if (managed && !config.hasPath(GROUP_ID_CONFIG)) {
       throw new RuntimeException("Kafka input can not manage offsets without a provided group ID");
     }
@@ -199,45 +212,50 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
 
   @Override
   public void recordProgress(JavaRDD<?> batch) throws Exception {
-    if (doesRecordProgress()) {
+    if (doesRecordProgress() && (batch.rdd() instanceof HasOffsetRanges)) {
       OffsetRange[] offsetRanges = ((HasOffsetRanges)batch.rdd()).offsetRanges();
 
-      // Plan the offset ranges as an upsert 
-      List<Row> planned = Lists.newArrayList();
-      StructType schema = DataTypes.createStructType(Lists.newArrayList(
-          DataTypes.createStructField("group_id", DataTypes.StringType, false),
-          DataTypes.createStructField("topic", DataTypes.StringType, false),
-          DataTypes.createStructField("partition", DataTypes.IntegerType, false),
-          DataTypes.createStructField("offset", DataTypes.LongType, false)));
-      for (OffsetRange offsetRange : offsetRanges) {
-        Row offsetRow = new RowWithSchema(schema, groupID, offsetRange.topic(), offsetRange.partition(),
-            offsetRange.untilOffset());
-        Row plan = PlannerUtils.setMutationType(offsetRow, MutationType.UPSERT);
-        planned.add(plan);
+      if (usingKafkaManagedOffsets()) {
+         ((CanCommitOffsets) getDStream().dstream()).commitAsync(offsetRanges);
       }
-      
-      // Upsert the offset ranges at the output
-      RandomOutput output = getOffsetsOutput();
-      output.applyRandomMutations(planned);
-      
-      // Retrieve back the offset ranges and assert that they were stored correctly
-      Map<TopicPartition, Long> storedOffsets = getLastOffsets();
-      for (OffsetRange offsetRange : offsetRanges) {
-        TopicPartition tp = new TopicPartition(offsetRange.topic(), offsetRange.partition());
-        // Depending on RandomOutput key configuration, this TopicPartition may not even exist.
-        // As an example, if key.field.names only contains (group_id, topic) but not the partition.
-        if (!storedOffsets.containsKey(tp)) {
-          throw new RuntimeException(String.format("Kafka input failed to assert that offset ranges " +
-              "were stored correctly!. For group ID '%s', topic '%s' and partition '%d' was not found'",
-              groupID, offsetRange.topic(), offsetRange.partition()));
+      else { 
+        // Plan the offset ranges as an upsert 
+        List<Row> planned = Lists.newArrayList();
+        StructType schema = DataTypes.createStructType(Lists.newArrayList(
+            DataTypes.createStructField("group_id", DataTypes.StringType, false),
+            DataTypes.createStructField("topic", DataTypes.StringType, false),
+            DataTypes.createStructField("partition", DataTypes.IntegerType, false),
+            DataTypes.createStructField("offset", DataTypes.LongType, false)));
+        for (OffsetRange offsetRange : offsetRanges) {
+          Row offsetRow = new RowWithSchema(schema, groupID, offsetRange.topic(), offsetRange.partition(),
+              offsetRange.untilOffset());
+          Row plan = PlannerUtils.setMutationType(offsetRow, MutationType.UPSERT);
+          planned.add(plan);
         }
+      
+        // Upsert the offset ranges at the output
+        RandomOutput output = getOffsetsOutput();
+        output.applyRandomMutations(planned);
+      
+        // Retrieve back the offset ranges and assert that they were stored correctly
+        Map<TopicPartition, Long> storedOffsets = getLastOffsets();
+        for (OffsetRange offsetRange : offsetRanges) {
+          TopicPartition tp = new TopicPartition(offsetRange.topic(), offsetRange.partition());
+          // Depending on RandomOutput key configuration, this TopicPartition may not even exist.
+          // As an example, if key.field.names only contains (group_id, topic) but not the partition.
+          if (!storedOffsets.containsKey(tp)) {
+            throw new RuntimeException(String.format("Kafka input failed to assert that offset ranges " +
+                "were stored correctly!. For group ID '%s', topic '%s' and partition '%d' was not found'",
+                groupID, offsetRange.topic(), offsetRange.partition()));
+          }
 
-        if (!storedOffsets.get(tp).equals(offsetRange.untilOffset())) {
-          String exceptionMessage = String.format(
-              "Kafka input failed to assert that offset ranges were stored correctly! " + 
-              "For group ID '%s', topic '%s', partition '%d' expected offset '%d' but found offset '%d'",
-              groupID, offsetRange.topic(), tp.partition(), offsetRange.untilOffset(), storedOffsets.get(tp));
-          throw new RuntimeException(exceptionMessage);
+          if (!storedOffsets.get(tp).equals(offsetRange.untilOffset())) {
+            String exceptionMessage = String.format(
+                "Kafka input failed to assert that offset ranges were stored correctly! " + 
+                "For group ID '%s', topic '%s', partition '%d' expected offset '%d' but found offset '%d'",
+                groupID, offsetRange.topic(), tp.partition(), offsetRange.untilOffset(), storedOffsets.get(tp));
+            throw new RuntimeException(exceptionMessage);
+          }
         }
       }
     }
