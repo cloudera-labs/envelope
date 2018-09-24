@@ -236,6 +236,8 @@ public enum Contexts {
   }
 
   private static boolean enablesHiveSupport() {
+    if (INSTANCE.mode == ExecutionMode.UNIT_TEST) return false;
+
     if (INSTANCE.config.hasPath(SPARK_SESSION_ENABLE_HIVE_SUPPORT)) {
       return INSTANCE.config.getBoolean(SPARK_SESSION_ENABLE_HIVE_SUPPORT);
     } else {

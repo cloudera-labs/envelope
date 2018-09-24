@@ -104,11 +104,9 @@ public class TestContexts {
   }
 
   @Test (expected = AnalysisException.class)
-  public void testHiveDisabledConfiguration() throws Exception {
+  public void testHiveDisabledConfiguration() {
     Map<String, Object> sparamMap = new HashMap<>();
     sparamMap.put(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, "false");
-    sparamMap.put(Contexts.SPARK_CONF_PROPERTY_PREFIX + "spark.sql.warehouse.dir",
-        "target/spark-warehouse");
     Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveDisabled(d int)");
     try {
@@ -118,8 +116,18 @@ public class TestContexts {
     }
   }
 
+  @Test (expected = AnalysisException.class)
+  public void testDefaultHiveDisabledForUnitTestsConfiguration() {
+    Contexts.getSparkSession().sql("CREATE TABLE testHiveDisabled(d int)");
+    try {
+      Contexts.getSparkSession().sql("SELECT count(*) from testHiveDisabled");
+    } finally {
+      Contexts.getSparkSession().sql("DROP TABLE testHiveDisabled");
+    }
+  }
+
   @Test
-  public void testHiveEnabledConfiguration() throws Exception {
+  public void testHiveEnabledConfiguration() {
     Map<String, Object> sparamMap = new HashMap<>();
     sparamMap.put(Contexts.SPARK_CONF_PROPERTY_PREFIX + "spark.sql.warehouse.dir",
         "target/spark-warehouse");
