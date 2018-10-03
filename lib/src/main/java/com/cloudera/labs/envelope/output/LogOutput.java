@@ -99,7 +99,7 @@ public class LogOutput implements BulkOutput, ProvidesAlias {
     @Override
     public void call(Row mutation) throws Exception {
       if (joiner == null) {
-        joiner = Joiner.on(delimiter);
+        joiner = Joiner.on(delimiter).useForNull("");
       }
 
       List<Object> values = Lists.newArrayList();
