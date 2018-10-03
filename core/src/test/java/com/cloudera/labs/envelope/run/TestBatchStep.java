@@ -27,7 +27,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,7 +41,7 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 5);
-    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
+    configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
     Config config = ConfigFactory.parseMap(configMap);
     
     BatchStep batchStep = new BatchStep("test", config);
@@ -58,7 +57,7 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 10);
-    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
+    configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
@@ -75,8 +74,8 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 10);
-    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
-    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
+    configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
+    configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
@@ -92,8 +91,8 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 10);
-    configMap.put("input." + BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo == 0"));
-    configMap.put("input." + BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
+    configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo == 0"));
+    configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
     Config config = ConfigFactory.parseMap(configMap);
 
     BatchStep batchStep = new BatchStep("test", config);
@@ -106,7 +105,7 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 10);
-    configMap.put("input.repartition.partitions", 5);
+    configMap.put(BatchStep.COALESCE_NUM_PARTITIONS_PROPERTY, 5);
     Config config = ConfigFactory.parseMap(configMap);
     
     BatchStep batchStep = new BatchStep("test", config);
@@ -118,102 +117,16 @@ public class TestBatchStep {
   }
   
   @Test
-  public void testDeriverRepartition() throws Exception {
-    Map<String, Object> dependencyConfigMap = Maps.newHashMap();
-    dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.starting.partitions", 5);
-    Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
-    
-    BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.submit(Sets.<Step>newHashSet());
-    
-    Map<String, Object> dependentConfigMap = Maps.newHashMap();
-    dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));
-    dependentConfigMap.put("deriver.type", PassthroughDeriver.class.getName());
-    dependentConfigMap.put("deriver.repartition.partitions", 10);
-    Config dependentConfig = ConfigFactory.parseMap(dependentConfigMap);
-    
-    BatchStep dependentStep = new BatchStep("world", dependentConfig);
-    dependentStep.submit(Sets.<Step>newHashSet(dependencyStep));
-    Dataset<Row> df = dependentStep.getData();
-    int numPartitions = df.javaRDD().getNumPartitions(); 
-    
-    assertEquals(numPartitions, 10);
-  }
-  
-  @Test
-  public void testDeriverCoalesce() throws Exception {
-    Map<String, Object> dependencyConfigMap = Maps.newHashMap();
-    dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.starting.partitions", 10);
-    Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
-    
-    BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.submit(Sets.<Step>newHashSet());
-    
-    Map<String, Object> dependentConfigMap = Maps.newHashMap();
-    dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));
-    dependentConfigMap.put("deriver.type", PassthroughDeriver.class.getName());
-    dependentConfigMap.put("deriver.coalesce.partitions", 5);
-    Config dependentConfig = ConfigFactory.parseMap(dependentConfigMap);
-    
-    BatchStep dependentStep = new BatchStep("world", dependentConfig);
-    dependentStep.submit(Sets.<Step>newHashSet(dependencyStep));
-    Dataset<Row> df = dependentStep.getData();
-    int numPartitions = df.javaRDD().getNumPartitions(); 
-    
-    assertEquals(numPartitions, 5);
-  }
-  
-  @Test
   (expected = RuntimeException.class)
   public void testCantRepartitionAndCoalesceInputAtOnce() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("input.type", DummyInput.class.getName());
     configMap.put("input.starting.partitions", 5);
-    configMap.put("input.repartition.partitions", 10);
-    configMap.put("input.coalesce.partitions", 3);
+    configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
+    configMap.put(BatchStep.COALESCE_NUM_PARTITIONS_PROPERTY, 3);
     Config config = ConfigFactory.parseMap(configMap);
     
     new BatchStep("test", config);
   }
   
-  @Test
-  (expected = RuntimeException.class)
-  public void testCantRepartitionAndCoalesceDeriverAtOnce() throws Exception {
-    Map<String, Object> dependencyConfigMap = Maps.newHashMap();
-    dependencyConfigMap.put("input.type", DummyInput.class.getName());
-    dependencyConfigMap.put("input.starting.partitions", 5);
-    Config dependencyConfig = ConfigFactory.parseMap(dependencyConfigMap);
-    
-    BatchStep dependencyStep = new BatchStep("hello", dependencyConfig);
-    dependencyStep.submit(Sets.<Step>newHashSet());
-    
-    Map<String, Object> dependentConfigMap = Maps.newHashMap();
-    dependentConfigMap.put("dependencies", Lists.newArrayList("hello"));
-    dependentConfigMap.put("deriver.type", PassthroughDeriver.class.getName());
-    dependentConfigMap.put("deriver.repartition.partitions", 10);
-    dependentConfigMap.put("deriver.coalesce.partitions", 3);
-    Config dependentConfig = ConfigFactory.parseMap(dependentConfigMap);
-    
-    new BatchStep("world", dependentConfig);
-  }
-  
-  public static class PassthroughDeriver implements Deriver {
-    @Override
-    public void configure(Config config) {}
-
-    @Override
-    public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-      Iterator<Dataset<Row>> dependencyIterator = dependencies.values().iterator();
-
-      Dataset<Row> unioned = dependencyIterator.next();
-      while (dependencyIterator.hasNext()) {
-        unioned = unioned.union(dependencyIterator.next());
-      }
-
-      return unioned;
-    }
-  }
-
 }

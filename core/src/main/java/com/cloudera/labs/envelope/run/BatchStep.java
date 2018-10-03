@@ -36,24 +36,19 @@ import com.typesafe.config.ConfigObject;
  * A batch step is a data step that contains a single DataFrame.
  */
 public class BatchStep extends DataStep {
-  
+
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "repartition.partitions";
   public static final String REPARTITION_COLUMNS_PROPERTY = "repartition.columns";
   public static final String COALESCE_NUM_PARTITIONS_PROPERTY = "coalesce.partitions";
 
-  private static final String INPUT_PREFIX = "input.";
-  private static final String DERIVER_PREFIX = "deriver.";
-  private static final String REPETITION_PREFIX = "repetitions";
-  
+  private static final String REPETITION_PREFIX = "repetitions"; 
+ 
   public BatchStep(String name, Config config) {
     super(name, config);
     
-    if ((config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
-         config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
-         config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
-         config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY)) &&
-        (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
-         config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)))
+    if ((config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+         config.hasPath(REPARTITION_COLUMNS_PROPERTY)) &&
+         config.hasPath(COALESCE_NUM_PARTITIONS_PROPERTY))
     {
       throw new RuntimeException("Step " + getName() + " can not both repartition and coalesce.");
     }
@@ -91,30 +86,21 @@ public class BatchStep extends DataStep {
   }
   
   private boolean doesRepartition() {
-    return config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
-           config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY) ||
-           config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
-           config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY) ||
-           config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY) ||
-           config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+    return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY) ||
+           config.hasPath(REPARTITION_COLUMNS_PROPERTY) ||
+           config.hasPath(COALESCE_NUM_PARTITIONS_PROPERTY);
   }
 
   private Dataset<Row> repartition(Dataset<Row> data) {
     int numPartitions = 0;
     List<String> colPartitions = null;
 
-    if (config.hasPath(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
-      numPartitions = config.getInt(INPUT_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
-    }
-    else if (config.hasPath(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY)) {
-      numPartitions = config.getInt(DERIVER_PREFIX + REPARTITION_NUM_PARTITIONS_PROPERTY);
+    if (config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY)) {
+      numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
     }
 
-    if (config.hasPath(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY)) {
-      colPartitions = config.getStringList(INPUT_PREFIX + REPARTITION_COLUMNS_PROPERTY);
-    }
-    else if (config.hasPath(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY)) {
-      colPartitions = config.getStringList(DERIVER_PREFIX + REPARTITION_COLUMNS_PROPERTY);
+    if (config.hasPath(REPARTITION_COLUMNS_PROPERTY)) {
+      colPartitions = config.getStringList(REPARTITION_COLUMNS_PROPERTY);
     }
 
     if (numPartitions > 0 && null != colPartitions) {
@@ -127,12 +113,8 @@ public class BatchStep extends DataStep {
       data = data.repartition(RowUtils.toColumnArray(colPartitions));
     }
 
-    if (config.hasPath(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
-      numPartitions = config.getInt(INPUT_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
-      data = data.coalesce(numPartitions);
-    }
-    else if (config.hasPath(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY)) {
-      numPartitions = config.getInt(DERIVER_PREFIX + COALESCE_NUM_PARTITIONS_PROPERTY);
+    if (config.hasPath(COALESCE_NUM_PARTITIONS_PROPERTY)) {
+      numPartitions = config.getInt(COALESCE_NUM_PARTITIONS_PROPERTY);
       data = data.coalesce(numPartitions);
     }
     
