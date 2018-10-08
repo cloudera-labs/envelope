@@ -188,6 +188,15 @@
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
               </transformers>
+              <filters>
+                <filter>
+                  <!-- exclude invalid signature contained in kitesdk dependencies -->
+                  <artifact>org.eclipse.jetty.orbit:javax.servlet</artifact>
+                  <excludes>
+                      <exclude>META-INF/ECLIPSEF.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>

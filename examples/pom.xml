@@ -20,5 +20,23 @@
       <version>${kafka.version}</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-core</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-json</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-solr-core</artifactId>
+      <version>${kite-sdk.version}</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 </project>

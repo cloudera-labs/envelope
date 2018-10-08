@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<schema name="example" version="1.5">
+ <fields>
+   <field name="_root_" type="string" indexed="true" stored="true"/>
+
+   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
+   <field name="additionalInfo" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="allowed" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="collectionName" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="databaseName" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="db" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="DELEGATION_TOKEN_ID" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="dst" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="entityId" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="family" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="impersonator" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="ip" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="name" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="objectType" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="objType" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="objUsageType" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="operationParams" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="operationText" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="op" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="opText" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="path" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="perms" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="privilege" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="qualifier" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="QUERY_ID" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="resourcePath" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="service" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="SESSION_ID" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="solrVersion" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="src" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="status" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="subOperation" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="tableName" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="table" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="time" type="date" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="timeMillis" type="long" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="type" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="url" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+   <field name="user" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+
+   <field name="_version_" type="long" indexed="true" stored="true"/>
+ </fields>
+
+ <uniqueKey>id</uniqueKey>
+
+  <types>
+    <fieldType name="string" class="solr.StrField" sortMissingLast="true" />
+    <fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
+    <fieldType name="date" class="solr.TrieDateField" precisionStep="0" positionIncrementGap="0"/>
+ </types>
+</schema>

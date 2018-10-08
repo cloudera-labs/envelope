@@ -1,0 +1,567 @@
+// Most of the values that will need to be configured are found here
+vars {
+  // You probably need to update the following properties
+  hdfs.basedir = "hdfs://nameservice1/data/nav"
+  kudu.connection = "master1.example.com:7051,master2.example.com:7051,master3.example.com:7051"
+  ssl.truststore.location = /opt/cloudera/security/jks/truststore.jks
+  ssl.truststore.password = TRUSTSTOREPASSWORD
+  kafka.topics = [nav-audit]
+  kafka.brokers = "broker1.example.com:9093,broker2.example.com:9093,broker3.example.com:9093"
+  kafka.security.protocol = SASL_SSL
+  // For unsecured cluster, use the below instead on the two lines above:
+  // kafka.brokers = "broker1.example.com:9092,broker2.example.com:9092,broker3.example.com:9092"
+  // kafka.security.protocol = PLAINTEXT
+
+  // The following properties only need to be changed if you modified the example's defaults
+  kafka.kudu.offset.table = "impala::nav.nav_offsets"
+  morphline.file = "nav-morphline.conf"
+  morphline.json.translator = "nav-json-input"
+  morphline.solr.indexer = "nav-load-solr"
+  json.field.names = [time, timeMillis, additionalInfo, allowed, collectionName, databaseName, db,
+    DELEGATION_TOKEN_ID, dst, entityId, family, impersonator, ip, name, objectType, objType,
+    objUsageType, op, operationParams, operationText, opText, path, perms, privilege, qualifier,
+    QUERY_ID, resourcePath, service, SESSION_ID, solrVersion, src, status, subOperation, tableName,
+    table, type, url, user]
+  json.field.types = [timestamp, long, string, string, string, string, string, string, string, string,
+    string, string, string, string, string, string, string, string, string, string, string, string,
+    string, string, string, string, string, string, string, string, string, string, string, string,
+    string, string, string, string, string]
+}
+
+// Application
+application {
+  name = Navigator Example
+  executors = 1
+  batch.milliseconds = 10000
+}
+
+// Application steps
+steps {
+  //
+  // Input
+  //
+
+  kafkaInput {
+    input {
+      type = kafka
+      brokers = ${vars.kafka.brokers}
+      topics = ${vars.kafka.topics}
+      group.id = nav-envelope
+      encoding = bytearray
+      offsets {
+        manage = true
+        output {
+          type = kudu
+          connection = ${vars.kudu.connection}
+          table.name = ${vars.kafka.kudu.offset.table}
+        }
+      }
+      parameter.sasl.mechanism = GSSAPI
+      parameter.sasl.kerberos.service.name = kafka
+      parameter.security.protocol = ${vars.kafka.security.protocol}
+      parameter.ssl.truststore.location = ${vars.ssl.truststore.location}
+      parameter.ssl.truststore.password = ${vars.ssl.truststore.password}
+      translator {
+        type = morphline
+        encoding.key = UTF8
+        encoding.message = UTF8
+        morphline.file = ${vars.morphline.file}
+        morphline.id = ${vars.morphline.json.translator}
+        field.names = ${vars.json.field.names}
+        field.types = ${vars.json.field.types}
+      }
+    }
+  }
+
+  //
+  // Derivers
+  //
+
+  // Load events to a Solr index
+  // TODO: Move this to a SolrOutput step, when this is available
+  solrIndexerDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = morphline
+      step.name = kafkaInput
+      morphline.file = ${vars.morphline.file}
+      morphline.id = ${vars.morphline.solr.indexer}
+      field.names = ${vars.json.field.names}
+      field.types = ${vars.json.field.types}
+    }
+  }
+
+  // The solrIndexerDeriver only needs to be referenced so that it is instantiated and executed.
+  // This is the only step that uses it as a source. All other derivers read directly from the
+  // kafkaInput step, which is more efficient
+  hdfsEventsDeriver {
+    dependencies = [solrIndexerDeriver]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          src as src, dst as dest, perms as permissions,
+          -- the attribute below is not exposed by Navigator through Kafka; it's included here for
+          -- completeness only
+          DELEGATION_TOKEN_ID as delegation_token_id
+        FROM solrIndexerDeriver
+        WHERE type = 'HDFS'
+        """
+    }
+  }
+
+  impalaEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          opText as operation_text, status as status, db as database_name, table as table_name,
+          privilege as privilege, objType as object_type,
+          -- the attributes below are not exposed by Navigator through Kafka; they are included here
+          -- for completeness only
+          QUERY_ID as query_id, SESSION_ID as session_id
+        FROM kafkaInput
+        WHERE type = 'Impala'
+        """
+    }
+  }
+
+  hiveEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          opText as operation_text, db as database_name, table as table_name, path as resource_path,
+          objType as object_type, objUsageType as object_usage_type
+        FROM kafkaInput
+        WHERE type = 'Hive'
+        """
+    }
+  }
+
+  hbaseEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          tableName as table_name, family as family, qualifier as qualifier
+        FROM kafkaInput
+        WHERE type = 'HBase'
+        """
+    }
+  }
+
+  solrEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          collectionName as collection_name, operationParams as operation_params,
+          solrVersion as solr_version
+        FROM kafkaInput
+        WHERE type = 'SOLR'
+        """
+    }
+  }
+
+  hueEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          operationText as operation_text, service as service, url as url
+        FROM kafkaInput
+        WHERE type = 'HUE'
+        """
+    }
+  }
+
+  navmsEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          additionalInfo as additional_info, entityId as entity_id, name as stored_object_name,
+          subOperation as sub_operation
+        FROM kafkaInput
+        WHERE type = 'NAVMS'
+        """
+    }
+  }
+
+  sentryEventsDeriver {
+    dependencies = [kafkaInput]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT
+          -- partitioning column
+          from_unixtime(timeMillis/1000, 'yyyy-MM-dd') as day,
+          -- generic attributes
+          service as service_name, allowed as allowed, user as username,
+          impersonator as impersonator, ip as ip_addr, op as operation,
+          time as event_time,
+          -- event specific attributes
+          databaseName as sentry_database_name, objectType as sentry_object_type,
+          operationText as operation_text, resourcePath as resource_path, tableName as table_name
+        FROM kafkaInput
+        WHERE type = 'SENTRY'
+        """
+    }
+  }
+
+  // Filesystem outputs
+
+  hdfsFilesystemOutput {
+    dependencies = [hdfsEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/hdfs_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  impalaFilesystemOutput {
+    dependencies = [impalaEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/impala_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  hiveFilesystemOutput {
+    dependencies = [hiveEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/hive_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  hbaseFilesystemOutput {
+    dependencies = [hbaseEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/hbase_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  solrFilesystemOutput {
+    dependencies = [solrEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/solr_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  hueFilesystemOutput {
+    dependencies = [hueEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/hue_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  navmsFilesystemOutput {
+    dependencies = [navmsEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/navms_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  sentryFilesystemOutput {
+    dependencies = [sentryEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = filesystem
+      path = ${vars.hdfs.basedir}"/sentry_events_parquet"
+      format = parquet
+      partition.by = [day]
+    }
+  }
+
+  // Kudu outputs
+
+  hdfsKuduOutput {
+    dependencies = [hdfsEventsDeriver]
+    deriver = {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.hdfs_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  impalaKuduOutput {
+    dependencies = [impalaEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.impala_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  hiveKuduOutput {
+    dependencies = [hiveEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.hive_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  hbaseKuduOutput {
+    dependencies = [hbaseEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.hbase_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  solrKuduOutput {
+    dependencies = [solrEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.solr_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  hueKuduOutput {
+    dependencies = [hueEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.hue_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  navmsKuduOutput {
+    dependencies = [navmsEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.navms_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+
+  sentryKuduOutput {
+    dependencies = [sentryEventsDeriver]
+    deriver {
+      type = passthrough
+    }
+
+    planner = {
+      type = append
+    }
+
+    output = {
+      type = kudu
+      connection = ${vars.kudu.connection}
+      table.name = "impala::nav.sentry_events"
+      insert.ignore = true
+      ignore.missing.columns = true
+    }
+  }
+}
