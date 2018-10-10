@@ -17,11 +17,10 @@
  */
 package com.cloudera.labs.envelope.partition;
 
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.typesafe.config.Config;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.sql.Row;
 
 @SuppressWarnings("serial")
 public class UUIDPartitioner extends ConfigurablePartitioner implements ProvidesAlias {
@@ -52,4 +51,5 @@ public class UUIDPartitioner extends ConfigurablePartitioner implements Provides
   public String getAlias() {
     return "uuid";
   }
+  
 }

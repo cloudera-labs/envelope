@@ -21,6 +21,8 @@ import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ProtobufUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -31,6 +33,8 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
+
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
@@ -44,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This supports both compressed (gzip) or uncompressed message payloads.
  */
-public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesAlias {
+public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesAlias, ProvidesValidations {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProtobufTranslator.class);
 
@@ -67,28 +71,10 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
   public void configure(Config config) {
     LOG.debug("Configuring ProtobufTranslator");
 
-    String descriptorFilePath;
+    String descriptorFilePath = config.getString(CONFIG_DESCRIPTOR_FILEPATH);
 
-    if (config.hasPath(CONFIG_DESCRIPTOR_FILEPATH)) {
-      // Read all configs and check guard conditions
-      descriptorFilePath = config.getString(CONFIG_DESCRIPTOR_FILEPATH);
-      if (descriptorFilePath == null || descriptorFilePath.trim().length() == 0) {
-        throw new IllegalArgumentException("Invalid format for descriptor file path: " + descriptorFilePath);
-      }
-    } else {
-      throw new IllegalStateException("Descriptor file path parameter is required");
-    }
-
-    String descriptorMessage = null;
     if (config.hasPath(CONFIG_DESCRIPTOR_MESSAGE)) {
-      descriptorMessage = config.getString(CONFIG_DESCRIPTOR_MESSAGE);
-      if (descriptorMessage == null || descriptorMessage.trim().length() == 0) {
-        throw new IllegalArgumentException("Invalid format for descriptor root Message: " + descriptorMessage);
-      }
-    }
-
-    // Ensure valid descriptor object
-    if (descriptorMessage != null) {
+      String descriptorMessage = config.getString(CONFIG_DESCRIPTOR_MESSAGE);
       this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath, descriptorMessage);
     } else {
       this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath);
@@ -108,7 +94,6 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
 
   @Override
   public Iterable<Row> translate(byte[] key, byte[] value) throws Exception {
-
     if (value == null || value.length < 1) {
       throw new RuntimeException("Payload value is null or empty");
     }
@@ -143,4 +128,12 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
     return Collections.singletonList(row);
   }
 
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(CONFIG_DESCRIPTOR_FILEPATH, ConfigValueType.STRING)
+        .optionalPath(CONFIG_DESCRIPTOR_MESSAGE, ConfigValueType.STRING)
+        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
+        .build();
+  }
 }

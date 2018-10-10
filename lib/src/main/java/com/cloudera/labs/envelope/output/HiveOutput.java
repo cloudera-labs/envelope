@@ -17,31 +17,32 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashSet;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.Column;
 import org.apache.spark.sql.functions;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValue;
-import com.cloudera.labs.envelope.spark.Contexts;
-
 import scala.Tuple2;
 
-public class HiveOutput implements BulkOutput, ProvidesAlias {
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class HiveOutput implements BulkOutput, ProvidesAlias, ProvidesValidations {
 
   public final static String TABLE_CONFIG = "table";
   public final static String PARTITION_BY_CONFIG = "partition.by";
@@ -50,16 +51,21 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
   public final static String ALIGN_COLUMNS_CONFIG = "align.columns";
   public final static String SPARK_SQL_CASE_SENSITIVE_CONFIG = "spark.sql.caseSensitive";
 
-  private Config config;
+  private String tableName;
   private ConfigUtils.OptionMap options;
+  private String[] partitionColumns;
+  private boolean doesAlignColumns;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
+    tableName = config.getString(TABLE_CONFIG);
 
-    if (!config.hasPath(TABLE_CONFIG)) {
-      throw new RuntimeException("Hive output requires '" + TABLE_CONFIG + "' property");
+    if (config.hasPath(PARTITION_BY_CONFIG)) {
+      List<String> colNames = config.getStringList(PARTITION_BY_CONFIG);
+      partitionColumns = colNames.toArray(new String[0]);
     }
+
+    doesAlignColumns = ConfigUtils.getOrElse(config, ALIGN_COLUMNS_CONFIG, false);
 
     if (config.hasPath(LOCATION_CONFIG) || config.hasPath(OPTIONS_CONFIG)) {
       options = new ConfigUtils.OptionMap(config);
@@ -85,14 +91,14 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
   public void applyBulkMutations(List<Tuple2<MutationType, Dataset<Row>>> planned) {    
     for (Tuple2<MutationType, Dataset<Row>> plan : planned) {
       MutationType mutationType = plan._1();
-      Dataset<Row> mutation = (getAlignColumns()) ? alignColumns(plan._2()) : plan._2();
+      Dataset<Row> mutation = (doesAlignColumns) ? alignColumns(plan._2()) : plan._2();
       DataFrameWriter<Row> writer = mutation.write();
 
-      if (hasPartitionColumns()) {
-        writer = writer.partitionBy(getPartitionColumns());
+      if (partitionColumns != null) {
+        writer = writer.partitionBy(partitionColumns);
       }
 
-      if (hasOptions()) {
+      if (options != null) {
         writer = writer.options(options);
       }
 
@@ -107,7 +113,7 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
           throw new RuntimeException("Hive output does not support mutation type: " + mutationType);
       }
 
-      writer.insertInto(getTableName());
+      writer.insertInto(tableName);
     }
   }
 
@@ -126,42 +132,34 @@ public class HiveOutput implements BulkOutput, ProvidesAlias {
     }
 
     List<String> tableCols = new ArrayList<String>();
-    for (String col : Contexts.getSparkSession().table(getTableName()).schema().fieldNames()) {
+    for (String col : Contexts.getSparkSession().table(tableName).schema().fieldNames()) {
       tableCols.add((caseSensitive) ? col : col.toLowerCase());
     }
 
     List<Column> alignedCols = new ArrayList<Column>();
     for (String column : tableCols) {
-      alignedCols.add((inputCols.contains(column)) ? functions.col(column) : 
+      alignedCols.add((inputCols.contains(column)) ? functions.col(column) :
                                                      functions.lit(null).alias(column));
-    } 
+    }
 
     return input.select(alignedCols.toArray(new Column[alignedCols.size()]));
-  }
-
-  private boolean hasPartitionColumns() {
-    return config.hasPath(PARTITION_BY_CONFIG);
-  }
-
-  private boolean hasOptions() {
-    return options != null;
-  }
-
-  private String[] getPartitionColumns() {
-    List<String> colNames = config.getStringList(PARTITION_BY_CONFIG);
-    return colNames.toArray(new String[colNames.size()]) ;
-  }
-
-  private String getTableName() {
-    return config.getString(TABLE_CONFIG);
-  }
-
-  private boolean getAlignColumns() {
-    return config.hasPath(ALIGN_COLUMNS_CONFIG) && config.getBoolean(ALIGN_COLUMNS_CONFIG);
   }
 
   @Override
   public String getAlias() {
     return "hive";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(TABLE_CONFIG, ConfigValueType.STRING)
+        .optionalPath(LOCATION_CONFIG, ConfigValueType.STRING)
+        .optionalPath(OPTIONS_CONFIG, ConfigValueType.OBJECT)
+        .optionalPath(PARTITION_BY_CONFIG, ConfigValueType.LIST)
+        .optionalPath(ALIGN_COLUMNS_CONFIG, ConfigValueType.BOOLEAN)
+        .handlesOwnValidationPath(OPTIONS_CONFIG)
+        .build();
+  }
+
 }

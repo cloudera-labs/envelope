@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -72,6 +73,7 @@ public class TestCheckForNullsRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     CheckForNullsRowRule rule = new CheckForNullsRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("fieldscheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", null, 34, new BigDecimal("0.00"));

@@ -17,12 +17,10 @@
  */
 package com.cloudera.labs.envelope.kafka.serde;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -33,10 +31,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestAvroSerializer {
 

@@ -24,7 +24,7 @@ public class RowRuleFactory extends LoadableFactory<RowRule> {
 
   private static final String TYPE_CONFIG_NAME = "type";
 
-  public static RowRule create(String name, Config config) {
+  public static RowRule create(String name, Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Rule type not specified");
     }
@@ -37,7 +37,9 @@ public class RowRuleFactory extends LoadableFactory<RowRule> {
       throw new RuntimeException(e);
     }
 
-    rule.configure(name, config);
+    if (configure) {
+      rule.configure(name, config);
+    }
 
     return rule;
   }

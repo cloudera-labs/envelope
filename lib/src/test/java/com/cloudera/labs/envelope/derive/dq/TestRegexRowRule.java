@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -53,6 +54,7 @@ public class TestRegexRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RegexRowRule rule = new RegexRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("namecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));

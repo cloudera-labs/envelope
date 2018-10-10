@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
 
 public class TestSQLDeriver {
@@ -42,7 +43,8 @@ public class TestSQLDeriver {
     configMap.put(SQLDeriver.QUERY_LITERAL_CONFIG_NAME, "SELECT * FROM literaltable");
     Config config = ConfigFactory.parseMap(configMap);
 
-    Deriver deriver = new SQLDeriver();
+    SQLDeriver deriver = new SQLDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Object result = deriver.derive(Maps.<String, Dataset<Row>>newHashMap()).collectAsList().get(0).get(0);
@@ -58,7 +60,8 @@ public class TestSQLDeriver {
     configMap.put(SQLDeriver.QUERY_FILE_CONFIG_NAME, getClass().getResource("/sql/query_without_parameters.sql").getPath());
     Config config = ConfigFactory.parseMap(configMap);
 
-    Deriver deriver = new SQLDeriver();
+    SQLDeriver deriver = new SQLDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Object result = deriver.derive(Maps.<String, Dataset<Row>>newHashMap()).collectAsList().get(0).get(0);
@@ -74,7 +77,8 @@ public class TestSQLDeriver {
     configMap.put(SQLDeriver.PARAMETER_PREFIX_CONFIG_NAME + ".param2", "val2");
     Config config = ConfigFactory.parseMap(configMap);
 
-    Deriver deriver = new SQLDeriver();
+    SQLDeriver deriver = new SQLDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Row result = deriver.derive(Maps.<String, Dataset<Row>>newHashMap()).collectAsList().get(0);

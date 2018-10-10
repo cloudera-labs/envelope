@@ -17,9 +17,9 @@
  */
 package com.cloudera.labs.envelope.kudu;
 
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -31,12 +31,10 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.deploy.yarn.security.ServiceCredentialProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import scala.Option;
+
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class KuduServiceCredentialProvider implements ServiceCredentialProvider {
   

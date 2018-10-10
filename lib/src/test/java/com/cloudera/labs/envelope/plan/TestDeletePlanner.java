@@ -17,10 +17,9 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -28,12 +27,11 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
-
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.typesafe.config.ConfigFactory;
-
 import scala.Tuple2;
+
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestDeletePlanner {
 

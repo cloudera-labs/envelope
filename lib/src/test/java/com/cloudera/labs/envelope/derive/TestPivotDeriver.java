@@ -17,18 +17,6 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -36,6 +24,18 @@ import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestPivotDeriver {
 
@@ -59,8 +59,9 @@ public class TestPivotDeriver {
         .withValue(PivotDeriver.ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("entity_id")))
         .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();
@@ -91,8 +92,9 @@ public class TestPivotDeriver {
         .withValue(PivotDeriver.ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("entity_id")))
         .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();
@@ -123,8 +125,9 @@ public class TestPivotDeriver {
         .withValue(PivotDeriver.ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("entity_id")))
         .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();
@@ -156,8 +159,9 @@ public class TestPivotDeriver {
             Lists.newArrayList("entity_id1", "entity_id2", "entity_id3")))
         .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();
@@ -189,8 +193,9 @@ public class TestPivotDeriver {
         .withValue(PivotDeriver.PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("key"))
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(PivotDeriver.PIVOT_KEYS_SOURCE_CONFIG, ConfigValueFactory.fromAnyRef(PivotDeriver.PIVOT_KEYS_SOURCE_DYNAMIC));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();
@@ -224,8 +229,9 @@ public class TestPivotDeriver {
         .withValue(PivotDeriver.PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(PivotDeriver.PIVOT_KEYS_SOURCE_CONFIG, ConfigValueFactory.fromAnyRef(PivotDeriver.PIVOT_KEYS_SOURCE_STATIC))
         .withValue(PivotDeriver.PIVOT_KEYS_LIST_CONFIG, ConfigValueFactory.fromAnyRef(Lists.newArrayList("hello", "world")));
-    
-    Deriver d = new PivotDeriver();
+
+    PivotDeriver d = new PivotDeriver();
+    assertNoValidationFailures(d, config);
     d.configure(config);
     
     List<Row> results = d.derive(dependencies).collectAsList();

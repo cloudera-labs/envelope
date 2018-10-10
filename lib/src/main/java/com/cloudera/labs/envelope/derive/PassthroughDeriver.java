@@ -17,14 +17,13 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.Iterator;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.typesafe.config.Config;
+import java.util.Iterator;
+import java.util.Map;
 
 public class PassthroughDeriver implements Deriver, ProvidesAlias {
 
@@ -57,4 +56,5 @@ public class PassthroughDeriver implements Deriver, ProvidesAlias {
   public String getAlias() {
     return "passthrough";
   }
+  
 }

@@ -18,11 +18,13 @@
 package com.cloudera.labs.envelope.repetition;
 
 import com.cloudera.labs.envelope.run.BatchStep;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
 
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractRepetition implements Repetition {
+public abstract class AbstractRepetition implements Repetition, ProvidesValidations {
 
   private static final String MIN_REPEAT_INTERVAL = "min-repeat-interval";
   private static final long DEFAULT_MIN_INTERVAL_MS = 60000;
@@ -51,6 +53,13 @@ public abstract class AbstractRepetition implements Repetition {
       Repetitions.get().addRepeatingStep(step);
       lastRepeat = currentTime;
     }
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(MIN_REPEAT_INTERVAL)
+        .build();
   }
 
 }

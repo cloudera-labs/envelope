@@ -20,14 +20,22 @@ package com.cloudera.labs.envelope.derive.dq;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validation;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.Validity;
+import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public class RangeRowRule implements RowRule, ProvidesAlias {
+public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations {
 
   public static final String RANGE_CONFIG = "range";
   public static final String FIELD_TYPE_CONFIG = "fieldtype";
@@ -46,20 +54,14 @@ public class RangeRowRule implements RowRule, ProvidesAlias {
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    ConfigUtils.assertConfig(config, FIELDS_CONFIG);
     fields = config.getStringList(FIELDS_CONFIG);
     if (config.hasPath(FIELD_TYPE_CONFIG)) {
       fieldType = getFieldType(config.getString(FIELD_TYPE_CONFIG));
     }
-    ConfigUtils.assertConfig(config, RANGE_CONFIG);
     List range = getValueList(fieldType, config.getAnyRefList(RANGE_CONFIG));
-    if (range.size() == 2) {
-      lower = (Comparable) range.get(0);
-      upper = (Comparable) range.get(1);
-    } else {
-      throw new RuntimeException("Range must be a length-2 list");
-    }
-    ignoreNulls = config.hasPath(IGNORE_NULLS_CONFIG) && config.getBoolean(IGNORE_NULLS_CONFIG);
+    lower = (Comparable) range.get(0);
+    upper = (Comparable) range.get(1);
+    ignoreNulls = ConfigUtils.getOrElse(config, IGNORE_NULLS_CONFIG, false);
   }
 
   @Override
@@ -134,4 +136,30 @@ public class RangeRowRule implements RowRule, ProvidesAlias {
   public String getAlias() {
     return "range";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(RANGE_CONFIG, ConfigValueType.LIST)
+        .optionalPath(FIELD_TYPE_CONFIG, ConfigValueType.STRING)
+        .optionalPath(IGNORE_NULLS_CONFIG, ConfigValueType.BOOLEAN)
+        .add(new Validation() {
+          @Override
+          public ValidationResult validate(Config config) {
+            if (config.getAnyRefList(RANGE_CONFIG).size() != 2) {
+              return new ValidationResult(Validity.INVALID, "Range must be a length-2 list");
+            }
+            else {
+              return new ValidationResult(Validity.VALID, "Range is a length-2 list");
+            }
+          }
+          @Override
+          public Set<String> getKnownPaths() {
+            return Sets.newHashSet(RANGE_CONFIG);
+          }
+        })
+        .build();
+  }
+  
 }

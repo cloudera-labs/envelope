@@ -17,12 +17,11 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import java.util.List;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.plan.MutationType;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.plan.MutationType;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Random outputs write data out in individual mutations of a row at a time.

@@ -17,16 +17,12 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -34,19 +30,25 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestStringDatetimeTimeModel {
 
-  private TimeModel tm;
+  private StringDatetimeTimeModel tm;
   private StructField field;
   private StructType schema;
   private Row first, second;
   private DateFormat format;
+  private Config config;
   
   @Before
   public void before() {
@@ -54,6 +56,8 @@ public class TestStringDatetimeTimeModel {
     schema = DataTypes.createStructType(Lists.newArrayList(field));
     
     tm = new StringDatetimeTimeModel();
+    config = ConfigFactory.empty();
+    assertNoValidationFailures(tm, config);
     tm.configure(ConfigFactory.empty(), Lists.newArrayList(field.name()));
     
     first = new RowWithSchema(schema, "2017-12-31 23:45:12.345");
@@ -129,8 +133,10 @@ public class TestStringDatetimeTimeModel {
   @Test
   public void testCustomFormat() throws ParseException {
     format = new SimpleDateFormat("dd-MMM-yyyy HH mm ss SSS");
-    tm.configure(ConfigFactory.empty().withValue(StringDateTimeModel.DATETIME_FORMAT_CONFIG,
-        ConfigValueFactory.fromAnyRef("dd-MMM-yyyy HH mm ss SSS")), Lists.newArrayList(field.name()));
+    config = config.withValue(StringDateTimeModel.DATETIME_FORMAT_CONFIG,
+        ConfigValueFactory.fromAnyRef("dd-MMM-yyyy HH mm ss SSS"));
+    assertNoValidationFailures(tm, config);
+    tm.configure(config, Lists.newArrayList(field.name()));
     
     first = new RowWithSchema(schema, "31-DEC-2017 23 45 12 345");
     second = new RowWithSchema(schema, "01-JAN-2018 00 00 00 000");

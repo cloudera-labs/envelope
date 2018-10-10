@@ -24,20 +24,22 @@ public class OutputFactory extends LoadableFactory<Output> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Output create(Config config) {
+  public static Output create(Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Output type not specified");
     }
 
     String outputType = config.getString(TYPE_CONFIG_NAME);
-    Output output = null;
+    Output output;
     try {
       output = loadImplementation(Output.class, outputType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    output.configure(config);
+    if (configure) {
+      output.configure(config);
+    }
 
     return output;
   }

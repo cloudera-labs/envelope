@@ -17,11 +17,10 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
 
 public class PlannerUtils {
 

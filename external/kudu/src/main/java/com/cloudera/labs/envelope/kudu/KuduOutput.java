@@ -30,11 +30,25 @@
  */
 package com.cloudera.labs.envelope.kudu;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.output.BulkOutput;
+import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.AccumulatorRequest;
+import com.cloudera.labs.envelope.spark.Accumulators;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.spark.UsesAccumulators;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -61,26 +75,14 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.output.BulkOutput;
-import com.cloudera.labs.envelope.output.RandomOutput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.AccumulatorRequest;
-import com.cloudera.labs.envelope.spark.Accumulators;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.spark.UsesAccumulators;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
-public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, ProvidesAlias {
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, ProvidesAlias, ProvidesValidations {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_CONFIG_NAME = "table.name";
@@ -532,14 +534,14 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
    * Returns whether or not we should ignore duplicate rows
    */
   private boolean isInsertIgnore() {
-    return config.hasPath(INSERT_IGNORE_CONFIG_NAME) && config.getBoolean(INSERT_IGNORE_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, INSERT_IGNORE_CONFIG_NAME, false);
   }
 
   /**
    * Returns whether or not we should ignore missing columns when writing to Kudu
    */
   private boolean ignoreMissingColumns() {
-    return config.hasPath(IGNORE_MISSING_COLUMNS_CONFIG_NAME) && config.getBoolean(IGNORE_MISSING_COLUMNS_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, IGNORE_MISSING_COLUMNS_CONFIG_NAME, false);
   }
   
   private boolean hasAccumulators() {
@@ -565,6 +567,16 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
   @Override
   public String getAlias() {
     return "kudu";
+  }
+  
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(CONNECTION_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(TABLE_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(INSERT_IGNORE_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .optionalPath(IGNORE_MISSING_COLUMNS_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .build();
   }
 
 }

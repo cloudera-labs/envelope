@@ -17,19 +17,21 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.Row;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
-
-public class EnumRowRule implements RowRule, ProvidesAlias {
+public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations {
 
   private static final String FIELDS_CONFIG = "fields";
   private static final String FIELD_TYPE_CONFIG = "fieldtype";
@@ -42,16 +44,12 @@ public class EnumRowRule implements RowRule, ProvidesAlias {
   private Set validValues;
   private List<String> fields;
   private Class fieldType;
-  private boolean caseSensitive = DEFAULT_CASE_SENSITIVITY;
+  private boolean caseSensitive;
 
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    ConfigUtils.assertConfig(config, FIELDS_CONFIG);
-    ConfigUtils.assertConfig(config, VALUES_CONFIG);
-    if (config.hasPath(CASE_SENSITIVE_CONFIG)) {
-      caseSensitive = config.getBoolean(CASE_SENSITIVE_CONFIG);
-    }
+    this.caseSensitive = ConfigUtils.getOrElse(config, CASE_SENSITIVE_CONFIG, DEFAULT_CASE_SENSITIVITY);
     this.fieldType = getFieldType(config.getString(FIELD_TYPE_CONFIG));
     this.validValues = getValueSet(fieldType, config.getAnyRefList(VALUES_CONFIG));
     if (!caseSensitive && fieldType == String.class) {
@@ -120,4 +118,15 @@ public class EnumRowRule implements RowRule, ProvidesAlias {
   public String getAlias() {
     return "enum";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(VALUES_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPE_CONFIG, ConfigValueType.STRING)
+        .optionalPath(CASE_SENSITIVE_CONFIG, ConfigValueType.BOOLEAN)
+        .build();
+  }
+  
 }

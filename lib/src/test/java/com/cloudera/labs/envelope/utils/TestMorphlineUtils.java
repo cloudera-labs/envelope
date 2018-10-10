@@ -17,15 +17,11 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Lists;
+import mockit.Expectations;
+import mockit.Mocked;
+import mockit.Verifications;
+import mockit.integration.junit4.JMockit;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
@@ -40,12 +36,14 @@ import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.MorphlineRuntimeException;
 import org.kitesdk.morphline.api.Record;
 
-import com.google.common.collect.Lists;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import mockit.Expectations;
-import mockit.Mocked;
-import mockit.Verifications;
-import mockit.integration.junit4.JMockit;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  *

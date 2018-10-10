@@ -17,8 +17,12 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.io.File;
-
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import mockit.Expectations;
+import mockit.Mocked;
+import mockit.integration.junit4.JMockit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
@@ -27,7 +31,6 @@ import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kitesdk.morphline.api.Command;
@@ -37,13 +40,7 @@ import org.kitesdk.morphline.api.MorphlineRuntimeException;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Compiler;
 
-import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-
-import mockit.Expectations;
-import mockit.Mocked;
-import mockit.integration.junit4.JMockit;
+import java.io.File;
 
 /**
  *
@@ -73,21 +70,6 @@ public class TestMorphlineTranslator {
     stringMorphline = null;
     byteMorphline = null;
     config = null;
-  }
-
-  @Test (expected = MorphlineCompilationException.class)
-  public void missingMorphlineFile() throws Exception {
-    stringMorphline.configure(config);
-  }
-
-  @Test (expected = MorphlineCompilationException.class)
-  public void emptyMorphlineFile() throws Exception {
-
-    new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = "";
-    }};
-
-    stringMorphline.configure(config);
   }
 
   @Test
@@ -175,47 +157,6 @@ public class TestMorphlineTranslator {
     Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
     Assert.assertEquals("Invalid field value", "The Message", row.get(1)); // "str"
     Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-
-  @Test
-  @Ignore
-  public void stringKeyValid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-16";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-key";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    stringMorphline.configure(config);
-    String key = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(key, "The Message");
-    Row row = result.iterator().next();
-
-    Assert.assertNotNull("Row is null", result);
-    Assert.assertEquals("Invalid number of fields", 3, row.length());
-    Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
-    Assert.assertEquals("Invalid field value", "The Message", row.get(1)); // "str"
-    Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-  @Test
-  @Ignore
-  public void stringKeyInvalid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "default";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
   }
 
   @Test

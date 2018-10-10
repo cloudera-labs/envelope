@@ -20,33 +20,34 @@ package com.cloudera.labs.envelope.output;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import mockit.Deencapsulation;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.StructType;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+import scala.Tuple2;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import mockit.Deencapsulation;
-import com.google.common.collect.Lists;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
-import org.junit.After;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import scala.Tuple2;
 
-/**
- *
- */
 public class TestHiveOutput {
 
   private static String HIVE_DATA = "/hive/sample-hive.json";
@@ -77,13 +78,13 @@ public class TestHiveOutput {
     config = null;
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void configureNoTable() {
     Map<String, Object> paramMap = new HashMap<>();
     config = ConfigFactory.parseMap(paramMap);
 
     HiveOutput hiveOutput = new HiveOutput();
-    hiveOutput.configure(config);
+    assertValidationFailures(hiveOutput, config);
   }
 
   @Test
@@ -93,6 +94,7 @@ public class TestHiveOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     HiveOutput hiveOutput = new HiveOutput();
+    assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
   }
 
@@ -104,6 +106,7 @@ public class TestHiveOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     HiveOutput hiveOutput = new HiveOutput();
+    assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
 
     Map<String, String> optionsMap = Deencapsulation.getField(hiveOutput, "options");
@@ -122,6 +125,7 @@ public class TestHiveOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     HiveOutput hiveOutput = new HiveOutput();
+    assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
 
     Map<String, String> optionsMap = Deencapsulation.getField(hiveOutput, "options");
@@ -137,6 +141,7 @@ public class TestHiveOutput {
     paramMap.put(HiveOutput.TABLE_CONFIG, targetTable);
     config = ConfigFactory.parseMap(paramMap);
     HiveOutput hiveOutput = new HiveOutput();
+    assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
 
     StructType targetSchema = RowUtils.structTypeFor(
@@ -171,6 +176,7 @@ public class TestHiveOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     HiveOutput hiveOutput = new HiveOutput();
+    assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
     
     hiveOutput.applyBulkMutations(appendPlannerSetup());

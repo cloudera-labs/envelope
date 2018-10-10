@@ -17,13 +17,16 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.TableName;
@@ -45,19 +48,14 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
-
 import scala.Tuple2;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestHBaseOutput {
 

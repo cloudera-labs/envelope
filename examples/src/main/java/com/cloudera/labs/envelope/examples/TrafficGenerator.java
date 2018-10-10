@@ -17,11 +17,11 @@
  */
 package com.cloudera.labs.envelope.examples;
 
-import java.util.Properties;
-import java.util.Random;
-
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+
+import java.util.Properties;
+import java.util.Random;
 
 public class TrafficGenerator {
 

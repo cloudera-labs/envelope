@@ -17,20 +17,22 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.util.Iterator;
-
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
+import java.util.Iterator;
+import java.util.Set;
+
 @SuppressWarnings("serial")
-public class TranslateFunction<K, V> implements FlatMapFunction<Tuple2<K, V>, Row> {
+public class TranslateFunction<K, V> implements FlatMapFunction<Tuple2<K, V>, Row>, InstantiatesComponents {
   
   private Config config;
   private Translator<K, V> translator;
@@ -41,26 +43,44 @@ public class TranslateFunction<K, V> implements FlatMapFunction<Tuple2<K, V>, Ro
     this.config = config;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Iterator<Row> call(Tuple2<K, V> keyAndValue) throws Exception {
     K key = keyAndValue._1;
     V value = keyAndValue._2;
     
-    if (translator == null) {
-      translator = (Translator<K, V>)TranslatorFactory.create(config);
-      LOG.info("Translator created: " + translator.getClass().getName());
-    }
-    
-    Iterable<Row> translated = translator.translate(key, value);
+    Iterable<Row> translated = getTranslator(true).translate(key, value);
     
     // TODO: Optionally append raw message
 
     return translated.iterator();
   }
   
+  @SuppressWarnings("unchecked")
+  public Translator<K, V> getTranslator(boolean configure) {
+    if (configure) {
+      if (translator == null) {
+        translator = (Translator<K, V>)TranslatorFactory.create(config, configure);
+        LOG.debug("Translator created: " + translator.getClass().getName());
+      }
+      return translator;
+    }
+    else {
+      return (Translator<K, V>)TranslatorFactory.create(config, configure);
+    }
+  }
+  
   public StructType getSchema() {
-    return TranslatorFactory.create(config).getSchema();
+    return TranslatorFactory.create(config, true).getSchema();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    Translator translator = getTranslator(configure);
+
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+    components.add(new InstantiatedComponent(translator, config, "Translator"));
+
+    return components;
   }
   
 }

@@ -17,19 +17,21 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.typesafe.config.Config;
+import java.util.Map;
 
-public class CountDatasetRule implements DatasetRule, ProvidesAlias {
+public class CountDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations {
 
   private static final String EXPECTED_LITERAL_CONFIG = "expected.literal";
   private static final String EXPECTED_DEPENDENCY_CONFIG = "expected.dependency";
@@ -46,9 +48,6 @@ public class CountDatasetRule implements DatasetRule, ProvidesAlias {
     }
     if (config.hasPath(EXPECTED_DEPENDENCY_CONFIG)) {
       dependency = config.getString(EXPECTED_DEPENDENCY_CONFIG);
-    }
-    if ((!isLiteral() && !isDependency() || (isLiteral() && isDependency()))) {
-      throw new RuntimeException("Must specify either literal or dependency for expected count");
     }
   }
 
@@ -67,10 +66,6 @@ public class CountDatasetRule implements DatasetRule, ProvidesAlias {
       throw new RuntimeException("Failed to determine expected count: must be specified either as literal or step dependency");
     }
     return dataset.groupBy().count().map(new CheckCount(expected, name), RowEncoder.apply(SCHEMA));
-  }
-
-  private boolean isLiteral() {
-    return expected >= 0;
   }
 
   private boolean isDependency() {
@@ -97,6 +92,15 @@ public class CountDatasetRule implements DatasetRule, ProvidesAlias {
       return new RowWithSchema(SCHEMA, name, row.<Long>getAs("count") == thisExpected);
     }
 
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(EXPECTED_LITERAL_CONFIG, ConfigValueType.NUMBER)
+        .optionalPath(EXPECTED_DEPENDENCY_CONFIG, ConfigValueType.STRING)
+        .exactlyOnePathExists(EXPECTED_LITERAL_CONFIG, EXPECTED_DEPENDENCY_CONFIG)
+        .build();
   }
 
 }

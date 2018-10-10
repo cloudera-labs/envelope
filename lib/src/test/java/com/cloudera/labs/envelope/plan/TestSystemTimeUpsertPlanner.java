@@ -17,26 +17,25 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import scala.Tuple2;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
 
 public class TestSystemTimeUpsertPlanner {
 
@@ -53,7 +52,8 @@ public class TestSystemTimeUpsertPlanner {
   @Test
   public void testPlansUpserts() {
     Config config = ConfigFactory.empty();
-    BulkPlanner planner = new SystemTimeUpsertPlanner();
+    SystemTimeUpsertPlanner planner = new SystemTimeUpsertPlanner();
+    assertNoValidationFailures(planner, config);
     planner.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = planner.planMutationsForSet(dataFrame);
@@ -66,7 +66,8 @@ public class TestSystemTimeUpsertPlanner {
   @Test
   public void testNoLastUpdated() {
     Config config = ConfigFactory.empty();
-    BulkPlanner planner = new SystemTimeUpsertPlanner();
+    SystemTimeUpsertPlanner planner = new SystemTimeUpsertPlanner();
+    assertNoValidationFailures(planner, config);
     planner.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = planner.planMutationsForSet(dataFrame);
@@ -87,7 +88,8 @@ public class TestSystemTimeUpsertPlanner {
     configMap.put(SystemTimeUpsertPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
     Config config = ConfigFactory.parseMap(configMap);
 
-    BulkPlanner planner = new SystemTimeUpsertPlanner();
+    SystemTimeUpsertPlanner planner = new SystemTimeUpsertPlanner();
+    assertNoValidationFailures(planner, config);
     planner.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = planner.planMutationsForSet(dataFrame);

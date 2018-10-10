@@ -17,15 +17,6 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
@@ -33,12 +24,25 @@ import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
-public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";
@@ -68,25 +72,12 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
   @Override
   public void configure(Config config) {
     this.config = config;
-    
-    ConfigUtils.assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, EVENT_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, EVENT_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
-    
-    Config eventTimeModelConfig = config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    Config systemTimeModelConfig = config.hasPath(SYSTEM_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(SYSTEM_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    
-    this.timestampTimeModel = TimeModelFactory.create(eventTimeModelConfig, getTimestampFieldNames());
-    this.eventEffectiveFromTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEventTimeEffectiveFromFieldNames());
-    this.eventEffectiveToTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEventTimeEffectiveToFieldNames());
-    this.systemEffectiveFromTimeModel = TimeModelFactory.create(systemTimeModelConfig, getSystemTimeEffectiveFromFieldNames());
-    this.systemEffectiveToTimeModel = TimeModelFactory.create(systemTimeModelConfig, getSystemTimeEffectiveToFieldNames());
+
+    this.timestampTimeModel = getTimestampTimeModel(true);
+    this.eventEffectiveFromTimeModel = getEventEffectiveFromTimeModel(true);
+    this.eventEffectiveToTimeModel = getEventEffectiveToTimeModel(true);
+    this.systemEffectiveFromTimeModel = getSystemEffectiveFromTimeModel(true);
+    this.systemEffectiveToTimeModel = getSystemEffectiveToTimeModel(true);
   }
 
   @Override
@@ -394,7 +385,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
   }
 
   private boolean doesCarryForward() {
-    return config.hasPath(CARRY_FORWARD_CONFIG_NAME) && config.getBoolean(CARRY_FORWARD_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, CARRY_FORWARD_CONFIG_NAME, false);
   }
 
   // When the arrived record value is null then we have the option to carry forward
@@ -437,9 +428,79 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias {
     return row;
   }
   
+  private Config getEventTimeModelConfig() {
+    return config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+  
+  private Config getSystemTimeModelConfig() {
+    return config.hasPath(SYSTEM_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(SYSTEM_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+
+  private TimeModel getTimestampTimeModel(boolean configure) {
+    return TimeModelFactory.create(
+        getEventTimeModelConfig(), getTimestampFieldNames(), configure);
+  }
+
+  private TimeModel getEventEffectiveFromTimeModel(boolean configure) {
+    return TimeModelFactory.create(
+        getEventTimeModelConfig(), getEventTimeEffectiveFromFieldNames(), configure);
+  }
+
+  private TimeModel getEventEffectiveToTimeModel(boolean configure) {
+    return TimeModelFactory.create(
+        getEventTimeModelConfig(), getEventTimeEffectiveToFieldNames(), configure);
+  }
+
+  private TimeModel getSystemEffectiveFromTimeModel(boolean configure) {
+    return TimeModelFactory.create(
+        getSystemTimeModelConfig(), getSystemTimeEffectiveFromFieldNames(), configure);
+  }
+
+  private TimeModel getSystemEffectiveToTimeModel(boolean configure) {
+    return TimeModelFactory.create(
+        getSystemTimeModelConfig(), getSystemTimeEffectiveToFieldNames(), configure);
+  }
+  
   @Override
   public String getAlias() {
     return "bitemporal";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(KEY_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(TIMESTAMP_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(EVENT_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(EVENT_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(SYSTEM_TIME_EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .optionalPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CARRY_FORWARD_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .optionalPath(SYSTEM_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(EVENT_TIME_MODEL_CONFIG_NAME)
+        .handlesOwnValidationPath(SYSTEM_TIME_MODEL_CONFIG_NAME)
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    this.config = config;
+
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    components.add(new InstantiatedComponent(
+        getEventEffectiveFromTimeModel(configure), getEventTimeModelConfig(), "Event Time Model"));
+    components.add(new InstantiatedComponent(
+        getSystemEffectiveFromTimeModel(configure), getSystemTimeModelConfig(), "System Time Model"));
+
+    return components;
   }
   
 }

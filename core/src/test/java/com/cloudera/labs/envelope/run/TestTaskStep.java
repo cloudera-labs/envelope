@@ -17,44 +17,44 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Map;
-
+import com.cloudera.labs.envelope.task.Task;
+import com.cloudera.labs.envelope.task.TaskFactory;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.run.TaskStep;
-import com.cloudera.labs.envelope.task.Task;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestTaskStep {
-  
+
   public static String customTaskGlobal;
 
   @Test
   public void testCustomTask() {
     customTaskGlobal = "";
-    
+
     Map<String, Object> taskStepConfigMap = Maps.newHashMap();
-    taskStepConfigMap.put("type", "task");
-    taskStepConfigMap.put("class", CustomTask.class.getName());
+    taskStepConfigMap.put(TaskFactory.TYPE_CONFIG_NAME, "task");
+    taskStepConfigMap.put(TaskFactory.CLASS_CONFIG_NAME, CustomTask.class.getName());
     taskStepConfigMap.put("value", "hello");
     Config taskStepConfig = ConfigFactory.parseMap(taskStepConfigMap);
-    
-    TaskStep taskStep = new TaskStep("task_step", taskStepConfig);
-    
+
+    TaskStep taskStep = new TaskStep("task_step");
+    taskStep.configure(taskStepConfig);
+
     taskStep.run(Maps.<String, Dataset<Row>>newHashMap());
-    
+
     assertEquals(customTaskGlobal, "hello");
   }
-  
+
   public static class CustomTask implements Task {
     String value;
-    
+
     @Override
     public void configure(Config config) {
       this.value = config.getString("value");
@@ -65,5 +65,6 @@ public class TestTaskStep {
       customTaskGlobal = this.value;
     }
   }
-  
+
 }
+

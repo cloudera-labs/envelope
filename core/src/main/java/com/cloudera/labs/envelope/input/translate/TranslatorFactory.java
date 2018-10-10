@@ -24,20 +24,22 @@ public class TranslatorFactory extends LoadableFactory<Translator<?,?>> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Translator<?, ?> create(Config config) {
+  public static Translator<?, ?> create(Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Translator type not specified");
     }
 
     String translatorType = config.getString(TYPE_CONFIG_NAME);
-    Translator<?,?> translator = null;
+    Translator<?, ?> translator;
     try {
       translator = loadImplementation(Translator.class, translatorType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    translator.configure(config);
+    if (configure) {
+      translator.configure(config);
+    }
 
     return translator;
   }

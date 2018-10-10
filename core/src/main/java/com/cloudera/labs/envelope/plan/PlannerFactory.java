@@ -24,19 +24,22 @@ public class PlannerFactory extends LoadableFactory<Planner> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Planner create(Config plannerConfig) {
+  public static Planner create(Config plannerConfig, boolean configure) {
     if (!plannerConfig.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Planner type not specified");
     }
 
     String plannerType = plannerConfig.getString(TYPE_CONFIG_NAME);
-    Planner planner = null;
+    Planner planner;
     try {
       planner = loadImplementation(Planner.class, plannerType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    planner.configure(plannerConfig);
+
+    if (configure) {
+      planner.configure(plannerConfig);
+    }
 
     return planner;
   }

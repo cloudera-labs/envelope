@@ -17,24 +17,6 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-import org.junit.After;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.derive.DataQualityDeriver;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
@@ -42,8 +24,24 @@ import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
-
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
 import scala.collection.JavaConverters;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestDataQualityDeriver {
 
@@ -67,11 +65,8 @@ public class TestDataQualityDeriver {
     assertEquals("Step should have DQ deriver", "dq", config.getString("deriver.type"));
 
     DataQualityDeriver dq = new DataQualityDeriver();
-    try {
-      dq.configure(config.getConfig("deriver"));
-    } catch (Exception e) {
-      fail("DQ config should be valid: " + e.getMessage());
-    }
+    assertNoValidationFailures(dq, config.getConfig("deriver"));
+    dq.configure(config.getConfig("deriver"));
   }
 
   @Test
@@ -84,16 +79,11 @@ public class TestDataQualityDeriver {
     assertEquals("Step should have DQ deriver", "dq", config.getString("deriver.type"));
 
     DataQualityDeriver dq = new DataQualityDeriver();
-    try {
-      dq.configure(config.getConfig("deriver"));
-      fail("DQ config should not be valid");
-    } catch (Exception e) {
-      // Good
-    }
+    assertValidationFailures(dq, config.getConfig("deriver"));
   }
 
   @Test
-  public void testRowLevelRules() {
+  public void testRowLevelRules() throws Exception {
     Config config = ConfigUtils.configFromResource("/dq/dq-dataset-good.conf").getConfig("steps.checkrows");
 
     SparkSession sparkSession = Contexts.getSparkSession();
@@ -108,30 +98,25 @@ public class TestDataQualityDeriver {
     dependencies.put("mydata", mydata);
 
     DataQualityDeriver dq = new DataQualityDeriver();
-    try {
-      dq.configure(config.getConfig("deriver"));
-      Dataset<Row> dqResults = dq.derive(dependencies);
-      List<Row> dqRows = dqResults.collectAsList();
+    assertNoValidationFailures(dq, config.getConfig("deriver"));
+    dq.configure(config.getConfig("deriver"));
+    Dataset<Row> dqResults = dq.derive(dependencies);
+    List<Row> dqRows = dqResults.collectAsList();
 
-      assertEquals("Should be two rows", 2, dqRows.size());
-      for (Row row : dqRows) {
-        scala.collection.immutable.Map<String, Boolean> scalaResults = row.getAs("results");
-        Map<String, Boolean> ruleResults = fromScalaMap(scalaResults);
-        assertEquals("Rule results map should have three entries", 3, ruleResults.size());
-        assertTrue("Checkfields should pass", ruleResults.get("r1"));
-        assertTrue("Regex should pass", ruleResults.get("r2"));
-        assertFalse("Range should fail", ruleResults.get("r3"));
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail("DQ config should be valid: " + e.getMessage());
+    assertEquals("Should be two rows", 2, dqRows.size());
+    for (Row row : dqRows) {
+      scala.collection.immutable.Map<String, Boolean> scalaResults = row.getAs("results");
+      Map<String, Boolean> ruleResults = fromScalaMap(scalaResults);
+      assertEquals("Rule results map should have three entries", 3, ruleResults.size());
+      assertTrue("Checkfields should pass", ruleResults.get("r1"));
+      assertTrue("Regex should pass", ruleResults.get("r2"));
+      assertFalse("Range should fail", ruleResults.get("r3"));
     }
   }
 
   @Test
-  public void testDatasetLevelRules() {
+  public void testDatasetLevelRules() throws Exception {
     Config config = ConfigUtils.configFromResource("/dq/dq-dataset-good.conf").getConfig("steps.checkmydata");
-
 
     SparkSession sparkSession = Contexts.getSparkSession();
 
@@ -148,34 +133,25 @@ public class TestDataQualityDeriver {
     dependencies.put("dqparams", dqparams);
 
     DataQualityDeriver dq = new DataQualityDeriver();
-    try {
-      dq.configure(config.getConfig("deriver"));
-      Dataset<Row> dqResults = dq.derive(dependencies);
-      List<Row> dqRows = dqResults.collectAsList();
+    assertNoValidationFailures(dq, config.getConfig("deriver"));
+    dq.configure(config.getConfig("deriver"));
+    Dataset<Row> dqResults = dq.derive(dependencies);
+    List<Row> dqRows = dqResults.collectAsList();
 
-      assertEquals("Should be results from six rules", 6, dqRows.size());
-      Map<String, Row> results = Maps.newHashMap();
-      for (Row row : dqRows) {
-        results.put(row.<String>getAs("name"), row);
-      }
-      assertEquals("Should be results from four different rules", 6, results.size());
-
-      // Check count
-      assertTrue("Count should have passed", results.get("r1").<Boolean>getAs("result"));
-      assertTrue("Checknulls should have passed", results.get("r2").<Boolean>getAs("result"));
-      assertTrue("Regex should have passed", results.get("r3").<Boolean>getAs("result"));
-      assertFalse("Enum should not have passed", results.get("r4").<Boolean>getAs("result"));
-      assertTrue("Checkschema should have passed", results.get("r5").<Boolean>getAs("result"));
-      assertFalse("Checkschema should not have passed", results.get("r6").<Boolean>getAs("result"));
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail("DQ config should be valid: " + e.getMessage());
+    assertEquals("Should be results from six rules", 6, dqRows.size());
+    Map<String, Row> results = Maps.newHashMap();
+    for (Row row : dqRows) {
+      results.put(row.<String>getAs("name"), row);
     }
-  }
+    assertEquals("Should be results from four different rules", 6, results.size());
 
-  @After
-  public void after() {
-    Contexts.closeSparkSession(true);
+    // Check count
+    assertTrue("Count should have passed", results.get("r1").<Boolean>getAs("result"));
+    assertTrue("Checknulls should have passed", results.get("r2").<Boolean>getAs("result"));
+    assertTrue("Regex should have passed", results.get("r3").<Boolean>getAs("result"));
+    assertFalse("Enum should not have passed", results.get("r4").<Boolean>getAs("result"));
+    assertTrue("Checkschema should have passed", results.get("r5").<Boolean>getAs("result"));
+    assertFalse("Checkschema should not have passed", results.get("r6").<Boolean>getAs("result"));
   }
 
   private static <A,B> java.util.Map<A,B> fromScalaMap(scala.collection.immutable.Map<A,B> sMap) {

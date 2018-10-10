@@ -20,7 +20,6 @@ package com.cloudera.labs.envelope.kafka;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;

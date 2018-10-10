@@ -17,12 +17,12 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -33,17 +33,16 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestDecisionStep {
-  
-  BatchStep step1, step3, step4, step5, step6, step7, step8;
-  Set<Step> steps = Sets.newHashSet();
+
+  private BatchStep step1, step3, step4, step5, step6, step7, step8;
+  private Set<Step> steps = Sets.newHashSet();
 
   @Before
   public void initializeSteps() {
@@ -52,83 +51,92 @@ public class TestDecisionStep {
      *                   -false> Batch -> Batch
      *                   -true> Batch -> Batch
      */
-    
+
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
-    step1ConfigMap.put("dependencies", Lists.newArrayList());
+    step1ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList());
     step1ConfigMap.put(DataStep.CACHE_ENABLED_PROPERTY, false);
     step1ConfigMap.put(DataStep.CACHE_STORAGE_LEVEL_PROPERTY, "MEMORY_ONLY");
     Config step1Config = ConfigFactory.parseMap(step1ConfigMap);
-    step1 = new BatchStep("step1", step1Config);
+    step1 = new BatchStep("step1");
+    step1.configure(step1Config);
     steps.add(step1);
-    
+
     // step2 is the decision step added in the tests
-    
+
     Map<String, Object> step3ConfigMap = Maps.newHashMap();
-    step3ConfigMap.put("dependencies", Lists.newArrayList("step2"));
+    step3ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step2"));
     Config step3Config = ConfigFactory.parseMap(step3ConfigMap);
-    step3 = new BatchStep("step3", step3Config);
+    step3 = new BatchStep("step3");
+    step3.configure(step3Config);
     steps.add(step3);
-    
+
     Map<String, Object> step4ConfigMap = Maps.newHashMap();
-    step4ConfigMap.put("dependencies", Lists.newArrayList("step3"));
+    step4ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step3"));
     Config step4Config = ConfigFactory.parseMap(step4ConfigMap);
-    step4 = new BatchStep("step4", step4Config);
+    step4 = new BatchStep("step4");
+    step4.configure(step4Config);
     steps.add(step4);
-    
+
     Map<String, Object> step5ConfigMap = Maps.newHashMap();
-    step5ConfigMap.put("dependencies", Lists.newArrayList("step2"));
+    step5ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step2"));
     Config step5Config = ConfigFactory.parseMap(step5ConfigMap);
-    step5 = new BatchStep("step5", step5Config);
+    step5 = new BatchStep("step5");
+    step5.configure(step5Config);
     steps.add(step5);
-    
+
     Map<String, Object> step6ConfigMap = Maps.newHashMap();
-    step6ConfigMap.put("dependencies", Lists.newArrayList("step5"));
+    step6ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step5"));
     Config step6Config = ConfigFactory.parseMap(step6ConfigMap);
-    step6 = new BatchStep("step6", step6Config);
+    step6 = new BatchStep("step6");
+    step6.configure(step6Config);
     steps.add(step6);
-    
+
     Map<String, Object> step7ConfigMap = Maps.newHashMap();
-    step7ConfigMap.put("dependencies", Lists.newArrayList("step2"));
+    step7ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step2"));
     Config step7Config = ConfigFactory.parseMap(step7ConfigMap);
-    step7 = new BatchStep("step7", step7Config);
+    step7 = new BatchStep("step7");
+    step7.configure(step7Config);
     steps.add(step7);
-    
+
     Map<String, Object> step8ConfigMap = Maps.newHashMap();
-    step8ConfigMap.put("dependencies", Lists.newArrayList("step7"));
+    step8ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step7"));
     Config step8Config = ConfigFactory.parseMap(step8ConfigMap);
-    step8 = new BatchStep("step8", step8Config);
+    step8 = new BatchStep("step8");
+    step8.configure(step8Config);
     steps.add(step8);
   }
-  
+
   @Test
   public void testPruneByLiteralTrue() {
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.LITERAL_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.LITERAL_RESULT_PROPERTY, true);
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step3, step4, step7, step8));
   }
-  
+
   @Test
   public void testPruneByLiteralFalse() {
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.LITERAL_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.LITERAL_RESULT_PROPERTY, false);
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step5, step6));
   }
 
@@ -144,19 +152,20 @@ public class TestDecisionStep {
     );
     Dataset<Row> ds = Contexts.getSparkSession().createDataFrame(rows, schema);
     step1.setData(ds);
-    
+
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.STEP_BY_KEY_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.STEP_BY_KEY_STEP_PROPERTY, "step1");
     step2ConfigMap.put(DecisionStep.STEP_BY_KEY_KEY_PROPERTY, "agerange");
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step3, step4, step7, step8));
   }
 
@@ -172,19 +181,20 @@ public class TestDecisionStep {
     );
     Dataset<Row> ds = Contexts.getSparkSession().createDataFrame(rows, schema);
     step1.setData(ds);
-    
+
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.STEP_BY_KEY_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.STEP_BY_KEY_STEP_PROPERTY, "step1");
     step2ConfigMap.put(DecisionStep.STEP_BY_KEY_KEY_PROPERTY, "namecheck");
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step5, step6));
   }
 
@@ -198,18 +208,19 @@ public class TestDecisionStep {
     );
     Dataset<Row> ds = Contexts.getSparkSession().createDataFrame(rows, schema);
     step1.setData(ds);
-    
+
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.STEP_BY_VALUE_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.STEP_BY_VALUE_STEP_PROPERTY, "step1");
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step3, step4, step7, step8));
   }
 
@@ -223,19 +234,21 @@ public class TestDecisionStep {
     );
     Dataset<Row> ds = Contexts.getSparkSession().createDataFrame(rows, schema);
     step1.setData(ds);
-    
+
     Map<String, Object> step2ConfigMap = Maps.newHashMap();
-    step2ConfigMap.put("dependencies", Lists.newArrayList("step1"));
+    step2ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("step1"));
     step2ConfigMap.put(DecisionStep.IF_TRUE_STEP_NAMES_PROPERTY, Lists.newArrayList("step3", "step7"));
     step2ConfigMap.put(DecisionStep.DECISION_METHOD_PROPERTY, DecisionStep.STEP_BY_VALUE_DECISION_METHOD);
     step2ConfigMap.put(DecisionStep.STEP_BY_VALUE_STEP_PROPERTY, "step1");
     Config step2Config = ConfigFactory.parseMap(step2ConfigMap);
-    RefactorStep step2 = new DecisionStep("step2", step2Config);
+    RefactorStep step2 = new DecisionStep("step2");
+    step2.configure(step2Config);
     steps.add(step2);
-    
+
     Set<Step> refactored = step2.refactor(steps);
-    
+
     assertEquals(refactored, Sets.newHashSet(step1, step2, step5, step6));
   }
-  
+
 }
+

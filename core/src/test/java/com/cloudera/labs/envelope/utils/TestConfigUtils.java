@@ -17,20 +17,22 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.ConfigValueType;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestConfigUtils {
 
@@ -110,6 +112,30 @@ public class TestConfigUtils {
     assertEquals(replacedConfig.getStringList("d").get(1), "REPLACED");
     assertEquals(replacedConfig.getConfig("e").getString("f"), "REPLACED");
     assertEquals(replacedConfig.getConfig("e").getStringList("g").get(0), "REPLACED");
+  }
+
+  @Test
+  public void testCanBeCoerced() {
+    Config config = ConfigFactory.empty().withValue("hello", ConfigValueFactory.fromAnyRef("true"));
+    assertTrue(ConfigUtils.canBeCoerced(config, "hello", ConfigValueType.BOOLEAN));
+  }
+
+  @Test
+  public void testCanNotBeCoerced() {
+    Config config = ConfigFactory.empty().withValue("hello", ConfigValueFactory.fromAnyRef("maybe?"));
+    assertFalse(ConfigUtils.canBeCoerced(config, "hello", ConfigValueType.BOOLEAN));
+  }
+
+  @Test
+  public void getOrElseExists() {
+    Config config = ConfigFactory.empty().withValue("hello", ConfigValueFactory.fromAnyRef(true));
+    assertEquals(true, ConfigUtils.getOrElse(config, "hello", false));
+  }
+
+  @Test
+  public void getOrElseNotExists() {
+    Config config = ConfigFactory.empty().withValue("hello", ConfigValueFactory.fromAnyRef(true));
+    assertEquals(false, ConfigUtils.getOrElse(config, "world", false));
   }
 
 }

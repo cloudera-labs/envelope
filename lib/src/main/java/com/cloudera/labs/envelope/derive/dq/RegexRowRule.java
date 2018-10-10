@@ -17,17 +17,24 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validation;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.Validity;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.typesafe.config.Config;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
-public class RegexRowRule implements RowRule, ProvidesAlias {
+public class RegexRowRule implements RowRule, ProvidesAlias, ProvidesValidations {
 
   private static final String REGEX_CONFIG = "regex";
   private static final String FIELDS_CONFIG = "fields";
@@ -39,8 +46,6 @@ public class RegexRowRule implements RowRule, ProvidesAlias {
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    ConfigUtils.assertConfig(config, REGEX_CONFIG);
-    ConfigUtils.assertConfig(config, FIELDS_CONFIG);
 
     String regex = config.getString(REGEX_CONFIG);
     pattern = Pattern.compile(regex);
@@ -66,4 +71,29 @@ public class RegexRowRule implements RowRule, ProvidesAlias {
   public String getAlias() {
     return "regex";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(REGEX_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
+        .add(new Validation() {
+          @Override
+          public ValidationResult validate(Config config) {
+            try {
+              Pattern.compile(config.getString(REGEX_CONFIG));
+            }
+            catch (PatternSyntaxException pse) {
+              return new ValidationResult(Validity.INVALID, "Regular expression does not have valid syntax");
+            }
+            return new ValidationResult(Validity.VALID, "Regular expression has valid syntax");
+          }
+          @Override
+          public Set<String> getKnownPaths() {
+            return Sets.newHashSet(REGEX_CONFIG);
+          }
+        })
+        .build();
+  }
+  
 }

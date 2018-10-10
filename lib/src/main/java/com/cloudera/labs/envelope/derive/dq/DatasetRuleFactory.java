@@ -24,7 +24,7 @@ public class DatasetRuleFactory extends LoadableFactory<DatasetRule> {
 
   private static final String TYPE_CONFIG_NAME = "type";
 
-  public static DatasetRule create(String name, Config config) {
+  public static DatasetRule create(String name, Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Rule type not specified");
     }
@@ -40,7 +40,9 @@ public class DatasetRuleFactory extends LoadableFactory<DatasetRule> {
       rule = new DatasetRowRuleWrapper();
     }
 
-    rule.configure(name, config);
+    if (configure) {
+      rule.configure(name, config);
+    }
 
     return rule;
   }

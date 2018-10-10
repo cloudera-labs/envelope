@@ -84,7 +84,7 @@ Ensure the following permissions have been granted on this directory:
 
 . Modify `nav-morphline.conf` to update the `zkHost` property to point to your ZooKeeper ensemble. If you changed the Solr collection name in step 6 above, you should also update the `collection` property to reflect the new name.
 
-. Modify `nav-audit.hcon`, reviewing all the properties in the `vars` section and updating them as per your environment.
+. Modify `nav-audit.conf`, reviewing all the properties in the `vars` section and updating them as per your environment.
 
 . _If running in a secured cluster_, modify `submit.sh` to update the `KERBEROS_KEYTAB` and `KERBEROS_PRINCIPAL` variables.
 

@@ -17,20 +17,12 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import mockit.Expectations;
+import mockit.Mocked;
+import mockit.integration.junit4.JMockit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataType;
@@ -44,13 +36,19 @@ import org.junit.matchers.JUnitMatchers;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import mockit.Expectations;
-import mockit.Mocked;
-import mockit.integration.junit4.JMockit;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(JMockit.class)
 public class TestRowUtils {

@@ -17,13 +17,12 @@
  */
 package com.cloudera.labs.envelope;
 
-import java.io.FileWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Envelope Main (entry point) JUnit Test

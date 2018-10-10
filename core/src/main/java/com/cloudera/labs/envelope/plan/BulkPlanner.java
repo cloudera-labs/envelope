@@ -17,12 +17,11 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.List;
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-
 import scala.Tuple2;
+
+import java.util.List;
 
 /**
  * Bulk planners generate bulk mutations of a DataFrame at a time.

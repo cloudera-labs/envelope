@@ -17,24 +17,6 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.spark.Partitioner;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.PairFlatMapFunction;
-import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.functions;
-import org.apache.spark.sql.types.StructType;
-import org.apache.spark.storage.StorageLevel;
-
 import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.input.Input;
@@ -52,23 +34,51 @@ import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.UsesAccumulators;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.Partitioner;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.api.java.function.VoidFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.functions;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A data step is a step that will contain a DataFrame that other steps can use.
  * The DataFrame can be created either by an input or a deriver.
  * The DataFrame can be optionally written to an output, as planned by the planner.
  */
-public abstract class DataStep extends Step implements UsesAccumulators {
+public abstract class DataStep
+    extends Step implements UsesAccumulators, ProvidesValidations, InstantiatesComponents {
 
+  public static final String INPUT_TYPE = "input";
+  public static final String DERIVER_TYPE = "deriver";
+  public static final String PLANNER_TYPE = "planner";
+  public static final String OUTPUT_TYPE = "output";
+  public static final String PARTITIONER_TYPE = "partitioner";
   public static final String CACHE_ENABLED_PROPERTY = "cache.enabled";
   public static final String CACHE_STORAGE_LEVEL_PROPERTY = "cache.storage.level";
   public static final String SMALL_HINT_PROPERTY = "hint.small";
@@ -88,12 +98,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   private Output output;
   private Accumulators accumulators;
 
-  public DataStep(String name, Config config) {
-    super(name, config);
-
-    if (hasInput() && hasDeriver()) {
-      throw new RuntimeException("Steps can not have both an input and a deriver");
-    }
+  public DataStep(String name) {
+    super(name);
   }
 
   public Dataset<Row> getData() {
@@ -133,49 +139,81 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       setSubmitted(false);
     }
   }
-  
-  protected Input getInput() {
-    if (input == null) {
-      if (hasInput()) {
-        Config inputConfig = config.getConfig("input");
-        input = InputFactory.create(inputConfig);
-      }
-    }
-    
-    return input;
-  }
-  
-  protected Deriver getDeriver() {
-    if (deriver == null) {
-      if (hasDeriver()) {
-        Config deriverConfig = config.getConfig("deriver");
-        deriver = DeriverFactory.create(deriverConfig);
-      }
-    }
-    
-    return deriver;
-  }
-  
-  protected Planner getPlanner() {
-    if (planner == null) {
-      if (hasPlanner()) {
-        Config plannerConfig = config.getConfig("planner");
-        planner = PlannerFactory.create(plannerConfig);
-      }
-    }
-    
-    return planner;
+
+  public boolean hasInput() {
+    return config.hasPath(INPUT_TYPE);
   }
 
-  protected Output getOutput() {
-    if (output == null) {
-      if (hasOutput()) {
-        Config outputConfig = config.getConfig("output");
-        output = OutputFactory.create(outputConfig);
+  public boolean hasDeriver() {
+    return config.hasPath(DERIVER_TYPE);
+  }
+
+  public boolean hasPlanner() {
+    return config.hasPath(PLANNER_TYPE);
+  }
+
+  public boolean hasPartitioner() {
+    return config.hasPath(PARTITIONER_TYPE);
+  }
+
+  public boolean hasOutput() {
+    return config.hasPath(OUTPUT_TYPE);
+  }
+  
+  protected Input getInput(boolean configure) {
+    Config inputConfig = config.getConfig(INPUT_TYPE);
+
+    if (configure) {
+      if (input == null) {
+        input = InputFactory.create(inputConfig, configure);
       }
+      return input;
     }
-    
-    return output;
+    else {
+      return InputFactory.create(inputConfig, configure);
+    }
+  }
+  
+  protected Deriver getDeriver(boolean configure) {
+    Config deriverConfig = config.getConfig(DERIVER_TYPE);
+
+    if (configure) {
+      if (deriver == null) {
+        deriver = DeriverFactory.create(deriverConfig, configure);
+      }
+      return deriver;
+    }
+    else {
+      return DeriverFactory.create(deriverConfig, configure);
+    }
+  }
+
+  protected Planner getPlanner(boolean configure) {
+    Config plannerConfig = config.getConfig(PLANNER_TYPE);
+
+    if (configure) {
+      if (planner == null) {
+        planner = PlannerFactory.create(plannerConfig, configure);
+      }
+      return planner;
+    }
+    else {
+      return PlannerFactory.create(plannerConfig, configure);
+    }
+  }
+
+  protected Output getOutput(boolean configure) {
+    Config outputConfig = config.getConfig(OUTPUT_TYPE);
+
+    if (configure) {
+      if (output == null) {
+        output = OutputFactory.create(outputConfig, configure);
+      }
+      return output;
+    }
+    else {
+      return OutputFactory.create(outputConfig, configure);
+    }
   }
 
   private void registerStep() {
@@ -183,9 +221,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private boolean doesCache() {
-    if (!config.hasPath(CACHE_ENABLED_PROPERTY)) return false;
-
-    return config.getBoolean(CACHE_ENABLED_PROPERTY);
+    return ConfigUtils.getOrElse(config, CACHE_ENABLED_PROPERTY, false);
   }
   
   private void cache() {
@@ -238,9 +274,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private boolean usesSmallHint() {
-    if (!config.hasPath(SMALL_HINT_PROPERTY)) return false;
-
-    return config.getBoolean(SMALL_HINT_PROPERTY);
+    return ConfigUtils.getOrElse(config, SMALL_HINT_PROPERTY, false);
   }
 
   private void applySmallHint() {
@@ -248,9 +282,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
   
   private boolean doesPrintSchema() {
-    if (!config.hasPath(PRINT_SCHEMA_ENABLED_PROPERTY)) return false;
-
-    return config.getBoolean(PRINT_SCHEMA_ENABLED_PROPERTY);
+    return ConfigUtils.getOrElse(config, PRINT_SCHEMA_ENABLED_PROPERTY, false);
   }
   
   private void printSchema() {
@@ -260,9 +292,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
   
   private boolean doesPrintData() {
-    if (!config.hasPath(PRINT_DATA_ENABLED_PROPERTY)) return false;
-
-    return config.getBoolean(PRINT_DATA_ENABLED_PROPERTY);
+    return ConfigUtils.getOrElse(config, PRINT_DATA_ENABLED_PROPERTY, false);
   }
   
   private void printData() {
@@ -279,17 +309,17 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public Set<AccumulatorRequest> getAccumulatorRequests() {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
     
-    if (hasInput() && getInput() instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)getInput()).getAccumulatorRequests());
+    if (hasInput() && getInput(false) instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getInput(false)).getAccumulatorRequests());
     }
-    if (hasDeriver() && getDeriver() instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)getDeriver()).getAccumulatorRequests());
+    if (hasDeriver() && getDeriver(false) instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getDeriver(false)).getAccumulatorRequests());
     }
-    if (hasPlanner() && getPlanner() instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)getPlanner()).getAccumulatorRequests());
+    if (hasPlanner() && getPlanner(false) instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getPlanner(false)).getAccumulatorRequests());
     }
-    if (hasOutput() && getOutput() instanceof UsesAccumulators) {
-      requests.addAll(((UsesAccumulators)getOutput()).getAccumulatorRequests());
+    if (hasOutput() && getOutput(false) instanceof UsesAccumulators) {
+      requests.addAll(((UsesAccumulators)getOutput(false)).getAccumulatorRequests());
     }
     
     requests.add(new AccumulatorRequest(ACCUMULATOR_SECONDS_PLANNING, Double.class));
@@ -304,62 +334,94 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   public void receiveAccumulators(Accumulators accumulators) {
     this.accumulators = accumulators;
     
-    if (hasInput() && getInput() instanceof UsesAccumulators) {
-      ((UsesAccumulators)getInput()).receiveAccumulators(accumulators);
+    if (hasInput() && getInput(false) instanceof UsesAccumulators) {
+      ((UsesAccumulators)getInput(false)).receiveAccumulators(accumulators);
     }
-    if (hasDeriver() && getDeriver() instanceof UsesAccumulators) {
-      ((UsesAccumulators)getDeriver()).receiveAccumulators(accumulators);
+    if (hasDeriver() && getDeriver(false) instanceof UsesAccumulators) {
+      ((UsesAccumulators)getDeriver(false)).receiveAccumulators(accumulators);
     }
-    if (hasPlanner() && getPlanner() instanceof UsesAccumulators) {
-      ((UsesAccumulators)getPlanner()).receiveAccumulators(accumulators);
+    if (hasPlanner() && getPlanner(false) instanceof UsesAccumulators) {
+      ((UsesAccumulators)getPlanner(false)).receiveAccumulators(accumulators);
     }
-    if (hasOutput() && getOutput() instanceof UsesAccumulators) {
-      ((UsesAccumulators)getOutput()).receiveAccumulators(accumulators);
+    if (hasOutput() && getOutput(false) instanceof UsesAccumulators) {
+      ((UsesAccumulators)getOutput(false)).receiveAccumulators(accumulators);
     }
   }
 
-  public boolean hasInput() {
-    return config.hasPath("input");
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    this.config = config;
+
+    Set<InstantiatedComponent> validatables = Sets.newHashSet();
+
+    if (hasInput()) {
+      validatables.add(new InstantiatedComponent(
+          getInput(configure), config.getConfig(INPUT_TYPE), "Input"));
+    }
+    if (hasDeriver()) {
+      validatables.add(new InstantiatedComponent(
+          getDeriver(configure), config.getConfig(DERIVER_TYPE), "Deriver"));
+    }
+    if (hasPlanner()) {
+      validatables.add(new InstantiatedComponent(
+          getPlanner(configure), config.getConfig(PLANNER_TYPE), "Planner"));
+    }
+    if (hasOutput()) {
+      validatables.add(new InstantiatedComponent(
+          getOutput(configure), config.getConfig(OUTPUT_TYPE), "Output"));
+    }
+
+    return validatables;
   }
 
-  public boolean hasDeriver() {
-    return config.hasPath("deriver");
-  }
-  
-  public boolean hasPlanner() {
-    return config.hasPath("planner");
-  }
-    
-  public boolean hasPartitioner() {
-    return config.hasPath("partitioner");
-  }
-
-  public boolean hasOutput() {
-    return config.hasPath("output");
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(CACHE_ENABLED_PROPERTY, ConfigValueType.BOOLEAN)
+        .optionalPath(CACHE_STORAGE_LEVEL_PROPERTY, ConfigValueType.STRING)
+        .optionalPath(SMALL_HINT_PROPERTY, ConfigValueType.BOOLEAN)
+        .optionalPath(PRINT_SCHEMA_ENABLED_PROPERTY, ConfigValueType.BOOLEAN)
+        .optionalPath(PRINT_DATA_ENABLED_PROPERTY, ConfigValueType.BOOLEAN)
+        .ifPathHasValue(PRINT_DATA_ENABLED_PROPERTY, true,
+            Validations.single().optionalPath(PRINT_DATA_LIMIT_PROPERTY, ConfigValueType.NUMBER))
+        .optionalPath(INPUT_TYPE, ConfigValueType.OBJECT)
+        .optionalPath(DERIVER_TYPE, ConfigValueType.OBJECT)
+        .optionalPath(PLANNER_TYPE, ConfigValueType.OBJECT)
+        .optionalPath(PARTITIONER_TYPE, ConfigValueType.OBJECT)
+        .optionalPath(OUTPUT_TYPE, ConfigValueType.OBJECT)
+        .exactlyOnePathExists(INPUT_TYPE, DERIVER_TYPE)
+        .handlesOwnValidationPath(INPUT_TYPE)
+        .handlesOwnValidationPath(DERIVER_TYPE)
+        .handlesOwnValidationPath(PLANNER_TYPE)
+        .handlesOwnValidationPath(PARTITIONER_TYPE)
+        .handlesOwnValidationPath(OUTPUT_TYPE)
+        .addAll(super.getValidations())
+        .build();
   }
 
   private void writeOutput() {
-    Config plannerConfig = config.getConfig("planner");
-    validatePlannerOutputCompatibility(getPlanner(), getOutput());
+    Config plannerConfig = config.getConfig(PLANNER_TYPE);
+    Planner planner = getPlanner(true);
+    validatePlannerOutputCompatibility(planner, getOutput(false));
 
     // Plan the mutations, and then apply them to the output, based on the type of planner used
-    if (getPlanner() instanceof RandomPlanner) {      
-      RandomPlanner randomPlanner = (RandomPlanner)getPlanner();
+    if (planner instanceof RandomPlanner) {
+      RandomPlanner randomPlanner = (RandomPlanner)planner;
       List<String> keyFieldNames = randomPlanner.getKeyFieldNames();
-      Config outputConfig = config.getConfig("output");
+      Config outputConfig = config.getConfig(OUTPUT_TYPE);
       JavaRDD<Row> planned = planMutationsByKey(data, keyFieldNames, plannerConfig, outputConfig);
 
       applyMutations(planned, outputConfig);
     }
-    else if (getPlanner() instanceof BulkPlanner) {
-      BulkPlanner bulkPlanner = (BulkPlanner)getPlanner();
+    else if (planner instanceof BulkPlanner) {
+      BulkPlanner bulkPlanner = (BulkPlanner)planner;
       List<Tuple2<MutationType, Dataset<Row>>> planned = bulkPlanner.planMutationsForSet(data);
 
-      BulkOutput bulkOutput = (BulkOutput)getOutput();      
+      BulkOutput bulkOutput = (BulkOutput)getOutput(true);
       bulkOutput.applyBulkMutations(planned);
     }
     else {
-      throw new RuntimeException("Unexpected output class: " + getOutput().getClass().getName());
+      throw new RuntimeException("Unexpected planner class: " + planner.getClass().getName());
     }
   }
 
@@ -398,11 +460,13 @@ public abstract class DataStep extends Step implements UsesAccumulators {
   }
 
   private void handleIncompatiblePlannerOutput(Planner planner, Output output) {
-    throw new RuntimeException("Incompatible planner (" + planner.getClass() + ") and output (" + output.getClass() + ").");
+    throw new RuntimeException("Incompatible planner (" + planner.getClass() +
+        ") and output (" + output.getClass() + ").");
   }
   
   // Group the arriving records by key, attach the existing records for each key, and plan
-  private JavaRDD<Row> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames, Config plannerConfig, Config outputConfig) {
+  private JavaRDD<Row> planMutationsByKey(Dataset<Row> arriving, List<String> keyFieldNames,
+                                          Config plannerConfig, Config outputConfig) {
     JavaPairRDD<Row, Row> keyedArriving = 
         arriving.javaRDD().keyBy(new ExtractKeyFunction(keyFieldNames, accumulators));
 
@@ -440,7 +504,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       Row key = RowUtils.subsetRow(arrived, schema);
       
       long endTime = System.nanoTime();
-      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_EXTRACTING_KEYS).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_EXTRACTING_KEYS).add(
+          (endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
       return key;
     }
@@ -450,7 +515,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
     Config partitionerConfig;
     
     if (hasPartitioner()) {
-      partitionerConfig = config.getConfig("partitioner");      
+      partitionerConfig = config.getConfig(PARTITIONER_TYPE);
     }
     else {
       partitionerConfig = ConfigFactory.empty().withValue(
@@ -488,7 +553,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
 
       // If we have not instantiated the output for this partition, instantiate it
       if (output == null) {
-        output = (RandomOutput)OutputFactory.create(outputConfig);
+        output = (RandomOutput)OutputFactory.create(outputConfig, true);
         if (output instanceof UsesAccumulators) {
             ((UsesAccumulators)output).receiveAccumulators(accumulators);
         }
@@ -511,7 +576,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
           attachExistingToArrivingForKeys(existingForKeys, arrivingForKeys);
       
       long endTime = System.nanoTime();
-      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_EXISTING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_EXISTING).add(
+          (endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
       return arrivingAndExistingForKeys.iterator();
     }
@@ -589,7 +655,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       long startTime = System.nanoTime();
       
       if (planner == null) {
-        planner = (RandomPlanner)PlannerFactory.create(config);
+        planner = (RandomPlanner)PlannerFactory.create(config, true);
         if (planner instanceof UsesAccumulators) {
           ((UsesAccumulators)planner).receiveAccumulators(accumulators);
         }
@@ -602,7 +668,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       Iterable<Row> plannedForKey = planner.planMutationsForKey(key, arrivingRecords, existingRecords);
       
       long endTime = System.nanoTime();
-      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_PLANNING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_PLANNING).add(
+          (endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
 
       return plannedForKey.iterator();
     }
@@ -628,7 +695,7 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       long startTime = System.nanoTime();
 
       if (output == null) {
-        output = (RandomOutput)OutputFactory.create(config);
+        output = (RandomOutput)OutputFactory.create(config, true);
         if (output instanceof UsesAccumulators) {
           ((UsesAccumulators)output).receiveAccumulators(accumulators);
         }
@@ -639,7 +706,8 @@ public abstract class DataStep extends Step implements UsesAccumulators {
       output.applyRandomMutations(planned);
       
       long endTime = System.nanoTime();
-      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_APPLYING).add((endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
+      accumulators.getDoubleAccumulators().get(ACCUMULATOR_SECONDS_APPLYING).add(
+          (endTime - startTime) / 1000.0 / 1000.0 / 1000.0);
     }
   }
 

@@ -20,34 +20,24 @@ package com.cloudera.labs.envelope.repetition;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Repeat the associated step when a flag file is either present or modified on a Hadoop compatible file system.
  */
-public class FlagFileRepetition extends AbstractRepetition implements Runnable, ProvidesAlias {
-
-  private static final Logger LOG = LoggerFactory.getLogger(FlagFileRepetition.class);
-
-  @Override
-  public String getAlias() {
-    return "flagfile";
-  }
-
-  private enum TriggerMode {
-    PRESENT,
-    MODIFIED
-  }
+public class FlagFileRepetition
+    extends AbstractRepetition implements Runnable, ProvidesAlias, ProvidesValidations {
 
   private static final String POLL_INTERVAL_CONFIG = "poll-interval";
   private static final String FLAG_FILE_LOCATION_CONFIG = "file";
@@ -58,6 +48,8 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable, 
   private static final TriggerMode DEFAULT_TRIGGER_MODE = TriggerMode.PRESENT;
   private static final int DEFAULT_NUM_FAILURES = 10;
 
+  private static final Logger LOG = LoggerFactory.getLogger(FlagFileRepetition.class);
+
   private long pollInterval = DEFAULT_POLL_INTERVAL;
   private TriggerMode triggerMode = DEFAULT_TRIGGER_MODE;
   private int numAllowedFailures = DEFAULT_NUM_FAILURES;
@@ -67,10 +59,14 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable, 
   private int currentFailures = 0;
   private long lastModTime = 0;
 
+  private enum TriggerMode {
+    PRESENT,
+    MODIFIED
+  }
+
   @Override
   public void configure(BatchStep step, String name, Config config) {
     super.configure(step, name, config);
-    ConfigUtils.assertConfig(config, FLAG_FILE_LOCATION_CONFIG);
     flagFile = new Path(config.getString(FLAG_FILE_LOCATION_CONFIG));
     if (config.hasPath(POLL_INTERVAL_CONFIG)) {
       pollInterval = config.getDuration(POLL_INTERVAL_CONFIG, TimeUnit.MILLISECONDS);
@@ -132,4 +128,21 @@ public class FlagFileRepetition extends AbstractRepetition implements Runnable, 
       }
     }
   }
+
+  @Override
+  public String getAlias() {
+    return "flagfile";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .addAll(super.getValidations())
+        .mandatoryPath(FLAG_FILE_LOCATION_CONFIG, ConfigValueType.STRING)
+        .optionalPath(POLL_INTERVAL_CONFIG)
+        .optionalPath(TRIGGER_MODE_CONFIG, ConfigValueType.STRING)
+        .optionalPath(NUM_ALLOWED_FAILURES_CONFIG, ConfigValueType.NUMBER)
+        .build();
+  }
+  
 }

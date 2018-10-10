@@ -17,16 +17,15 @@
  */
 package com.cloudera.labs.envelope;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.cloudera.labs.envelope.run.Runner;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class EnvelopeMain {
 

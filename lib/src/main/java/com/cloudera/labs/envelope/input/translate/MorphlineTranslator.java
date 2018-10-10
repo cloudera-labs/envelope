@@ -17,35 +17,33 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.util.List;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
-import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
+import java.util.List;
 
 /**
  * Morphline
  */
-public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlias {
+public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlias, ProvidesValidations {
 
-  // TODO : Move default parameter values to reference.conf? How? Each Translator is separate/nested?
-  // This most likely should use Config.withFallback() on a per instance basis.
   public static final String ENCODING_KEY = "encoding.key";
   public static final String ENCODING_MSG = "encoding.message";
   public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
-  public static final String PRODUCTION_MODE = "production.mode";
   public static final String FIELD_NAMES = "field.names";
   public static final String FIELD_TYPES = "field.types";
 
@@ -63,7 +61,7 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
 
   @Override
   public void configure(Config config) {
-    LOG.trace("Configuring Morphline Translator");
+    LOG.debug("Configuring Morphline Translator");
 
     // Define the encoding values, if necessary
     this.keyEncoding = config.getString(ENCODING_KEY);
@@ -72,10 +70,6 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
     // Set up the Morphline configuration, the file must be located on the local file system
     this.morphlineFile = config.getString(MORPHLINE);
     this.morphlineId = config.getString(MORPHLINE_ID);
-
-    if (this.morphlineFile == null || this.morphlineFile.trim().length() == 0) {
-      throw new MorphlineCompilationException("Missing or empty Morphline File configuration parameter", null);
-    }
 
     // Construct the StructType schema for the Rows
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
@@ -155,4 +149,18 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
   public String getAlias() {
     return "morphline";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(ENCODING_KEY, ConfigValueType.STRING)
+        .mandatoryPath(ENCODING_MSG, ConfigValueType.STRING)
+        .mandatoryPath(MORPHLINE, ConfigValueType.STRING)
+        .mandatoryPath(MORPHLINE_ID, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_NAMES, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPES, ConfigValueType.LIST)
+        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
+        .build();
+  }
+  
 }

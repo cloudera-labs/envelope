@@ -17,26 +17,29 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.StructType;
+
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.StructType;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-
 /**
  * A translator implementation for plain delimited text messages, e.g. CSV.
  */
-public class DelimitedTranslator implements Translator<String, String>, ProvidesAlias {
+public class DelimitedTranslator implements Translator<String, String>, ProvidesAlias, ProvidesValidations {
 
   private String delimiter;
   private List<String> fieldNames;
@@ -58,8 +61,7 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) &&
-                     config.getBoolean(DELIMITER_REGEX_CONFIG_NAME);
+    delimiterRegex = ConfigUtils.getOrElse(config, DELIMITER_REGEX_CONFIG_NAME, false);
     doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
     if (doesAppendRaw) {
       fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
@@ -160,4 +162,17 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
   public String getAlias() {
     return "delimited";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPES_CONFIG_NAME, ConfigValueType.LIST)
+        .optionalPath(DELIMITER_REGEX_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .optionalPath(TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueType.LIST)
+        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
+        .build();
+  }
+  
 }

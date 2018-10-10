@@ -17,14 +17,6 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.LoopStep;
@@ -34,14 +26,23 @@ import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.junit.Test;
+
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestStepUtils {
 
   @Test
   public void testAllStepsSubmitted() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    BatchStep step2 = new BatchStep("step2", ConfigFactory.empty());
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
     
@@ -54,8 +55,10 @@ public class TestStepUtils {
   @Test
   public void testNotAllStepsSubmitted() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    BatchStep step2 = new BatchStep("step2", ConfigFactory.empty());
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
     
@@ -67,9 +70,12 @@ public class TestStepUtils {
   @Test
   public void testGetDependencies() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    BatchStep step2 = new BatchStep("step2", ConfigFactory.empty());
-    BatchStep step3 = new BatchStep("step3", ConfigFactory.empty());
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    BatchStep step3 = new BatchStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
+    step3.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
     steps.add(step3);
@@ -93,8 +99,10 @@ public class TestStepUtils {
   @Test
   public void testHasStreamingStep() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    StreamingStep step2 = new StreamingStep("step2", 
+    BatchStep step1 = new BatchStep("step1");
+    StreamingStep step2 = new StreamingStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(
         ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     steps.add(step1);
     steps.add(step2);
@@ -105,8 +113,10 @@ public class TestStepUtils {
   @Test
   public void testHasNoStreamingStep() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    BatchStep step2 = new BatchStep("step2", ConfigFactory.empty());
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
     
@@ -116,8 +126,10 @@ public class TestStepUtils {
   @Test
   public void testGetStreamingSteps() {
     Set<Step> steps = Sets.newHashSet();
-    BatchStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    StreamingStep step2 = new StreamingStep("step2", 
+    BatchStep step1 = new BatchStep("step1");
+    StreamingStep step2 = new StreamingStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(
         ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     
     steps.add(step1);
@@ -129,17 +141,23 @@ public class TestStepUtils {
 
   @Test
   public void testGetAllDependentSteps() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty().withValue("dependencies", 
+    Step step1 = new BatchStep("step1");
+    Step step2 = new BatchStep("step2");
+    Step step3 = new BatchStep("step3");
+    Step step4 = new BatchStep("step4");
+    Step step5 = new BatchStep("step5");
+    Step step6 = new BatchStep("step6");
+    step1.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet())));
-    Step step2 = new BatchStep("step2", ConfigFactory.empty().withValue("dependencies", 
+    step2.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step1"))));
-    Step step3 = new BatchStep("step3", ConfigFactory.empty().withValue("dependencies", 
+    step3.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step2"))));
-    Step step4 = new BatchStep("step4", ConfigFactory.empty().withValue("dependencies", 
+    step4.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step3"))));
-    Step step5 = new BatchStep("step5", ConfigFactory.empty().withValue("dependencies", 
+    step5.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet())));
-    Step step6 = new BatchStep("step6", ConfigFactory.empty().withValue("dependencies", 
+    step6.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step5"))));
     
     Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4, step5, step6);
@@ -168,11 +186,14 @@ public class TestStepUtils {
 
   @Test
   public void testGetImmediateDependentSteps() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty().withValue("dependencies", 
+    Step step1 = new BatchStep("step1");
+    Step step2 = new BatchStep("step2");
+    Step step3 = new BatchStep("step3");
+    step1.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet())));
-    Step step2 = new BatchStep("step2", ConfigFactory.empty().withValue("dependencies", 
+    step2.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step1"))));
-    Step step3 = new BatchStep("step3", ConfigFactory.empty().withValue("dependencies", 
+    step3.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step2"))));
     Set<Step> steps = Sets.newHashSet(step1, step2, step3);
 
@@ -191,13 +212,17 @@ public class TestStepUtils {
 
   @Test
   public void testGetIndependentNonStreamingSteps() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty().withValue("dependencies", 
+    Step step1 = new BatchStep("step1");
+    Step step2 = new StreamingStep("step2");
+    Step step3 = new BatchStep("step3");
+    Step step4 = new StreamingStep("step4");
+    step1.configure(ConfigFactory.empty().withValue("dependencies",
         ConfigValueFactory.fromIterable(Sets.newHashSet("step3"))));
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty()
+    step2.configure(ConfigFactory.empty()
         .withValue("dependencies", ConfigValueFactory.fromIterable(Sets.newHashSet("step4")))
         .withValue("input.translator", ConfigFactory.empty().root()));
-    Step step3 = new BatchStep("step3", ConfigFactory.empty());
-    Step step4 = new StreamingStep("step4", 
+    step3.configure(ConfigFactory.empty());
+    step4.configure(
         ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4);
     
@@ -206,9 +231,12 @@ public class TestStepUtils {
 
   @Test
   public void testStepNamesAsString() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new BatchStep("step2", ConfigFactory.empty());
-    Step step3 = new BatchStep("step3", ConfigFactory.empty());
+    Step step1 = new BatchStep("step1");
+    Step step2 = new BatchStep("step2");
+    Step step3 = new BatchStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
+    step3.configure(ConfigFactory.empty());
     Set<Step> steps = Sets.newHashSet(step1, step2, step3);
     
     assertTrue(StepUtils.stepNamesAsString(steps).equals("step1, step2, step3") ||
@@ -221,9 +249,12 @@ public class TestStepUtils {
 
   @Test
   public void testResetSteps() throws Exception {
-    DataStep step1 = new BatchStep("step1", ConfigFactory.empty());
-    DataStep step2 = new BatchStep("step2", ConfigFactory.empty());
-    DataStep step3 = new BatchStep("step3", ConfigFactory.empty());
+    DataStep step1 = new BatchStep("step1");
+    DataStep step2 = new BatchStep("step2");
+    DataStep step3 = new BatchStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
+    step3.configure(ConfigFactory.empty());
     
     step1.setData(Contexts.getSparkSession().emptyDataFrame());
     step2.setData(Contexts.getSparkSession().emptyDataFrame());
@@ -244,9 +275,12 @@ public class TestStepUtils {
 
   @Test
   public void testGetDataSteps() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
-    Step step3 = new LoopStep("step3", ConfigFactory.empty());
+    Step step1 = new BatchStep("step1");
+    Step step2 = new StreamingStep("step2");
+    Step step3 = new LoopStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
+    step3.configure(ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
     assertEquals(StepUtils.getDataSteps(steps), Sets.newHashSet(step1, step2));
@@ -254,9 +288,12 @@ public class TestStepUtils {
 
   @Test
   public void testGetStepForName() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
-    Step step3 = new LoopStep("step3", ConfigFactory.empty());
+    Step step1 = new BatchStep("step1");
+    Step step2 = new StreamingStep("step2");
+    Step step3 = new LoopStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
+    step3.configure(ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
     assertEquals(StepUtils.getStepForName("step1", steps).get(), step1);
@@ -266,9 +303,12 @@ public class TestStepUtils {
 
   @Test
   public void testCopySteps() {
-    Step step1 = new BatchStep("step1", ConfigFactory.empty());
-    Step step2 = new StreamingStep("step2", ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
-    Step step3 = new LoopStep("step3", ConfigFactory.empty());
+    Step step1 = new BatchStep("step1");
+    Step step2 = new StreamingStep("step2");
+    Step step3 = new LoopStep("step3");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
+    step3.configure(ConfigFactory.empty());
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
     Set<Step> copiedSteps = StepUtils.copySteps(steps);

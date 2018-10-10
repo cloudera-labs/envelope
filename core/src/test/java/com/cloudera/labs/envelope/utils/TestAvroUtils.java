@@ -17,11 +17,8 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.AnyOf.anyOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-
+import com.google.common.collect.Lists;
+import mockit.integration.junit4.JMockit;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -30,9 +27,10 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.google.common.collect.Lists;
-
-import mockit.integration.junit4.JMockit;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  *

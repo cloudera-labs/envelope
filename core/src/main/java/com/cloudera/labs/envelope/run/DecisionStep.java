@@ -17,20 +17,22 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.List;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.utils.StepUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.MandatoryPathValidation;
+import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.StepUtils;
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
+import java.util.List;
+import java.util.Set;
 
-public class DecisionStep extends RefactorStep {
+public class DecisionStep extends RefactorStep implements ProvidesValidations {
   
   public static final String IF_TRUE_STEP_NAMES_PROPERTY = "if-true-steps";
   public static final String DECISION_METHOD_PROPERTY = "method";
@@ -54,34 +56,27 @@ public class DecisionStep extends RefactorStep {
   private String stepByKeyStepName;
   private String stepByKeyKey;
   private String stepByValueStepName;
-  
-  public DecisionStep(String name, Config config) {
-    super(name, config);
+
+  public DecisionStep(String name) {
+    super(name);
+  }
+
+  @Override
+  public void configure(Config config) {
+    super.configure(config);
     
-    ConfigUtils.assertConfig(config, IF_TRUE_STEP_NAMES_PROPERTY);
     this.ifTrueStepNames = config.getStringList(IF_TRUE_STEP_NAMES_PROPERTY);
-    
-    ConfigUtils.assertConfig(config, DECISION_METHOD_PROPERTY);
-    try {
-      this.decisionMethod = DecisionMethod.valueOf(config.getString(DECISION_METHOD_PROPERTY).toUpperCase());
-    }
-    catch (IllegalArgumentException e) {
-      throw new RuntimeException("Unsupported decision method: " + config.getString(DECISION_METHOD_PROPERTY));
-    }
+    this.decisionMethod = DecisionMethod.valueOf(config.getString(DECISION_METHOD_PROPERTY).toUpperCase());
     
     switch (decisionMethod) {
       case LITERAL:
-        ConfigUtils.assertConfig(config, LITERAL_RESULT_PROPERTY);
         this.literalResult = config.getBoolean(LITERAL_RESULT_PROPERTY);
         break;
       case STEP_BY_KEY:
-        ConfigUtils.assertConfig(config, STEP_BY_KEY_STEP_PROPERTY);
         this.stepByKeyStepName = config.getString(STEP_BY_KEY_STEP_PROPERTY);
-        ConfigUtils.assertConfig(config, STEP_BY_KEY_KEY_PROPERTY);
         this.stepByKeyKey = config.getString(STEP_BY_KEY_KEY_PROPERTY);
         break;
       case STEP_BY_VALUE:
-        ConfigUtils.assertConfig(config, STEP_BY_VALUE_STEP_PROPERTY);
         this.stepByValueStepName = config.getString(STEP_BY_VALUE_STEP_PROPERTY);
         break;
     }
@@ -199,11 +194,30 @@ public class DecisionStep extends RefactorStep {
 
   @Override
   public Step copy() {
-    Step copy = new DecisionStep(this.getName(), this.getConfig());
+    Step copy = new DecisionStep(name);
+    copy.configure(config);
     
     copy.setSubmitted(hasSubmitted());
     
     return copy;
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(IF_TRUE_STEP_NAMES_PROPERTY, ConfigValueType.LIST)
+        .mandatoryPath(DECISION_METHOD_PROPERTY, ConfigValueType.STRING)
+        .allowedValues(DECISION_METHOD_PROPERTY, LITERAL_DECISION_METHOD, STEP_BY_KEY_DECISION_METHOD, STEP_BY_VALUE_DECISION_METHOD)
+        .ifPathHasValue(DECISION_METHOD_PROPERTY, LITERAL_DECISION_METHOD, 
+            new MandatoryPathValidation(LITERAL_RESULT_PROPERTY, ConfigValueType.BOOLEAN))
+        .ifPathHasValue(DECISION_METHOD_PROPERTY, STEP_BY_KEY_DECISION_METHOD, 
+            new MandatoryPathValidation(STEP_BY_KEY_KEY_PROPERTY, ConfigValueType.STRING))
+        .ifPathHasValue(DECISION_METHOD_PROPERTY, STEP_BY_KEY_DECISION_METHOD, 
+            new MandatoryPathValidation(STEP_BY_KEY_STEP_PROPERTY, ConfigValueType.STRING))
+        .ifPathHasValue(DECISION_METHOD_PROPERTY, STEP_BY_VALUE_DECISION_METHOD, 
+            new MandatoryPathValidation(STEP_BY_VALUE_STEP_PROPERTY, ConfigValueType.STRING))
+        .addAll(super.getValidations())
+        .build();
   }
 
 }

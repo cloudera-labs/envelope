@@ -17,15 +17,17 @@
  */
 package com.cloudera.labs.envelope.kudu;
 
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
-public class KuduInput implements BatchInput, ProvidesAlias {
+public class KuduInput implements BatchInput, ProvidesAlias, ProvidesValidations {
 
   public static final String CONNECTION_CONFIG_NAME = "connection";
   public static final String TABLE_NAME_CONFIG_NAME = "table.name";
@@ -55,4 +57,13 @@ public class KuduInput implements BatchInput, ProvidesAlias {
   public String getAlias() {
     return "kudu";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(CONNECTION_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(TABLE_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .build();
+  }
+  
 }

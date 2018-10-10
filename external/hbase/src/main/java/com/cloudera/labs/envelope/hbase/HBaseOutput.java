@@ -17,11 +17,16 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.output.BulkOutput;
+import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.Connection;
@@ -37,17 +42,12 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.output.BulkOutput;
-import com.cloudera.labs.envelope.output.RandomOutput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * HBase output implementing the RandomOutput and BulkOutput APIs.
@@ -101,7 +101,7 @@ import scala.Tuple2;
  *     }
  * </pre>
  */
-public class HBaseOutput implements RandomOutput, BulkOutput, ProvidesAlias {
+public class HBaseOutput implements RandomOutput, BulkOutput, ProvidesAlias, ProvidesValidations {
 
   private static final Logger LOG = LoggerFactory.getLogger(HBaseOutput.class);
 
@@ -118,13 +118,8 @@ public class HBaseOutput implements RandomOutput, BulkOutput, ProvidesAlias {
   @Override
   public void configure(Config config) {
     this.config = config;
-    if (HBaseUtils.validateConfig(config)) {
-      tableName = HBaseUtils.tableInfoFor(config);
-      batchSize = HBaseUtils.batchSizeFor(config);
-    } else {
-      LOG.error("Invalid configuration");
-      throw new IllegalArgumentException("Invalid configuration");
-    }
+    this.tableName = HBaseUtils.tableInfoFor(config);
+    this.batchSize = HBaseUtils.batchSizeFor(config);
   }
 
   @Override
@@ -305,4 +300,10 @@ public class HBaseOutput implements RandomOutput, BulkOutput, ProvidesAlias {
     }
     return connection;
   }
+
+  @Override
+  public Validations getValidations() {
+    return HBaseUtils.getValidations();
+  }
+  
 }

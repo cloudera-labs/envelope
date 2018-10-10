@@ -17,14 +17,13 @@
  */
 package com.cloudera.labs.envelope.kafka.serde;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.base.Joiner;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.base.Joiner;
+import java.util.Map;
 
 public class DelimitedSerializer implements Serializer<Row> {
 

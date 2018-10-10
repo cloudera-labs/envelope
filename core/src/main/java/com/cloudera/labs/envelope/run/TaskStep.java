@@ -17,19 +17,24 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.task.Task;
+import com.cloudera.labs.envelope.task.TaskFactory;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.task.Task;
-import com.cloudera.labs.envelope.task.TaskFactory;
-import com.typesafe.config.Config;
+import java.util.Map;
+import java.util.Set;
 
-public class TaskStep extends Step {
+public class TaskStep extends Step implements ProvidesValidations, InstantiatesComponents {
 
-  public TaskStep(String name, Config config) {
-    super(name, config);
+  public TaskStep(String name) {
+    super(name);
   }
   
   public void run(Map<String, Dataset<Row>> dependencies) {
@@ -42,11 +47,30 @@ public class TaskStep extends Step {
 
   @Override
   public Step copy() {
-    Step copy = new TaskStep(name, config);
+    Step copy = new TaskStep(name);
+    copy.configure(config);
     
     copy.setSubmitted(hasSubmitted());
     
     return copy;
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .addAll(super.getValidations())
+        .allowUnrecognizedPaths()
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) throws Exception {
+    Task task = TaskFactory.create(config, configure);
+
+    Set<InstantiatedComponent> components = Sets.newHashSet(
+        new InstantiatedComponent(task, config, "Task"));
+
+    return components;
   }
 
 }

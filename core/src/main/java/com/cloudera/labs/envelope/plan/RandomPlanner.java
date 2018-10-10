@@ -17,9 +17,9 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.List;
-
 import org.apache.spark.sql.Row;
+
+import java.util.List;
 
 /**
  * Random planners generate individual mutations of a row at a time.

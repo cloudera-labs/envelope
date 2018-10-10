@@ -30,6 +30,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import java.sql.Timestamp;
 
 public class TestKVPTranslator {
@@ -44,8 +45,9 @@ public class TestKVPTranslator {
             Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean", "timestamp")))
         .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
         .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="));
-    
-    Translator<String, String> t = new KVPTranslator();
+
+    KVPTranslator t = new KVPTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate(null, kvps).iterator().next();
     assertEquals(r.length(), 8);
@@ -71,8 +73,9 @@ public class TestKVPTranslator {
         .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
         .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="))
         .withValue(TranslatorUtils.APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
-    
-    Translator<String, String> t = new KVPTranslator();
+
+    KVPTranslator t = new KVPTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate("testkey", kvps).iterator().next();
     assertEquals(r.length(), 9);
@@ -101,7 +104,8 @@ public class TestKVPTranslator {
         .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
             Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));
 
-    Translator<String, String> t = new KVPTranslator();
+    KVPTranslator t = new KVPTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate(null, kvps).iterator().next();
     assertEquals(r.length(), 8);

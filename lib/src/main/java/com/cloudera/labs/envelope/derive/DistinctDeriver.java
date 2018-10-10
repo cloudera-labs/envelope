@@ -17,13 +17,15 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.typesafe.config.Config;
+import java.util.Map;
 
 /**
  * <p>
@@ -35,7 +37,7 @@ import com.typesafe.config.Config;
  * to disambiguate operand for distinct() operation.
  */
 
-public class DistinctDeriver implements Deriver, ProvidesAlias {
+public class DistinctDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   public static final String DISTINCT_DERIVER_ALIAS = "distinct";
   public static final String DISTINCT_STEP_CONFIG = "step";
@@ -83,6 +85,13 @@ public class DistinctDeriver implements Deriver, ProvidesAlias {
         throw new RuntimeException("Invalid \"step\" configuration: " + stepName + " is not listed as dependency: "
             + dependencies.keySet() + "");
     }
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(DISTINCT_STEP_CONFIG, ConfigValueType.STRING)
+        .build();
   }
 
 }

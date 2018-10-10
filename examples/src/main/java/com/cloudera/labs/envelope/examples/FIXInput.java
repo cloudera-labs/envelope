@@ -17,11 +17,10 @@
  */
 package com.cloudera.labs.envelope.examples;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Dataset;
@@ -30,10 +29,10 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 public class FIXInput implements BatchInput {
 

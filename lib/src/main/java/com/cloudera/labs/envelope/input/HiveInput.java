@@ -17,32 +17,28 @@
  */
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.typesafe.config.Config;
-
-public class HiveInput implements BatchInput, ProvidesAlias {
+public class HiveInput implements BatchInput, ProvidesAlias, ProvidesValidations {
 
   public static final String TABLE_CONFIG_NAME = "table";
 
-  private Config config;
+  private String tableName;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
-
-    if (!config.hasPath(TABLE_CONFIG_NAME)) {
-      throw new RuntimeException("Hive input requires '" + TABLE_CONFIG_NAME + "' property");
-    }
+    this.tableName = config.getString(TABLE_CONFIG_NAME);
   }
 
   @Override
   public Dataset<Row> read() throws Exception {
-    String tableName = config.getString(TABLE_CONFIG_NAME);
-
     return Contexts.getSparkSession().read().table(tableName);
   }
 
@@ -50,4 +46,12 @@ public class HiveInput implements BatchInput, ProvidesAlias {
   public String getAlias() {
     return "hive";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(TABLE_CONFIG_NAME, ConfigValueType.STRING)
+        .build();
+  }
+  
 }

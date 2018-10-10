@@ -17,19 +17,18 @@
  */
 package com.cloudera.labs.envelope.kafka.serde;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestDelimitedSerializer {
 

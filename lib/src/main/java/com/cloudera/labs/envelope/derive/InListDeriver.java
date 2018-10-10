@@ -17,19 +17,20 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueType;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -49,7 +50,7 @@ import com.typesafe.config.ConfigValueType;
  * </p>
  */
 
-public class InListDeriver implements Deriver, ProvidesAlias {
+public class InListDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   public static final int INLIST_MAX_LIST_SIZE = 1000;
 
@@ -65,7 +66,6 @@ public class InListDeriver implements Deriver, ProvidesAlias {
   }
 
   private InListType inListType;
-  private Config config;
   private String stepName;
   private String fieldName;
   private String refStepName;
@@ -75,9 +75,9 @@ public class InListDeriver implements Deriver, ProvidesAlias {
   private static final Logger LOGGER = LoggerFactory.getLogger(InListDeriver.class);
 
   @Override
-  public void configure(Config c) {
-    this.config = c;
-    LOGGER.debug("Configure deriver with " + config.toString());
+  public void configure(Config config) {
+    LOGGER.debug("Configuring in-list deriver with " + config.toString());
+
     if (config.hasPath(INLIST_STEP_CONFIG)) {
       stepName = config.getString(INLIST_STEP_CONFIG);
     }
@@ -85,26 +85,14 @@ public class InListDeriver implements Deriver, ProvidesAlias {
       fieldName = config.getString(INLIST_FIELD_CONFIG);
     }
     if (config.hasPath(INLIST_VALUES_CONFIG)) {
-      if (config.hasPath(INLIST_REFSTEP_CONFIG)) {
-        throw new RuntimeException("Configure: In-List deriver config can't contain both \"" + INLIST_VALUES_CONFIG
-            + "\" and \"" + INLIST_REFSTEP_CONFIG + "\"");
-      } else {
-        if (config.getValue(INLIST_VALUES_CONFIG).valueType() == ConfigValueType.LIST) {
-          inList = config.getList(INLIST_VALUES_CONFIG).unwrapped();
-        } else {
-          throw new RuntimeException("Configure: In-List deriver \"" + INLIST_VALUES_CONFIG + "\" should be a LIST");
-        }
-        inListType = InListType.LITERAL;
-      }
+      inList = config.getList(INLIST_VALUES_CONFIG).unwrapped();
+      inListType = InListType.LITERAL;
     } else if (config.hasPath(INLIST_REFSTEP_CONFIG)) {
       refStepName = config.getString(INLIST_REFSTEP_CONFIG);
       if (config.hasPath(INLIST_REFFIELD_CONFIG)) {
         refFieldName = config.getString(INLIST_REFFIELD_CONFIG);
       }
       inListType = InListType.REFERENCE;
-    } else {
-      throw new RuntimeException("Configure: In-List deriver config should contain either \"" + INLIST_VALUES_CONFIG
-          + "\" or \"" + INLIST_REFSTEP_CONFIG + "\" parameter");
     }
   }
 
@@ -210,6 +198,19 @@ public class InListDeriver implements Deriver, ProvidesAlias {
       }
     }
     return inList.toArray(new Object[0]);
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(INLIST_STEP_CONFIG, ConfigValueType.STRING)
+        .optionalPath(INLIST_FIELD_CONFIG, ConfigValueType.STRING)
+        .optionalPath(INLIST_REFSTEP_CONFIG, ConfigValueType.STRING)
+        .optionalPath(INLIST_VALUES_CONFIG, ConfigValueType.LIST)
+        .exactlyOnePathExists(INLIST_REFSTEP_CONFIG, INLIST_VALUES_CONFIG)
+        .ifPathExists(INLIST_REFSTEP_CONFIG,
+            Validations.single().optionalPath(INLIST_REFFIELD_CONFIG, ConfigValueType.STRING))
+        .build();
   }
 
 }

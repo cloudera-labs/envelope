@@ -17,12 +17,20 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.input.Input;
+import com.cloudera.labs.envelope.input.InputFactory;
+import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.spark.AccumulatorRequest;
+import com.cloudera.labs.envelope.spark.Accumulators;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.Contexts.ExecutionMode;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.StepUtils;
+import com.cloudera.labs.envelope.validate.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.*;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.sql.Dataset;
@@ -33,37 +41,30 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.InputFactory;
-import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.spark.AccumulatorRequest;
-import com.cloudera.labs.envelope.spark.Accumulators;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.spark.Contexts.ExecutionMode;
-import com.cloudera.labs.envelope.utils.StepUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigList;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Runner merely submits the pipeline steps to Spark in dependency order.
  * Ultimately the DAG scheduling is being coordinated by Spark, not Envelope.
  */
-@SuppressWarnings("serial")
 public class Runner {
 
+  public static final String STEPS_SECTION_CONFIG = "steps";
   public static final String TYPE_PROPERTY = "type";
   public static final String DATA_TYPE = "data";
   public static final String LOOP_TYPE = "loop";
   public static final String DECISION_TYPE = "decision";
   public static final String TASK_TYPE = "task";
+  public static final String UDFS_SECTION_CONFIG = "udfs";
+  public static final String UDFS_NAME = "name";
+  public static final String UDFS_CLASS = "class";
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
-  
+
   private static ExecutorService threadPool;
   private static Logger LOG = LoggerFactory.getLogger(Runner.class);
 
@@ -72,7 +73,9 @@ public class Runner {
    * @param config The full configuration of the Envelope pipeline
    */
   public static void run(Config config) throws Exception {
-    Set<Step> steps = extractSteps(config);
+    validateConfigurations(config);
+
+    Set<Step> steps = extractSteps(config, true);
     LOG.info("Steps instantiated");
 
     ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
@@ -102,29 +105,29 @@ public class Runner {
     LOG.debug("Runner finished");
   }
   
-  private static Set<Step> extractSteps(Config config) throws Exception {
+  private static Set<Step> extractSteps(Config config, boolean configure) {
     LOG.debug("Starting getting steps");
 
     Set<Step> steps = Sets.newHashSet();
 
-    Set<String> stepNames = config.getObject("steps").keySet();
+    Set<String> stepNames = config.getObject(STEPS_SECTION_CONFIG).keySet();
     for (String stepName : stepNames) {
-      Config stepConfig = config.getConfig("steps").getConfig(stepName);
+      Config stepConfig = config.getConfig(STEPS_SECTION_CONFIG).getConfig(stepName);
 
       Step step;
 
       if (!stepConfig.hasPath(TYPE_PROPERTY) || stepConfig.getString(TYPE_PROPERTY).equals(DATA_TYPE)) {
-        if (stepConfig.hasPath("input")) {
-          Config stepInputConfig = stepConfig.getConfig("input");
-          Input stepInput = InputFactory.create(stepInputConfig);
+        if (stepConfig.hasPath(DataStep.INPUT_TYPE)) {
+          Config stepInputConfig = stepConfig.getConfig(DataStep.INPUT_TYPE);
+          Input stepInput = InputFactory.create(stepInputConfig, false);
 
           if (stepInput instanceof BatchInput) {
             LOG.debug("Adding batch step: " + stepName);
-            step = new BatchStep(stepName, stepConfig);
+            step = new BatchStep(stepName);
           }
           else if (stepInput instanceof StreamInput) {
             LOG.debug("Adding streaming step: " + stepName);
-            step = new StreamingStep(stepName, stepConfig);
+            step = new StreamingStep(stepName);
           }
           else {
             throw new RuntimeException("Invalid step input sub-class for: " + stepName);
@@ -132,26 +135,29 @@ public class Runner {
         }
         else {
           LOG.debug("Adding batch step: " + stepName);
-          step = new BatchStep(stepName, stepConfig);
+          step = new BatchStep(stepName);
         }
       }
       else if (stepConfig.getString(TYPE_PROPERTY).equals(LOOP_TYPE)) {
         LOG.debug("Adding loop step: " + stepName);
-        step = new LoopStep(stepName, stepConfig);
+        step = new LoopStep(stepName);
       }
       else if (stepConfig.getString(TYPE_PROPERTY).equals(TASK_TYPE)) {
         LOG.debug("Adding task step: " + stepName);
-        step = new TaskStep(stepName, stepConfig);
+        step = new TaskStep(stepName);
       }
       else if (stepConfig.getString(TYPE_PROPERTY).equals(DECISION_TYPE)) {
         LOG.debug("Adding decision step: " + stepName);
-        step = new DecisionStep(stepName, stepConfig);
+        step = new DecisionStep(stepName);
       }
       else {
         throw new RuntimeException("Unknown step type: " + stepConfig.getString(TYPE_PROPERTY));
       }
-      
-      LOG.debug("With configuration: " + stepConfig);
+
+      if (configure) {
+        step.configure(stepConfig);
+        LOG.debug("With configuration: " + stepConfig);
+      }
 
       steps.add(step);
     }
@@ -359,6 +365,88 @@ public class Runner {
   private static void shutdownThreadPool() {
     threadPool.shutdown();
   }
+
+  private static void validateConfigurations(Config config) {
+    if (ConfigUtils.getOrElse(config, Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY,
+        !Validator.CONFIGURATION_VALIDATION_ENABLED_DEFAULT))
+    {
+      LOG.info("Envelope configuration validation disabled");
+      return;
+    }
+
+    LOG.info("Validating provided Envelope configuration");
+
+    List<ValidationResult> results = Lists.newArrayList();
+
+    // Validate steps
+    Set<Step> steps;
+    try {
+      steps = extractSteps(config, false);
+    }
+    catch (Exception e) {
+      if (e.getCause() instanceof ClassNotFoundException) {
+        throw new RuntimeException("Could not find an input class that was specified in the pipeline. " +
+            "A common cause for this is when the jar file for a plugin is not provided on the" +
+            "classpath using --jars.", e.getCause());
+      } else {
+        throw new RuntimeException("Could not create steps from configuration file", e);
+      }
+    }
+    for (Step step : steps) {
+      List<ValidationResult> stepResults =
+          Validator.validate(step, config.getConfig(STEPS_SECTION_CONFIG).getConfig(step.getName()));
+      ValidationUtils.prefixValidationResultMessages(stepResults, "Step '" + step.getName() + "'");
+      results.addAll(stepResults);
+    }
+
+    // Validate application section
+    Config applicationConfig = config.hasPath(Contexts.APPLICATION_SECTION_PREFIX) ?
+        config.getConfig(Contexts.APPLICATION_SECTION_PREFIX) : ConfigFactory.empty();
+    List<ValidationResult> applicationResults = Validator.validate(new ProvidesValidations() {
+      @Override
+      public Validations getValidations() {
+        return Validations.builder()
+            .optionalPath(Contexts.APPLICATION_NAME_PROPERTY, ConfigValueType.STRING)
+            .optionalPath(Contexts.NUM_EXECUTORS_PROPERTY, ConfigValueType.NUMBER)
+            .optionalPath(Contexts.NUM_EXECUTOR_CORES_PROPERTY, ConfigValueType.NUMBER)
+            .optionalPath(Contexts.EXECUTOR_MEMORY_PROPERTY, ConfigValueType.STRING)
+            .optionalPath(Contexts.BATCH_MILLISECONDS_PROPERTY, ConfigValueType.NUMBER)
+            .optionalPath(PIPELINE_THREADS_PROPERTY, ConfigValueType.NUMBER)
+            .optionalPath(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, ConfigValueType.BOOLEAN)
+            .handlesOwnValidationPath(Contexts.SPARK_CONF_PROPERTY_PREFIX)
+            .build();
+      }
+    }, applicationConfig);
+    ValidationUtils.prefixValidationResultMessages(applicationResults, "Application");
+    results.addAll(applicationResults);
+
+    // Validate UDFs are provided as a list
+    // TODO: inspect UDF objects to see if they are each valid
+    results.addAll(Validator.validate(new ProvidesValidations() {
+      @Override
+      public Validations getValidations() {
+        return Validations.builder()
+            .optionalPath(UDFS_SECTION_CONFIG, ConfigValueType.LIST)
+            .allowUnrecognizedPaths()
+            .build();
+      }
+    }, config));
+
+    ValidationUtils.logValidationResults(results);
+
+    if (ValidationUtils.hasValidationFailures(results)) {
+      LOG.error("Provided Envelope configuration did not pass all validation checks. " +
+          "See above for information on each failed check. " +
+          "Configuration validation can be disabled with '" +
+          Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY + " = false' either at the top-level " +
+          "or within any validated scope of the configuration file. " +
+          "Configuration documentation can be found at " +
+          "https://github.com/cloudera-labs/envelope/blob/master/docs/configurations.adoc");
+      System.exit(1);
+    }
+
+    LOG.info("Provided Envelope configuration is valid (" + results.size() + " checks passed)");
+  }
   
   private static void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
@@ -374,14 +462,10 @@ public class Runner {
     }
   }
   
-  private static void initializeUDFs(Config config) {
-    if (!config.hasPath("udfs")) return;
+  static void initializeUDFs(Config config) {
+    if (!config.hasPath(UDFS_SECTION_CONFIG)) return;
     
-    if (!config.getValue("udfs").valueType().equals(ConfigValueType.LIST)) {
-      throw new RuntimeException("UDFs must be provided as a list");
-    }
-    
-    ConfigList udfList = config.getList("udfs");
+    ConfigList udfList = config.getList(UDFS_SECTION_CONFIG);
     
     for (ConfigValue udfValue : udfList) {
       ConfigValueType udfValueType = udfValue.valueType();
@@ -391,14 +475,14 @@ public class Runner {
       
       Config udfConfig = ((ConfigObject)udfValue).toConfig();
       
-      for (String path : Lists.newArrayList("name", "class")) {
+      for (String path : Lists.newArrayList(UDFS_NAME, UDFS_CLASS)) {
         if (!udfConfig.hasPath(path)) {
           throw new RuntimeException("UDF entries must provide '" + path + "'");
         }
       }
       
-      String name = udfConfig.getString("name");
-      String className = udfConfig.getString("class");
+      String name = udfConfig.getString(UDFS_NAME);
+      String className = udfConfig.getString(UDFS_CLASS);
       
       // null third argument means that registerJava will infer the return type
       Contexts.getSparkSession().udf().registerJava(name, className, null);

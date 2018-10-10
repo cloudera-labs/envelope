@@ -17,16 +17,13 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.ValidationUtils;
+import com.cloudera.labs.envelope.validate.Validator;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -41,35 +38,43 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 import org.spark_project.guava.collect.Lists;
 
-import com.cloudera.labs.envelope.hbase.HBaseUtils;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestHBaseUtils {
 
   @Test
   public void testValidateConfig() {
     Config goodConfig = ConfigUtils.configFromResource("/hbase/hbase-output.conf").getConfig("output");
-    assertTrue("Good config should validate", HBaseUtils.validateConfig(goodConfig));
+    List<ValidationResult> results = Validator.validate((ProvidesValidations)new HBaseOutput(), goodConfig);
+    assertFalse("Good config should validate", ValidationUtils.hasValidationFailures(results));
 
     Config badConfigNoCols = ConfigUtils.configFromResource("/hbase/hbase-output-no-columns.conf").getConfig("output");
-    assertFalse("Config with no columns should not validate",
-        HBaseUtils.validateConfig(badConfigNoCols));
-
+    results = Validator.validate((ProvidesValidations)new HBaseOutput(), badConfigNoCols);
+    assertTrue("Config with no columns should not validate", ValidationUtils.hasValidationFailures(results));
+    
     Config badConfigNoRK = ConfigUtils.configFromResource("/hbase/hbase-output-no-rowkey.conf").getConfig("output");
-    assertFalse("Config with no rowkey should not validate",
-        HBaseUtils.validateConfig(badConfigNoRK));
+    results = Validator.validate((ProvidesValidations)new HBaseOutput(), badConfigNoRK);
+    assertTrue("Config with no rowkey should not validate", ValidationUtils.hasValidationFailures(results));
 
+    // TODO: validate this with validation framework
     Config badConfigBadCols = ConfigUtils.configFromResource("/hbase/hbase-output-badcol.conf").getConfig("output");
-    assertFalse("Config with bad columns should not validate",
-        HBaseUtils.validateConfig(badConfigBadCols));
+    results = Validator.validate((ProvidesValidations)new HBaseOutput(), badConfigBadCols);
+    assertTrue("Config with bad columns should not validate", ValidationUtils.hasValidationFailures(results));
   }
 
   @Test
   public void testPassthroughHBaseOptions() throws IOException {
     Config goodConfig = ConfigUtils.configFromResource("/hbase/hbase-output-with-hbase-config.conf").getConfig("output");
-    assertTrue("Good config with HBase options should validate", HBaseUtils.validateConfig(goodConfig));
+    List<ValidationResult> results = Validator.validate(new HBaseOutput(), goodConfig);
+    assertFalse("Good config with HBase options should validate", ValidationUtils.hasValidationFailures(results));
 
     Configuration hBaseConfiguration = HBaseUtils.getHBaseConfiguration(goodConfig);
 

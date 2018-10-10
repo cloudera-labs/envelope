@@ -17,16 +17,15 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Maps;
 import org.apache.spark.util.DoubleAccumulator;
 import org.apache.spark.util.LongAccumulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings("serial")
 public class Accumulators implements Serializable {

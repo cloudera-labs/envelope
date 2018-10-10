@@ -17,26 +17,28 @@
  */
 package com.cloudera.labs.envelope.plan;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.functions;
+import scala.Tuple2;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.functions;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
-import scala.Tuple2;
-
 /**
  * A planner implementation for appending the stream to the storage table. Only plans insert mutations.
  */
-public class AppendPlanner implements BulkPlanner, ProvidesAlias {
+public class AppendPlanner implements BulkPlanner, ProvidesAlias, ProvidesValidations {
 
   public final static String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public final static String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
@@ -53,10 +55,6 @@ public class AppendPlanner implements BulkPlanner, ProvidesAlias {
   public List<Tuple2<MutationType, Dataset<Row>>> planMutationsForSet(Dataset<Row> arriving)
   {
     if (setsKeyToUUID()) {
-      if (!hasKeyFields()) {
-        throw new RuntimeException("Key columns must be specified to provide UUID keys");
-      }
-
       arriving = arriving.withColumn(getKeyFieldNames().get(0), functions.lit(UUID.randomUUID().toString()));
     }
 
@@ -80,10 +78,6 @@ public class AppendPlanner implements BulkPlanner, ProvidesAlias {
     return new Date(System.currentTimeMillis()).toString();
   }
 
-  private boolean hasKeyFields() {
-    return config.hasPath(KEY_FIELD_NAMES_CONFIG_NAME);
-  }
-
   private List<String> getKeyFieldNames() {
     return config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
   }
@@ -97,13 +91,22 @@ public class AppendPlanner implements BulkPlanner, ProvidesAlias {
   }
 
   private boolean setsKeyToUUID() {
-    if (!config.hasPath(UUID_KEY_CONFIG_NAME)) return false;
-
-    return Boolean.parseBoolean(config.getString(UUID_KEY_CONFIG_NAME));
+    return ConfigUtils.getOrElse(config, UUID_KEY_CONFIG_NAME, false);
   }
 
   @Override
   public String getAlias() {
     return "append";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(UUID_KEY_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .ifPathExists(UUID_KEY_CONFIG_NAME,
+            Validations.single().mandatoryPath(KEY_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST))
+        .build();
+  }
+  
 }

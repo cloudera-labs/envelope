@@ -17,27 +17,30 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.FilesystemPathAccessibleValidation;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-import com.typesafe.config.Config;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Execute Spark SQL on Datasets.
  */
-public class SQLDeriver implements Deriver, ProvidesAlias {
+public class SQLDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   public static final String QUERY_LITERAL_CONFIG_NAME = "query.literal";
   public static final String QUERY_FILE_CONFIG_NAME = "query.file";
@@ -57,11 +60,8 @@ public class SQLDeriver implements Deriver, ProvidesAlias {
     if (config.hasPath(QUERY_LITERAL_CONFIG_NAME)) {
       query = config.getString(QUERY_LITERAL_CONFIG_NAME);
     }
-    else if (config.hasPath(QUERY_FILE_CONFIG_NAME)) {
-      query = hdfsFileAsString(config.getString(QUERY_FILE_CONFIG_NAME));
-    }
     else {
-      throw new RuntimeException("SQL deriver query not provided. Use '" + QUERY_LITERAL_CONFIG_NAME + "' or '" + QUERY_FILE_CONFIG_NAME + "'.");
+      query = hdfsFileAsString(config.getString(QUERY_FILE_CONFIG_NAME));
     }
 
     if (config.hasPath(PARAMETER_PREFIX_CONFIG_NAME)) {
@@ -100,4 +100,14 @@ public class SQLDeriver implements Deriver, ProvidesAlias {
   public String getAlias() {
     return "sql";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .exactlyOnePathExists(ConfigValueType.STRING, QUERY_FILE_CONFIG_NAME, QUERY_LITERAL_CONFIG_NAME)
+        .handlesOwnValidationPath(PARAMETER_PREFIX_CONFIG_NAME)
+        .add(new FilesystemPathAccessibleValidation(QUERY_FILE_CONFIG_NAME))
+        .build();
+  }
+  
 }

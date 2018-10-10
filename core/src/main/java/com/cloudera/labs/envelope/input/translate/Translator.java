@@ -17,17 +17,17 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import com.cloudera.labs.envelope.component.Component;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
-
-import com.typesafe.config.Config;
 
 /**
  * Translators turn raw objects into structured Spark SQL Rows.
  * @param <K> The data type of the input keys
  * @param <V> The data type of the input values
  */
-public interface Translator<K, V> {
+public interface Translator<K, V> extends Component {
 
   /**
    * Configure the translator.

@@ -22,10 +22,13 @@ import com.cloudera.labs.envelope.kafka.serde.DelimitedSerializer;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
@@ -41,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class KafkaOutput implements BulkOutput, ProvidesAlias {
+public class KafkaOutput implements BulkOutput, ProvidesAlias, ProvidesValidations {
 
   public static final String BROKERS_CONFIG_NAME = "brokers";
   public static final String TOPIC_CONFIG_NAME = "topic";
@@ -79,6 +82,18 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias {
   @Override
   public String getAlias() {
     return "kafka";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(BROKERS_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(TOPIC_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(SERIALIZER_TYPE_CONFIG_NAME, ConfigValueType.STRING)
+        .allowedValues(SERIALIZER_TYPE_CONFIG_NAME, DELIMITED_SERIALIZER, AVRO_SERIALIZER)
+        .handlesOwnValidationPath(SERIALIZER_CONFIG_PREFIX)
+        .handlesOwnValidationPath(KafkaCommon.PARAMETER_CONFIG_PREFIX)
+        .build();
   }
 
   @SuppressWarnings("serial")

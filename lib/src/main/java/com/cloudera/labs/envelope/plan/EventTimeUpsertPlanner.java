@@ -17,27 +17,32 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A planner implementation for updating existing and inserting new (upsert). This maintains the
  * most recent version of the values of a key, which is equivalent to Type I SCD modeling.
  */
-public class EventTimeUpsertPlanner implements RandomPlanner, ProvidesAlias {
+public class EventTimeUpsertPlanner
+    implements RandomPlanner, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
@@ -55,14 +60,9 @@ public class EventTimeUpsertPlanner implements RandomPlanner, ProvidesAlias {
   public void configure(Config config) {
     this.config = config;
     
-    Config eventTimeModelConfig = config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    Config lastUpdatedTimeModelConfig = config.hasPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    
-    this.eventTimeModel = TimeModelFactory.create(eventTimeModelConfig, getTimestampFieldNames());
+    this.eventTimeModel = getEventTimeModel(true);
     if (hasLastUpdatedField()) {
-      this.lastUpdatedTimeModel = TimeModelFactory.create(lastUpdatedTimeModelConfig, getLastUpdatedFieldName());
+      this.lastUpdatedTimeModel = getLastUpdatedTimeModel(true);
     }
     this.valueFieldNames = getValueFieldNames();
   }
@@ -159,9 +159,57 @@ public class EventTimeUpsertPlanner implements RandomPlanner, ProvidesAlias {
     }
   }
   
+  private Config getEventTimeModelConfig() {
+    return config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+  
+  private Config getLastUpdatedTimeModelConfig() {
+    return config.hasPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+
+  private TimeModel getEventTimeModel(boolean configure) {
+    return TimeModelFactory.create(getEventTimeModelConfig(), getTimestampFieldNames(), configure);
+  }
+
+  private TimeModel getLastUpdatedTimeModel(boolean configure) {
+    return TimeModelFactory.create(getLastUpdatedTimeModelConfig(), getLastUpdatedFieldName(), configure);
+  }
+  
   @Override
   public String getAlias() {
     return "eventtimeupsert";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(KEY_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(TIMESTAMP_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .optionalPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(EVENT_TIME_MODEL_CONFIG_NAME)
+        .handlesOwnValidationPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME)
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    this.config = config;
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    components.add(new InstantiatedComponent(
+        getEventTimeModel(configure), getEventTimeModelConfig(), "Event Time Model"));
+
+    if (hasLastUpdatedField()) {
+      components.add(new InstantiatedComponent(
+          getLastUpdatedTimeModel(configure), getLastUpdatedTimeModelConfig(), "Last Updated Time Model"));
+    }
+
+    return components;
   }
 
 }

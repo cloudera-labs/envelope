@@ -17,16 +17,12 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -36,13 +32,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * In-List Deriver Unit Test
@@ -57,12 +57,13 @@ public class TestInListDeriver {
     dependencies.put("df1", source);
     dependencies.put("df2", null);
     dependencies.put("df3", null);
-    List<String> inListLiteral = Arrays.asList(new String[] { "A", "C", "E" });
+    List<String> inListLiteral = Arrays.asList("A", "C", "E");
     Config config = ConfigFactory.empty()
         .withValue(InListDeriver.INLIST_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("id"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral));
     InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     List<Row> results = deriver.derive(dependencies).select("id").collectAsList();
     assertEquals(deriver.getInList(dependencies).length, results.size());
@@ -71,9 +72,10 @@ public class TestInListDeriver {
       assertTrue(inListLiteral.contains(x.toString()));
     }
 
-    inListLiteral = Arrays.asList(new String[] { "1", "3", "5" });
+    inListLiteral = Arrays.asList("1", "3", "5");
     config = config.withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral));
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     results = deriver.derive(dependencies).select("value").collectAsList();
     assertEquals(deriver.getInList(dependencies).length, results.size());
@@ -83,9 +85,10 @@ public class TestInListDeriver {
     }
 
     List<Integer> inListIntegers = Arrays
-        .asList(new Integer[] { Integer.valueOf("1"), Integer.valueOf("3"), Integer.valueOf("5") });
+        .asList(Integer.valueOf("1"), Integer.valueOf("3"), Integer.valueOf("5"));
     config = config.withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListIntegers));
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     results = deriver.derive(dependencies).select("value").collectAsList();
     assertEquals(deriver.getInList(dependencies).length, results.size());
@@ -94,9 +97,10 @@ public class TestInListDeriver {
       assertTrue(inListIntegers.contains(x));
     }
 
-    inListLiteral = Arrays.asList(new String[] { "2018-04-01", "2018-04-03", "2018-04-05", "2018-04-26" });
+    inListLiteral = Arrays.asList("2018-04-01", "2018-04-03", "2018-04-05", "2018-04-26");
     config = config.withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("vdate"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral));
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     results = deriver.derive(dependencies).select("vdate").collectAsList();
     assertEquals(deriver.getInList(dependencies).length, results.size());
@@ -112,6 +116,7 @@ public class TestInListDeriver {
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("id"))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df2"))
         .withValue(InListDeriver.INLIST_REFFIELD_CONFIG, ConfigValueFactory.fromAnyRef("fk"));
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     results = deriver.derive(dependencies).select("id").collectAsList();
     assertEquals(ref.count(), results.size());
@@ -120,54 +125,33 @@ public class TestInListDeriver {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  //
-  // According to
-  // https://github.com/lightbend/config/blob/master/config/src/main/java/com/typesafe/config/impl/ConfigImpl.java,
-  // not all Java types can be stored in ConfigList. Method fromAnyRef() only
-  // allows Boolean, "Number", String and Map.
-  //
-  @Test
-  public void testConfigList() throws Exception {
-    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-    List<Date> inListDates = Arrays
-        .asList(new Date[] { new Date(df.parse("2018-04-01").getTime()), new Date(df.parse("2018-04-03").getTime()),
-            new Date(df.parse("2018-04-05").getTime()), new Date(df.parse("2018-04-26").getTime()) });
-    thrown.expect(ConfigException.BugOrBroken.class);
-    thrown.expectMessage("not valid to create ConfigValue");
-    ConfigFactory.empty().withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("vdate"))
-        .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListDates));
-  }
-
   @Test
   public void missingConfig() throws Exception {
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("should contain either");
     Config config = ConfigFactory.empty();
-    new InListDeriver().configure(config);
+    assertValidationFailures(new InListDeriver(), config);
   }
 
   @Test
   public void ambiguousConfig() throws Exception {
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("can't contain both");
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     Config config = ConfigFactory.empty()
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df2"));
-    new InListDeriver().configure(config);
+    assertValidationFailures(new InListDeriver(), config);
   }
 
   @Test
   public void missingField() throws Exception {
     Dataset<Row> source = createTestDataframe();
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("df1", source);
     Config config = ConfigFactory.empty()
         .withValue(InListDeriver.INLIST_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral))
         .withoutPath(InListDeriver.INLIST_FIELD_CONFIG);
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("parameter should be specified");
@@ -177,14 +161,15 @@ public class TestInListDeriver {
   @Test
   public void wrongField() throws Exception {
     Dataset<Row> source = createTestDataframe();
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("df1", source);
     Config config = ConfigFactory.empty()
         .withValue(InListDeriver.INLIST_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("non_existing_field"))
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("doesn't contain \"" + InListDeriver.INLIST_FIELD_CONFIG + "\"");
@@ -203,7 +188,8 @@ public class TestInListDeriver {
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df2"))
         .withoutPath(InListDeriver.INLIST_REFFIELD_CONFIG);
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("\"" + InListDeriver.INLIST_REFFIELD_CONFIG + "\" parameter should be specified");
@@ -222,7 +208,8 @@ public class TestInListDeriver {
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df2"))
         .withValue(InListDeriver.INLIST_REFFIELD_CONFIG, ConfigValueFactory.fromAnyRef("non_existent_ref_field"));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("doesn't contain \"" + InListDeriver.INLIST_REFFIELD_CONFIG + "\"");
@@ -234,11 +221,11 @@ public class TestInListDeriver {
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("at least one dependency");
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
-    // dependencies.put("df1", null);
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     Config config = ConfigFactory.empty().withValue(InListDeriver.INLIST_VALUES_CONFIG,
         ConfigValueFactory.fromIterable(inListLiteral));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     deriver.derive(dependencies);
   }
@@ -248,13 +235,14 @@ public class TestInListDeriver {
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("not listed as dependency");
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     dependencies.put("df1", null);
     dependencies.put("df2", null);
     Config config = ConfigFactory.empty()
         .withValue(InListDeriver.INLIST_VALUES_CONFIG, ConfigValueFactory.fromIterable(inListLiteral))
         .withValue(InListDeriver.INLIST_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df_missing"));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     deriver.derive(dependencies);
 
@@ -263,6 +251,7 @@ public class TestInListDeriver {
     config.withoutPath(InListDeriver.INLIST_VALUES_CONFIG)
         .withValue(InListDeriver.INLIST_STEP_CONFIG, ConfigValueFactory.fromAnyRef("df1"))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df_missing"));
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     deriver.derive(dependencies);
   }
@@ -272,12 +261,13 @@ public class TestInListDeriver {
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("multiple dependencies have been listed");
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
-    List<String> inListLiteral = Arrays.asList(new String[] { "1", "2", "3" });
+    List<String> inListLiteral = Arrays.asList("1", "2", "3");
     dependencies.put("df1", null);
     dependencies.put("df2", null);
     Config config = ConfigFactory.empty().withValue(InListDeriver.INLIST_VALUES_CONFIG,
         ConfigValueFactory.fromIterable(inListLiteral));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     deriver.derive(dependencies);
   }
@@ -301,7 +291,8 @@ public class TestInListDeriver {
         .withValue(InListDeriver.INLIST_FIELD_CONFIG, ConfigValueFactory.fromAnyRef("value"))
         .withValue(InListDeriver.INLIST_REFSTEP_CONFIG, ConfigValueFactory.fromAnyRef("df2"))
         .withValue(InListDeriver.INLIST_REFFIELD_CONFIG, ConfigValueFactory.fromAnyRef("fk"));
-    Deriver deriver = new InListDeriver();
+    InListDeriver deriver = new InListDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     thrown.expect(RuntimeException.class);

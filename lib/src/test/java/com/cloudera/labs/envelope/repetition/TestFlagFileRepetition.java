@@ -19,25 +19,20 @@ package com.cloudera.labs.envelope.repetition;
 
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.run.DataStep;
-import com.cloudera.labs.envelope.run.Runner;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -53,14 +48,15 @@ public class TestFlagFileRepetition {
 
   @Test
   public void testRepeatStepPresent() throws IOException {
-
     Config config = ConfigUtils.configFromResource("/repetitions/repetitions-flag-config.conf");
     File relativeFlagFile = new File("flag");
     config = config.withValue("steps.repeater.repetitions.hdfsinnit.file",
         ConfigValueFactory.fromAnyRef(relativeFlagFile.toURI().toString()));
 
     try {
-      BatchStep step = new BatchStep("testFlagRepetition", config.getConfig("steps.repeater"));
+      BatchStep step = new BatchStep("testFlagRepetition");
+      ValidationAssert.assertNoValidationFailures(step, config.getConfig("steps.repeater"));
+      step.configure(config.getConfig("steps.repeater"));
       Set<DataStep> steps = Repetitions.get().getAndClearRepeatingSteps();
       assertTrue("Repeating steps should not be populated", steps.isEmpty());
 
@@ -85,19 +81,18 @@ public class TestFlagFileRepetition {
       System.err.println(e.getMessage());
       fail();
     }
-
   }
 
   @Test
   public void testRepeatStepModified() throws IOException {
-
     Config config = ConfigUtils.configFromResource("/repetitions/repetitions-flag-config-modified.conf");
     File relativeFlagFile = new File("flag");
     config = config.withValue("steps.repeater.repetitions.hdfsinnit.file",
         ConfigValueFactory.fromAnyRef(relativeFlagFile.toURI().toString()));
 
     try {
-      BatchStep step = new BatchStep("testFlagRepetitionMod", config.getConfig("steps.repeater"));
+      BatchStep step = new BatchStep("testFlagRepetitionMod");
+      step.configure(config.getConfig("steps.repeater"));
       Set<DataStep> steps = Repetitions.get().getAndClearRepeatingSteps();
       assertTrue("Repeating steps should not be populated", steps.isEmpty());
 
@@ -125,7 +120,6 @@ public class TestFlagFileRepetition {
       System.err.println(e.getMessage());
       fail();
     }
-
   }
 
   private Set<DataStep> waitForResponse(long waitFor, boolean response, int maxTimes) throws InterruptedException {

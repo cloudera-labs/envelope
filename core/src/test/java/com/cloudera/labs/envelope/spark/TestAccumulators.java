@@ -17,15 +17,14 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collections;
-
+import com.google.common.collect.Sets;
 import org.apache.spark.util.DoubleAccumulator;
 import org.apache.spark.util.LongAccumulator;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
+import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestAccumulators {
 

@@ -21,10 +21,16 @@ import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validation;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.Validity;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
@@ -33,12 +39,12 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
+public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations {
 
   public static final String FIELDS_CONFIG = "fields";
   public static final String FIELD_NAME_CONFIG = "name";
@@ -51,17 +57,14 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
 
   private String name;
   private StructType requiredSchema;
-  private boolean exactMatch = DEFAULT_EXACT_MATCH;
+  private boolean exactMatch;
 
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    ConfigUtils.assertConfig(config, FIELDS_CONFIG);
     List<? extends ConfigObject> fields = config.getObjectList(FIELDS_CONFIG);
     requiredSchema = parseSchema(fields);
-    if (config.hasPath(EXACT_MATCH_CONFIG)) {
-      exactMatch = config.getBoolean(EXACT_MATCH_CONFIG);
-    }
+    exactMatch = ConfigUtils.getOrElse(config, EXACT_MATCH_CONFIG, DEFAULT_EXACT_MATCH);
   }
 
   @Override
@@ -80,9 +83,6 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
   }
 
   private static StructField parseField(Config fieldsConfig) {
-    ConfigUtils.assertConfig(fieldsConfig, FIELD_NAME_CONFIG);
-    ConfigUtils.assertConfig(fieldsConfig, FIELD_TYPE_CONFIG);
-
     String name = fieldsConfig.getString(FIELD_NAME_CONFIG);
     DataType type = parseDataType(fieldsConfig);
     return new StructField(name, type, true, Metadata.empty());
@@ -106,8 +106,6 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
       case "double":
         return DataTypes.DoubleType;
       case "decimal":
-        ConfigUtils.assertConfig(fieldsConfig, DECIMAL_SCALE_CONFIG);
-        ConfigUtils.assertConfig(fieldsConfig, DECIMAL_PRECISION_CONFIG);
         return DataTypes.createDecimalType(
                 fieldsConfig.getInt(DECIMAL_SCALE_CONFIG),
                 fieldsConfig.getInt(DECIMAL_PRECISION_CONFIG));
@@ -165,4 +163,33 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias {
   public String getAlias() {
     return "checkschema";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
+        .add(new SchemaFieldsValidation())
+        .optionalPath(EXACT_MATCH_CONFIG, ConfigValueType.BOOLEAN)
+        .build();
+  }
+
+  private static class SchemaFieldsValidation implements Validation {
+    @Override
+    public ValidationResult validate(Config config) {
+      try {
+        parseSchema(config.getObjectList(FIELDS_CONFIG));
+      }
+      catch (Exception e) {
+        return new ValidationResult(Validity.INVALID, "Schema configuration is invalid");
+      }
+
+      return new ValidationResult(Validity.VALID, "Schema configuration is valid");
+    }
+
+    @Override
+    public Set<String> getKnownPaths() {
+      return Sets.newHashSet(FIELDS_CONFIG);
+    }
+  }
+  
 }

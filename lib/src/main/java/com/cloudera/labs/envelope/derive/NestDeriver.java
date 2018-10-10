@@ -17,10 +17,12 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Iterables;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -29,52 +31,43 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
-public class NestDeriver implements Deriver, ProvidesAlias {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class NestDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   public static final String NEST_INTO_CONFIG_NAME = "nest.into";
   public static final String NEST_FROM_CONFIG_NAME = "nest.from";
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "key.field.names";
   public static final String NESTED_FIELD_NAME_CONFIG_NAME = "nested.field.name";
 
-  private Config config;
+  private String intoDependency;
+  private String fromDependency;
+  private List<String> keyFieldNames;
+  private String nestedFieldName;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
-
-    for (String configName : Lists.newArrayList(NESTED_FIELD_NAME_CONFIG_NAME, NEST_FROM_CONFIG_NAME,
-        KEY_FIELD_NAMES_CONFIG_NAME, NESTED_FIELD_NAME_CONFIG_NAME))
-    {
-      if (!config.hasPath(configName)) {
-        throw new RuntimeException("Nest deriver requires '" + configName + "' property");
-      }
-    }
+    this.intoDependency = config.getString(NEST_INTO_CONFIG_NAME);
+    this.fromDependency = config.getString(NEST_FROM_CONFIG_NAME);
+    this.keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
+    this.nestedFieldName = config.getString(NESTED_FIELD_NAME_CONFIG_NAME);
   }
 
   @Override
   public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-    String intoDependency = config.getString(NEST_INTO_CONFIG_NAME);
     if (!dependencies.containsKey(intoDependency)) {
       throw new RuntimeException("Nest deriver points to non-existent nest-into dependency");
     }
     Dataset<Row> into = dependencies.get(intoDependency);
 
-    String fromDependency = config.getString(NEST_FROM_CONFIG_NAME);
     if (!dependencies.containsKey(fromDependency)) {
       throw new RuntimeException("Nest deriver points to non-existent nest-from dependency");
     }
     Dataset<Row> from = dependencies.get(fromDependency);
-
-    List<String> keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG_NAME);
-    String nestedFieldName = config.getString(NESTED_FIELD_NAME_CONFIG_NAME);
 
     ExtractFieldsFunction extractFieldsFunction = new ExtractFieldsFunction(keyFieldNames);
     JavaPairRDD<List<Object>, Row> keyedIntoRDD = into.javaRDD().keyBy(extractFieldsFunction);
@@ -134,6 +127,16 @@ public class NestDeriver implements Deriver, ProvidesAlias {
 
       return nested;
     }
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(KEY_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(NESTED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(NEST_FROM_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(NEST_INTO_CONFIG_NAME, ConfigValueType.STRING)
+        .build();
   }
 
 }

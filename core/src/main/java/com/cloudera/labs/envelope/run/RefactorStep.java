@@ -19,14 +19,12 @@ package com.cloudera.labs.envelope.run;
 
 import java.util.Set;
 
-import com.typesafe.config.Config;
-
 public abstract class RefactorStep extends Step {
 
-  public RefactorStep(String name, Config config) {
-    super(name, config);
+  public RefactorStep(String name) {
+    super(name);
   }
-  
+
   public abstract Set<Step> refactor(Set<Step> steps);
 
 }

@@ -17,13 +17,14 @@
  */
 package com.cloudera.labs.envelope.zookeeper;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.curator.test.TestingServer;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -35,15 +36,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.output.RandomOutput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestZooKeeperOutput implements Watcher {
 
@@ -58,9 +57,9 @@ public class TestZooKeeperOutput implements Watcher {
   @BeforeClass
   public static void setup() throws Exception {
     zk = new TestingServer(2181, true);
-    
+
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(ZooKeeperOutput.CONNECTION_CONFIG, "localhost:2181");
+    configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "localhost:2181");
     configMap.put(ZooKeeperOutput.FIELD_NAMES_CONFIG, fieldNames);
     configMap.put(ZooKeeperOutput.FIELD_TYPES_CONFIG, fieldTypes);
     configMap.put(ZooKeeperOutput.KEY_FIELD_NAMES_CONFIG, keyFieldNames);
@@ -70,8 +69,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void testUpserts() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -94,8 +94,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void testDeletes() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -120,8 +121,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void getByFullKey() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -141,8 +143,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void getByPartialKey() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -165,8 +168,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void getByValues() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -187,8 +191,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void getByFullKeyAndValues() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -212,8 +217,9 @@ public class TestZooKeeperOutput implements Watcher {
   @Test
   public void getByPartialKeyAndValues() throws Exception {
     truncate();
-    
-    RandomOutput zkOutput = new ZooKeeperOutput();
+
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row row1 = new RowWithSchema(schema, "hello", 100, 1000L, true, 1.0f, -1.0);
@@ -234,9 +240,10 @@ public class TestZooKeeperOutput implements Watcher {
     assertEquals(rows.size(), 1);
     assertTrue(rows.contains(row2));
   }
-  
+
   private void truncate() throws Exception {
-    RandomOutput zkOutput = new ZooKeeperOutput();
+    ZooKeeperOutput zkOutput = new ZooKeeperOutput();
+    assertNoValidationFailures(zkOutput, config);
     zkOutput.configure(config);
     
     Row filter = new RowWithSchema(new StructType(new StructField[0]));

@@ -17,8 +17,6 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import static org.junit.Assert.assertEquals;
-
 import com.clearspring.analytics.util.Lists;
 import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import org.joda.time.DateTimeZone;
@@ -26,6 +24,8 @@ import org.joda.time.LocalDateTime;
 import org.junit.Test;
 
 import java.util.Arrays;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestDateTimeUtils {
   @Test

@@ -21,28 +21,30 @@ import com.cloudera.labs.envelope.output.OutputFactory;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import mockit.Expectations;
-import mockit.Verifications;
+import mockit.Mock;
+import mockit.MockUp;
 import mockit.Mocked;
 import mockit.Tested;
-import mockit.MockUp;
-import mockit.Mock;
+import mockit.Verifications;
 import mockit.integration.junit4.JMockit;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
+import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.kafka010.DirectKafkaInputDStream;
 import org.apache.spark.streaming.kafka010.KafkaRDD;
 import org.apache.spark.streaming.kafka010.OffsetRange;
-import org.apache.spark.streaming.kafka010.DirectKafkaInputDStream;
-import org.apache.spark.streaming.api.java.JavaDStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(JMockit.class)
 public class TestKafkaInput {
+
   @Mocked Config config;
   @Mocked JavaRDD<?> javaRDD;
   @Mocked KafkaRDD<String, String> kafkaRDD;
@@ -50,10 +52,10 @@ public class TestKafkaInput {
   @Mocked DirectKafkaInputDStream dkiDStream;
   @Tested KafkaInput mockedKafkaInput;
 
-  @Test(expected=Throwable.class)
+  @Test
   public void testNoTopicConfigure() {
     KafkaInput kafkaInput = new KafkaInput();
-    kafkaInput.configure(config);
+    assertValidationFailures(kafkaInput, config);
   }
 
   @Test
@@ -61,12 +63,8 @@ public class TestKafkaInput {
     KafkaInput kafkaInput = new KafkaInput();
     new Expectations() {
       {
-        config.hasPath(KafkaInput.TOPICS_CONFIG);
-        returns(true);
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo", "bar", "bar"));
-        config.hasPath(KafkaInput.ENCODING_CONFIG);
-        returns(true);
         config.getString(KafkaInput.ENCODING_CONFIG);
         returns("string");
       }
@@ -86,15 +84,11 @@ public class TestKafkaInput {
         return jDStream;
       }
     };
-    
+
     new Expectations() {
       {
-        config.hasPath(KafkaInput.TOPICS_CONFIG);
-        returns(true);
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo"));
-        config.hasPath(KafkaInput.ENCODING_CONFIG);
-        returns(true);
         config.getString(KafkaInput.ENCODING_CONFIG);
         returns("string");
         config.hasPath(KafkaInput.GROUP_ID_CONFIG);
@@ -134,17 +128,13 @@ public class TestKafkaInput {
     KafkaInput kafkaInput = new KafkaInput();
     new Expectations() {
       {
-        config.hasPath(KafkaInput.TOPICS_CONFIG);
-        returns(true);
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo", "bar"));
-        config.hasPath(KafkaInput.ENCODING_CONFIG);
-        returns(true);
         config.getString(KafkaInput.ENCODING_CONFIG);
         returns("string");
         config.hasPath(KafkaInput.OFFSETS_MANAGE_CONFIG);
         returns(true);
-        config.getBoolean(KafkaInput.OFFSETS_MANAGE_CONFIG);
+        config.getAnyRef(KafkaInput.OFFSETS_MANAGE_CONFIG);
         returns(true);
         config.hasPath(KafkaInput.OFFSETS_OUTPUT_CONFIG);
         returns(true);
@@ -196,4 +186,5 @@ public class TestKafkaInput {
     assertEquals(store.get("groupId1bar2").get(3), 5000L);
     assertEquals(((DummyKafkaOffsetStore)kafkaInput.offsetsOutput).store.size(), 5);
   }
+
 }

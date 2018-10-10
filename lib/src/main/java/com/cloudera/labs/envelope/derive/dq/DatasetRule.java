@@ -17,9 +17,8 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import java.io.Serializable;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.component.Component;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -27,9 +26,10 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-import com.typesafe.config.Config;
+import java.io.Serializable;
+import java.util.Map;
 
-public interface DatasetRule extends Serializable {
+public interface DatasetRule extends Component, Serializable {
 
   StructType SCHEMA = new StructType(new StructField[] {
       new StructField("name", DataTypes.StringType, false, Metadata.empty()),

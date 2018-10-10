@@ -17,21 +17,22 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.RelationalGroupedDataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
-public class PivotDeriver implements Deriver, ProvidesAlias {
+public class PivotDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
   
   public static final String STEP_NAME_CONFIG = "step.name";
   public static final String ENTITY_KEY_FIELD_NAMES_CONFIG = "entity.key.field.names";
@@ -51,11 +52,6 @@ public class PivotDeriver implements Deriver, ProvidesAlias {
 
   @Override
   public void configure(Config config) {
-    ConfigUtils.assertConfig(config, STEP_NAME_CONFIG);
-    ConfigUtils.assertConfig(config, ENTITY_KEY_FIELD_NAMES_CONFIG);
-    ConfigUtils.assertConfig(config, PIVOT_KEY_FIELD_NAME_CONFIG);
-    ConfigUtils.assertConfig(config, PIVOT_VALUE_FIELD_NAME_CONFIG);
-    
     stepName = config.getString(STEP_NAME_CONFIG);
     entityKeyFieldNames = config.getStringList(ENTITY_KEY_FIELD_NAMES_CONFIG);
     pivotKeyFieldName = config.getString(PIVOT_KEY_FIELD_NAME_CONFIG);
@@ -64,13 +60,7 @@ public class PivotDeriver implements Deriver, ProvidesAlias {
     if (config.hasPath(PIVOT_KEYS_SOURCE_CONFIG)) {
       pivotKeysSource = config.getString(PIVOT_KEYS_SOURCE_CONFIG);
       
-      if (!pivotKeysSource.equals(PIVOT_KEYS_SOURCE_STATIC) && !pivotKeysSource.equals(PIVOT_KEYS_SOURCE_DYNAMIC)) {
-        throw new RuntimeException("Pivot deriver values source must be '" + PIVOT_KEYS_SOURCE_STATIC +
-            "' or '" + PIVOT_KEYS_SOURCE_DYNAMIC + "'");
-      }
-      
       if (pivotKeysSource.equals(PIVOT_KEYS_SOURCE_STATIC)) {
-        ConfigUtils.assertConfig(config, PIVOT_KEYS_LIST_CONFIG);
         pivotKeys = config.getStringList(PIVOT_KEYS_LIST_CONFIG);
       }
     }
@@ -116,4 +106,19 @@ public class PivotDeriver implements Deriver, ProvidesAlias {
   public String getAlias() {
     return "pivot";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(STEP_NAME_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(ENTITY_KEY_FIELD_NAMES_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(PIVOT_KEY_FIELD_NAME_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(PIVOT_VALUE_FIELD_NAME_CONFIG, ConfigValueType.STRING)
+        .optionalPath(PIVOT_KEYS_SOURCE_CONFIG, ConfigValueType.STRING)
+        .allowedValues(PIVOT_KEYS_SOURCE_CONFIG, PIVOT_KEYS_SOURCE_DYNAMIC, PIVOT_KEYS_SOURCE_STATIC)
+        .ifPathHasValue(PIVOT_KEYS_SOURCE_CONFIG, PIVOT_KEYS_SOURCE_STATIC,
+            Validations.single().mandatoryPath(PIVOT_KEYS_LIST_CONFIG, ConfigValueType.LIST))
+        .build();
+  }
+  
 }

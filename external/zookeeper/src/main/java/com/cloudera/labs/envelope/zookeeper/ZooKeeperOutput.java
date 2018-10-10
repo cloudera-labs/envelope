@@ -17,38 +17,34 @@
  */
 package com.cloudera.labs.envelope.zookeeper;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.ZooKeeper.States;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.output.RandomOutput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 
-public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
+public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesValidations {
 
-  public static final String CONNECTION_CONFIG = "connection";
   public static final String FIELD_NAMES_CONFIG = "field.names";
   public static final String FIELD_TYPES_CONFIG = "field.types";
   public static final String KEY_FIELD_NAMES_CONFIG = "key.field.names";
@@ -56,30 +52,20 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
   public static final String SESSION_TIMEOUT_MS_CONFIG = "session.timeout.millis";
   
   private static final String DEFAULT_ZNODE_PREFIX = "/envelope";
-  private static final int DEFAULT_SESSION_TIMEOUT_MS = 1000;
+
   
-  private String connection;
   private List<String> fieldNames;
   private List<String> fieldTypes;
   private List<String> keyFieldNames;
   private String znodePrefix;
-  private int sessionTimeoutMs;
 
-  private static ZooKeeper _zk;
-  private static CountDownLatch latch;
+  private ZooKeeperConnection connection;
   
   @Override
   public void configure(Config config) {
-    ConfigUtils.assertConfig(config, CONNECTION_CONFIG);
-    this.connection = config.getString(CONNECTION_CONFIG);
-    
-    ConfigUtils.assertConfig(config, KEY_FIELD_NAMES_CONFIG);
+    String connectionString = config.getString(ZooKeeperConnection.CONNECTION_CONFIG);
     this.keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG);
-    
-    ConfigUtils.assertConfig(config, FIELD_NAMES_CONFIG);
     this.fieldNames = config.getStringList(FIELD_NAMES_CONFIG);
-    
-    ConfigUtils.assertConfig(config, FIELD_TYPES_CONFIG);
     this.fieldTypes = config.getStringList(FIELD_TYPES_CONFIG);
     
     if (config.hasPath(ZNODE_PREFIX_CONFIG)) {
@@ -88,12 +74,14 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
     else {
       this.znodePrefix = DEFAULT_ZNODE_PREFIX;
     }
-    
+
+    int sessionTimeoutMs;
     if (config.hasPath(SESSION_TIMEOUT_MS_CONFIG)) {
-      this.sessionTimeoutMs = config.getInt(SESSION_TIMEOUT_MS_CONFIG);
+      sessionTimeoutMs = config.getInt(SESSION_TIMEOUT_MS_CONFIG);
+      this.connection = new ZooKeeperConnection(connectionString, sessionTimeoutMs);
     }
     else {
-      this.sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
+      this.connection = new ZooKeeperConnection(connectionString);
     }
   }
 
@@ -110,8 +98,13 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
           "This is to prevent misuse of ZooKeeper as a regular data store. " + 
           "Do not use ZooKeeper for storing anything more than small pieces of metadata.");
     }
-    
-    ZooKeeper zk = getZooKeeper();
+
+    ZooKeeper zk;
+    try {
+      zk = connection.getZooKeeper();
+    } catch (Exception e) {
+      throw new RuntimeException("Could not connect to ZooKeeper output", e);
+    }
     
     for (Row plan : planned) {
       if (plan.schema() == null) {
@@ -141,7 +134,12 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
 
   @Override
   public Iterable<Row> getExistingForFilters(Iterable<Row> filters) throws Exception {
-    ZooKeeper zk = getZooKeeper();
+    ZooKeeper zk;
+    try {
+      zk = connection.getZooKeeper();
+    } catch (Exception e) {
+      throw new RuntimeException("Could not connect to ZooKeeper output", e);
+    }
     
     Set<Row> existing = Sets.newHashSet();
     
@@ -164,27 +162,6 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
     }
     
     return existing;
-  }
-
-  @Override
-  public void process(WatchedEvent event) {
-    if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
-      latch.countDown();
-    }
-  }
-  
-  private synchronized ZooKeeper getZooKeeper() {
-    if (_zk == null || _zk.getState() != States.CONNECTED) {
-      try {
-        latch = new CountDownLatch(1);
-        _zk = new ZooKeeper(this.connection, this.sessionTimeoutMs, this);
-        latch.await();
-      } catch (Exception e) {
-        throw new RuntimeException("Could not connect to ZooKeeper output: " + e.getMessage());
-      }
-    }
-    
-    return _zk;
   }
   
   private void prepareZnode(ZooKeeper zk, String znode) throws KeeperException, InterruptedException {
@@ -317,4 +294,17 @@ public class ZooKeeperOutput implements RandomOutput, Watcher, ProvidesAlias {
   public String getAlias() {
     return "zookeeper";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(ZooKeeperConnection.CONNECTION_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_NAMES_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPES_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(KEY_FIELD_NAMES_CONFIG, ConfigValueType.LIST)
+        .optionalPath(ZNODE_PREFIX_CONFIG, ConfigValueType.STRING)
+        .optionalPath(SESSION_TIMEOUT_MS_CONFIG, ConfigValueType.NUMBER)
+        .build();
+  }
+  
 }

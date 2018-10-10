@@ -17,11 +17,11 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -39,11 +39,10 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DefaultHBaseSerde implements HBaseSerde {
 
@@ -55,15 +54,10 @@ public class DefaultHBaseSerde implements HBaseSerde {
   private byte[] keySeparator;
 
   public void configure(Config config) {
-    if (HBaseUtils.validateConfig(config)) {
-      keyColumns = HBaseUtils.rowKeyFor(config);
-      columns = HBaseUtils.columnsFor(config);
-      schema = HBaseUtils.buildSchema(columns);
-      keySeparator = HBaseUtils.rowKeySeparatorFor(config);
-    } else {
-      LOG.error("Invalid configuration");
-      throw new IllegalArgumentException("Invalid configuration");
-    }
+    this.keyColumns = HBaseUtils.rowKeyFor(config);
+    this.columns = HBaseUtils.columnsFor(config);
+    this.schema = HBaseUtils.buildSchema(columns);
+    this.keySeparator = HBaseUtils.rowKeySeparatorFor(config);
   }
 
   @Override

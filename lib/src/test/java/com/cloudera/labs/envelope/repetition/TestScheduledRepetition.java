@@ -19,24 +19,14 @@ package com.cloudera.labs.envelope.repetition;
 
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.run.DataStep;
-import com.cloudera.labs.envelope.run.Runner;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import org.apache.spark.sql.Row;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,7 +41,8 @@ public class TestScheduledRepetition {
     Config config = ConfigUtils.configFromResource("/repetitions/repetitions-test-config.conf");
 
     try {
-      BatchStep step = new BatchStep("testRepetition", config.getConfig("steps.repeater"));
+      BatchStep step = new BatchStep("testRepetition");
+      step.configure(config.getConfig("steps.repeater"));
       Thread.sleep(20);
       Set<DataStep> steps = Repetitions.get().getAndClearRepeatingSteps();
       assertTrue("Repeating steps should not be populated", steps.isEmpty());

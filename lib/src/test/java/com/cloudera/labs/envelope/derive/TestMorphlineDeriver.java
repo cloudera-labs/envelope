@@ -24,9 +24,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
@@ -35,11 +32,18 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -64,6 +68,7 @@ public class TestMorphlineDeriver {
     final Config config = ConfigFactory.parseMap(paramMap);
 
     MorphlineDeriver deriver = new MorphlineDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     StructType schema = deriver.getSchema();
 
@@ -74,7 +79,6 @@ public class TestMorphlineDeriver {
 
   @Test (expected = RuntimeException.class)
   public void getSchemaInvalidDataType() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
@@ -83,59 +87,55 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("boom"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
-    Deriver deriver = new MorphlineDeriver();
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
   }
 
-  @Test (expected = RuntimeException.class)
-  public void deriveEmptyMorphlineConfig() throws Exception {
-
+  @Test
+  public void deriveNullMorphlineConfig() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, null);
     final Config config = ConfigFactory.parseMap(paramMap);
 
-    Deriver deriver = new MorphlineDeriver();
-    deriver.configure(config);
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertValidationFailures(deriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void deriveBlankMorphlineConfig() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, "");
     final Config config = ConfigFactory.parseMap(paramMap);
 
-    Deriver deriver = new MorphlineDeriver();
-    deriver.configure(config);
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertValidationFailures(deriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void deriveMissingStepName() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, null);
     final Config config = ConfigFactory.parseMap(paramMap);
 
-    Deriver deriver = new MorphlineDeriver();
-    deriver.configure(config);
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertValidationFailures(deriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void deriveBlankStepName() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "");
     final Config config = ConfigFactory.parseMap(paramMap);
 
-    Deriver deriver = new MorphlineDeriver();
-    deriver.configure(config);
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertValidationFailures(deriver, config);
   }
 
   @Test (expected = RuntimeException.class)
   public void deriveMissingStepDependency() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "nope");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
@@ -148,7 +148,8 @@ public class TestMorphlineDeriver {
     dependencies.put("dep1", null);
     dependencies.put("dep2", null);
 
-    Deriver deriver = new MorphlineDeriver();
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
     deriver.derive(dependencies);
   }
@@ -157,7 +158,6 @@ public class TestMorphlineDeriver {
   public void deriveMorphlineMapperFunctionError(
       final @Mocked MorphlineUtils utils
   ) throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, "morphline");
@@ -179,7 +179,8 @@ public class TestMorphlineDeriver {
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("dep1", dataFrame);
 
-    Deriver deriver = new MorphlineDeriver();
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     deriver.derive(dependencies);
@@ -187,7 +188,6 @@ public class TestMorphlineDeriver {
 
   @Test
   public void deriveIntegrationTest() throws Exception {
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
@@ -207,7 +207,8 @@ public class TestMorphlineDeriver {
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
     dependencies.put("dep1", dataFrame);
 
-    Deriver deriver = new MorphlineDeriver();
+    MorphlineDeriver deriver = new MorphlineDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Dataset<Row> outputDF = deriver.derive(dependencies);

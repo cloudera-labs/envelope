@@ -17,9 +17,22 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import parquet.avro.AvroParquetReader;
+import scala.Tuple2;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,28 +44,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.fs.Path;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
-import parquet.avro.AvroParquetReader;
-import scala.Tuple2;
-
-/**
- *
- */
 public class TestFileSystemOutput {
 
   @Rule
@@ -82,17 +79,17 @@ public class TestFileSystemOutput {
     results = null;
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingFormat() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemOutput.FORMAT_CONFIG, null);
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
-    fileSystemOutput.configure(config);
+    assertValidationFailures(fileSystemOutput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingPath() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
@@ -100,7 +97,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
-    fileSystemOutput.configure(config);
+    assertValidationFailures(fileSystemOutput, config);
   }
 
   @Test
@@ -111,6 +108,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    assertNoValidationFailures(fileSystemOutput, config);
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
 
@@ -143,6 +141,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    assertNoValidationFailures(fileSystemOutput, config);
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
 
@@ -168,6 +167,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    assertNoValidationFailures(fileSystemOutput, config);
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
 
@@ -192,6 +192,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    assertNoValidationFailures(fileSystemOutput, config);
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
 
@@ -208,7 +209,7 @@ public class TestFileSystemOutput {
     assertEquals("Invalid first record", "{\"field1\":0,\"field2\":\"zero\",\"field3\":true,\"field4\":\"dog\"}", line);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingPartitions() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemOutput.FORMAT_CONFIG, "parquet");
@@ -217,7 +218,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
-    fileSystemOutput.configure(config);
+    assertValidationFailures(fileSystemOutput, config);
   }
 
   @Test
@@ -229,6 +230,7 @@ public class TestFileSystemOutput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemOutput fileSystemOutput = new FileSystemOutput();
+    assertNoValidationFailures(fileSystemOutput, config);
     fileSystemOutput.configure(config);
     fileSystemOutput.applyBulkMutations(plannedRows);
 
@@ -273,4 +275,5 @@ public class TestFileSystemOutput {
     assertEquals("Invalid record value", "three", record.get("field2"));
     assertNull("Invalid record value", record.get("field3"));
   }
+
 }

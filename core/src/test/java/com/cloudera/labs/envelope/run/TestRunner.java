@@ -17,35 +17,40 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import static org.junit.Assert.fail;
-
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
+import com.cloudera.labs.envelope.derive.Deriver;
+import com.cloudera.labs.envelope.derive.DeriverFactory;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.api.java.UDF1;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.derive.Deriver;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.typesafe.config.Config;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestRunner {
+
+  @Before
+  public void before() {
+    Contexts.closeSparkSession(true);
+  }
 
   @Test
   public void testValidUDFs() throws Exception {    
     Config config = ConfigUtils.configFromResource("/udf/udf_valid.conf");
-    
-    Contexts.closeSparkSession(true);
-    try {
-      Runner.run(config);
-    }
-    catch (Exception e) {
-      fail(e.getMessage());
-    }
+
+    Runner.initializeUDFs(config);
+    Deriver deriver = DeriverFactory.create(config.getConfig(Runner.STEPS_SECTION_CONFIG + ".runudf.deriver"), true);
+    Dataset<Row> derived = deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
+
+    assertEquals(RowFactory.create("hello", 1), derived.collectAsList().get(0));
   }
   
   @Test
@@ -53,15 +58,9 @@ public class TestRunner {
   public void testNoUDFs() throws Throwable {
     Config config = ConfigUtils.configFromResource("/udf/udf_none.conf");
 
-    Contexts.closeSparkSession(true);
-    
-    try {
-      Runner.run(config);
-    }
-    // Data steps run off the main thread so we have to dig into the concurrency-related exception first
-    catch (ExecutionException e) {
-      throw e.getCause();
-    }
+    Runner.initializeUDFs(config);
+    Deriver deriver = DeriverFactory.create(config.getConfig("steps.runudf.deriver"), true);
+    deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
   }
   
   @SuppressWarnings("serial")

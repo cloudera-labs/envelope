@@ -17,61 +17,60 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import java.util.Properties;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.typesafe.config.Config;
+import java.util.Properties;
 
-public class JdbcInput implements BatchInput, ProvidesAlias {
+public class JdbcInput implements BatchInput, ProvidesAlias, ProvidesValidations {
 
   public static final String JDBC_CONFIG_URL = "url";
   public static final String JDBC_CONFIG_TABLENAME = "tablename";
   public static final String JDBC_CONFIG_USERNAME = "username";
   public static final String JDBC_CONFIG_PASSWORD = "password";
 
-  private Config config;
+  private String url;
+  private String tableName;
+  private String username;
+  private String password;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
-
-    if (!config.hasPath(JDBC_CONFIG_URL)) {
-      throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_URL + "' property");
-    }
-
-    if (!config.hasPath(JDBC_CONFIG_TABLENAME)) {
-      throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_TABLENAME + "' property");
-    }
-
-    if (!config.hasPath(JDBC_CONFIG_USERNAME)) {
-      throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_USERNAME + "' property");
-    }
-
-    if (!config.hasPath(JDBC_CONFIG_PASSWORD)) {
-      throw new RuntimeException("JDBC input requires '" + JDBC_CONFIG_PASSWORD + "' property");
-    }
+    this.url = config.getString(JDBC_CONFIG_URL);
+    this.tableName = config.getString(JDBC_CONFIG_TABLENAME);
+    this.username = config.getString(JDBC_CONFIG_USERNAME);
+    this.password = config.getString(JDBC_CONFIG_PASSWORD);
   }
 
   @Override
   public Dataset<Row> read() throws Exception {
-    String url = config.getString(JDBC_CONFIG_URL);
-    String tablename = config.getString(JDBC_CONFIG_TABLENAME);
-    String username = config.getString(JDBC_CONFIG_USERNAME);
-    String password = config.getString(JDBC_CONFIG_PASSWORD);
-
     Properties properties = new Properties();
-    properties.put("user",username);
-    properties.put("password",password);
+    properties.put("user", username);
+    properties.put("password", password);
 
-    return Contexts.getSparkSession().read().jdbc(url,tablename,properties);
+    return Contexts.getSparkSession().read().jdbc(url, tableName, properties);
   }
 
   @Override
   public String getAlias() {
     return "jdbc";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(JDBC_CONFIG_URL, ConfigValueType.STRING)
+        .mandatoryPath(JDBC_CONFIG_TABLENAME, ConfigValueType.STRING)
+        .mandatoryPath(JDBC_CONFIG_USERNAME, ConfigValueType.STRING)
+        .mandatoryPath(JDBC_CONFIG_PASSWORD, ConfigValueType.STRING)
+        .allowEmptyValue(JDBC_CONFIG_PASSWORD)
+        .build();
+  }
+  
 }

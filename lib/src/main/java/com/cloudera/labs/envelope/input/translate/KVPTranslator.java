@@ -17,28 +17,30 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.StructType;
+
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.StructType;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-
 /**
  * A translator implementation for text key-value pair messages.
  */
-public class KVPTranslator implements Translator<String, String>, ProvidesAlias {
+public class KVPTranslator implements Translator<String, String>, ProvidesAlias, ProvidesValidations {
 
   private String kvpDelimiter;
   private String fieldDelimiter;
@@ -176,4 +178,17 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias 
   public String getAlias() {
     return "kvp";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(KVP_DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPES_CONFIG_NAME, ConfigValueType.LIST)
+        .optionalPath(TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueType.LIST)
+        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
+        .build();
+  }
+  
 }

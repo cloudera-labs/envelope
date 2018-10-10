@@ -17,22 +17,23 @@
  */
 package com.cloudera.labs.envelope.plan;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.functions;
+import scala.Tuple2;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.functions;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
-import scala.Tuple2;
-
-public class SystemTimeUpsertPlanner implements BulkPlanner, ProvidesAlias {
+public class SystemTimeUpsertPlanner implements BulkPlanner, ProvidesAlias, ProvidesValidations {
 
   public final static String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
 
@@ -78,4 +79,12 @@ public class SystemTimeUpsertPlanner implements BulkPlanner, ProvidesAlias {
   public String getAlias() {
     return "upsert";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .build();
+  }
+  
 }

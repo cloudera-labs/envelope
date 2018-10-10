@@ -17,13 +17,27 @@
  */
 package com.cloudera.labs.envelope.kafka;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import com.cloudera.labs.envelope.input.CanRecordProgress;
+import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.output.Output;
+import com.cloudera.labs.envelope.output.OutputFactory;
+import com.cloudera.labs.envelope.output.RandomOutput;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.spark.api.java.JavaRDD;
@@ -42,25 +56,16 @@ import org.apache.spark.streaming.kafka010.OffsetRange;
 import org.apache.spark.streaming.kafka010.CanCommitOffsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.input.CanRecordProgress;
-import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.OutputFactory;
-import com.cloudera.labs.envelope.output.RandomOutput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
-public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias {
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+public class KafkaInput
+    implements StreamInput, CanRecordProgress, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   private static Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
 
@@ -89,28 +94,16 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
   public void configure(Config config) {
     this.config = config;
     kafkaParams = Maps.newHashMap();
+
     String brokers = config.getString(BROKERS_CONFIG);
     kafkaParams.put("bootstrap.servers", brokers);
 
-    topics = Sets.newHashSet();
-    if (config.hasPath(TOPICS_CONFIG)) {
-      topics.addAll(config.getStringList(TOPICS_CONFIG));
-    }
+    topics = Sets.newHashSet(config.getStringList(TOPICS_CONFIG));
 
-    if (topics.size() == 0) {
-      throw new RuntimeException("Invalid Kafka configuration. At least " +
-          "one topic must be specified");
-    }
-
-    if (!config.hasPath(ENCODING_CONFIG)) {
-      throw new RuntimeException("Kafka input encoding type configuration is required.");
-    }
-
-    if (config.hasPath(WINDOW_ENABLED_CONFIG) && (config.getBoolean(WINDOW_ENABLED_CONFIG) == true) &&
-        doesRecordProgress()) {
+    if (ConfigUtils.getOrElse(config, WINDOW_ENABLED_CONFIG, false) && doesRecordProgress(config)) {
       throw new RuntimeException("Kafka input offset management not currently compatible with stream windowing.");
     }
-    
+
     encoding = config.getString(ENCODING_CONFIG);
     if (encoding.equals("string")) {
       kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -118,8 +111,6 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     } else if (encoding.equals("bytearray")) {
       kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
       kafkaParams.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-    } else {
-      throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
     }
 
     if (config.hasPath(GROUP_ID_CONFIG)) {
@@ -127,9 +118,10 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     } else {
       groupID = UUID.randomUUID().toString();
     }
-
     kafkaParams.put("group.id", groupID);
+
     kafkaParams.put("enable.auto.commit", "false");
+
     KafkaCommon.addCustomParams(kafkaParams, config);
   }
 
@@ -139,7 +131,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     {
       JavaStreamingContext jssc = Contexts.getJavaStreamingContext();
       Map<TopicPartition, Long> lastOffsets = null;
-      if (doesRecordProgress() && !usingKafkaManagedOffsets()) {
+      if (doesRecordProgress(config) && !usingKafkaManagedOffsets(config)) {
         lastOffsets = getLastOffsets();
       }
 
@@ -163,7 +155,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
         throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
       }
 
-      if (config.hasPath(WINDOW_ENABLED_CONFIG) && config.getBoolean(WINDOW_ENABLED_CONFIG)) {
+      if (ConfigUtils.getOrElse(config, WINDOW_ENABLED_CONFIG, false)) {
         int windowDuration = config.getInt(WINDOW_MILLISECONDS_CONFIG);
         if (config.hasPath(WINDOW_SLIDE_MILLISECONDS_CONFIG)) {
           int slideDuration = config.getInt(WINDOW_SLIDE_MILLISECONDS_CONFIG);
@@ -187,22 +179,21 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     return "kafka";
   }
 
-  private boolean usingKafkaManagedOffsets() {
-    return (doesRecordProgress() && !config.hasPath(OFFSETS_OUTPUT_CONFIG));
+  private boolean usingKafkaManagedOffsets(Config config) {
+    return doesRecordProgress(config) && !config.hasPath(OFFSETS_OUTPUT_CONFIG);
   }
 
   @SuppressWarnings({ "serial", "rawtypes" })
   private static class UnwrapConsumerRecordFunction implements PairFunction {
     @Override
-    public Tuple2 call(Object recordObject) throws Exception {
+    public Tuple2 call(Object recordObject) {
       ConsumerRecord record = (ConsumerRecord)recordObject;
       return new Tuple2<>(record.key(), record.value());
     }
   }
   
-  private boolean doesRecordProgress() {
-    boolean managed = (config.hasPath(OFFSETS_MANAGE_CONFIG) && 
-        !config.getBoolean(OFFSETS_MANAGE_CONFIG)) ? false : true;
+  private boolean doesRecordProgress(Config config) {
+    boolean managed = ConfigUtils.getOrElse(config, OFFSETS_MANAGE_CONFIG, true);
     if (managed && !config.hasPath(GROUP_ID_CONFIG)) {
       throw new RuntimeException("Kafka input can not manage offsets without a provided group ID");
     }
@@ -212,14 +203,14 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
 
   @Override
   public void recordProgress(JavaRDD<?> batch) throws Exception {
-    if (doesRecordProgress() && (batch.rdd() instanceof HasOffsetRanges)) {
+    if (doesRecordProgress(config) && (batch.rdd() instanceof HasOffsetRanges)) {
       OffsetRange[] offsetRanges = ((HasOffsetRanges)batch.rdd()).offsetRanges();
 
-      if (usingKafkaManagedOffsets()) {
+      if (usingKafkaManagedOffsets(config)) {
          ((CanCommitOffsets) getDStream().dstream()).commitAsync(offsetRanges);
       }
-      else { 
-        // Plan the offset ranges as an upsert 
+      else {
+        // Plan the offset ranges as an upsert
         List<Row> planned = Lists.newArrayList();
         StructType schema = DataTypes.createStructType(Lists.newArrayList(
             DataTypes.createStructField("group_id", DataTypes.StringType, false),
@@ -233,9 +224,9 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
           planned.add(plan);
         }
       
-        // Upsert the offset ranges at the output
-        RandomOutput output = getOffsetsOutput();
-        output.applyRandomMutations(planned);
+      // Upsert the offset ranges at the output
+      RandomOutput output = getOffsetsOutput(config, true);
+      output.applyRandomMutations(planned);
       
         // Retrieve back the offset ranges and assert that they were stored correctly
         Map<TopicPartition, Long> storedOffsets = getLastOffsets();
@@ -251,7 +242,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
 
           if (!storedOffsets.get(tp).equals(offsetRange.untilOffset())) {
             String exceptionMessage = String.format(
-                "Kafka input failed to assert that offset ranges were stored correctly! " + 
+                "Kafka input failed to assert that offset ranges were stored correctly! " +
                 "For group ID '%s', topic '%s', partition '%d' expected offset '%d' but found offset '%d'",
                 groupID, offsetRange.topic(), tp.partition(), offsetRange.untilOffset(), storedOffsets.get(tp));
             throw new RuntimeException(exceptionMessage);
@@ -261,19 +252,26 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     }
   }
   
-  private RandomOutput getOffsetsOutput() {
-    if (offsetsOutput == null) {
-      Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
-      Output output = OutputFactory.create(outputConfig);
-      if (!(output instanceof RandomOutput) ||
-          !((RandomOutput)output).getSupportedRandomMutationTypes().contains(MutationType.UPSERT)) {
-        throw new RuntimeException("Output used for Kafka offsets must support random upsert mutations");
+  private RandomOutput getOffsetsOutput(Config config, boolean configure) {
+    if (configure) {
+      if (offsetsOutput == null) {
+        Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
+        Output output = OutputFactory.create(outputConfig, configure);
+
+        if (!(output instanceof RandomOutput) ||
+            !((RandomOutput) output).getSupportedRandomMutationTypes().contains(MutationType.UPSERT)) {
+          throw new RuntimeException("Output used for Kafka offsets must support random upsert mutations");
+        }
+
+        offsetsOutput = (RandomOutput)output;
       }
-      
-      offsetsOutput = (RandomOutput)output;
+
+      return offsetsOutput;
     }
-    
-    return offsetsOutput;
+    else {
+      Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
+      return (RandomOutput)OutputFactory.create(outputConfig, configure);
+    }
   }
 
   private Map<TopicPartition, Long> getLastOffsets() throws Exception {
@@ -287,7 +285,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
       Iterable<Row> filters = Collections.singleton(groupIDTopicFilter);
 
       // Get results
-      RandomOutput output = getOffsetsOutput();
+      RandomOutput output = getOffsetsOutput(config, true);
       Iterable<Row> results = output.getExistingForFilters(filters);
 
       // Transform results into map
@@ -301,4 +299,38 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     
     return offsetRanges;
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(BROKERS_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(TOPICS_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(ENCODING_CONFIG, ConfigValueType.STRING)
+        .allowedValues(ENCODING_CONFIG, "string", "bytearray")
+        .optionalPath(GROUP_ID_CONFIG, ConfigValueType.STRING)
+        .optionalPath(WINDOW_ENABLED_CONFIG, ConfigValueType.BOOLEAN)
+        .ifPathHasValue(WINDOW_ENABLED_CONFIG, true,
+            Validations.single().mandatoryPath(WINDOW_MILLISECONDS_CONFIG, ConfigValueType.NUMBER))
+        .optionalPath(OFFSETS_MANAGE_CONFIG, ConfigValueType.BOOLEAN)
+        .ifPathHasValue(OFFSETS_MANAGE_CONFIG, true,
+            Validations.single().mandatoryPath(OFFSETS_OUTPUT_CONFIG, ConfigValueType.OBJECT))
+        .handlesOwnValidationPath("translator")
+        .handlesOwnValidationPath(OFFSETS_OUTPUT_CONFIG)
+        .handlesOwnValidationPath(KafkaCommon.PARAMETER_CONFIG_PREFIX)
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    if (doesRecordProgress(config) && !usingKafkaManagedOffsets(config)) {
+      Output offsetsOutput = getOffsetsOutput(config, configure);
+      components.add(new InstantiatedComponent(
+          offsetsOutput, config.getConfig(OFFSETS_OUTPUT_CONFIG), "Offsets Output"));
+    }
+
+    return components;
+  }
+
 }

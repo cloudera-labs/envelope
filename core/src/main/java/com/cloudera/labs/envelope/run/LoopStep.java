@@ -17,17 +17,11 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.List;
-import java.util.Set;
-
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.StepUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.MandatoryPathValidation;
 import com.google.common.base.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -36,8 +30,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class LoopStep extends RefactorStep {
+import java.util.List;
+import java.util.Set;
+
+public class LoopStep extends RefactorStep implements ProvidesValidations {
   
   public static final String MODE_PROPERTY = "mode";
   public static final String MODE_SERIAL = "serial";
@@ -53,9 +56,9 @@ public class LoopStep extends RefactorStep {
   public static final String STEP_PROPERTY = "step";
   
   private static Logger LOG = LoggerFactory.getLogger(LoopStep.class);
-  
-  public LoopStep(String name, Config config) {
-    super(name, config); 
+
+  public LoopStep(String name) {
+    super(name);
   }
   
   // Envelope runs loops by unrolling the loop when the loop step is run. This means
@@ -268,7 +271,8 @@ public class LoopStep extends RefactorStep {
 
   @Override
   public Step copy() {
-    Step copy = new LoopStep(name, config);
+    Step copy = new LoopStep(name);
+    copy.configure(config);
     
     copy.setSubmitted(hasSubmitted());
     
@@ -281,6 +285,25 @@ public class LoopStep extends RefactorStep {
     public Object call(Row row) throws Exception {
       return row.get(0);
     }
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(MODE_PROPERTY, ConfigValueType.STRING)
+        .mandatoryPath(PARAMETER_PROPERTY, ConfigValueType.STRING)
+        .mandatoryPath(SOURCE_PROPERTY, ConfigValueType.STRING)
+        .allowedValues(SOURCE_PROPERTY, SOURCE_RANGE, SOURCE_LIST, SOURCE_STEP)
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_RANGE,
+            new MandatoryPathValidation(RANGE_START_PROPERTY))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_RANGE,
+            new MandatoryPathValidation(RANGE_END_PROPERTY))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_LIST, 
+            new MandatoryPathValidation(LIST_PROPERTY, ConfigValueType.LIST))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_STEP, 
+            new MandatoryPathValidation(STEP_PROPERTY, ConfigValueType.STRING))
+        .addAll(super.getValidations())
+        .build();
   }
   
 }

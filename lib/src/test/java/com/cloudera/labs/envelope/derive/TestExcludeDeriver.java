@@ -21,17 +21,21 @@ import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import org.junit.Test;
 
 /**
  *
@@ -39,36 +43,36 @@ import org.junit.Test;
 public class TestExcludeDeriver {
   private Config config;
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingDatasets() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
-    excludeDeriver.configure(config);
+    assertValidationFailures(excludeDeriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingCompare() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(ExcludeDeriver.EXCLUSION_WITH_CONFIG, "New");
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
-    excludeDeriver.configure(config);
+    assertValidationFailures(excludeDeriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingReference() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(ExcludeDeriver.EXCLUSION_COMPARE_CONFIG, "New");
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
-    excludeDeriver.configure(config);
+    assertValidationFailures(excludeDeriver, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingFields() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(ExcludeDeriver.EXCLUSION_COMPARE_CONFIG, "Compare");
@@ -76,7 +80,7 @@ public class TestExcludeDeriver {
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
-    excludeDeriver.configure(config);
+    assertValidationFailures(excludeDeriver, config);
   }
 
   @Test (expected = RuntimeException.class)
@@ -92,6 +96,7 @@ public class TestExcludeDeriver {
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
+    assertNoValidationFailures(excludeDeriver, config);
     excludeDeriver.configure(config);
 
     excludeDeriver.derive(dependencies);
@@ -110,6 +115,7 @@ public class TestExcludeDeriver {
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
+    assertNoValidationFailures(excludeDeriver, config);
     excludeDeriver.configure(config);
 
     excludeDeriver.derive(dependencies);
@@ -155,6 +161,7 @@ public class TestExcludeDeriver {
     config = ConfigFactory.parseMap(paramMap);
 
     ExcludeDeriver excludeDeriver = new ExcludeDeriver();
+    assertNoValidationFailures(excludeDeriver, config);
     excludeDeriver.configure(config);
 
     Dataset<Row> results = excludeDeriver.derive(dependencies);

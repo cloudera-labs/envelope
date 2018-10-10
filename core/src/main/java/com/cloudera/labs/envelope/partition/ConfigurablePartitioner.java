@@ -17,18 +17,18 @@
  */
 package com.cloudera.labs.envelope.partition;
 
+import com.cloudera.labs.envelope.component.Component;
+import com.typesafe.config.Config;
 import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.sql.Row;
-
-import com.typesafe.config.Config;
 
 /**
  * Partitioners determine the logic for how Envelope should group keys together into RDD partitions
  * for requesting existing records from an output.
  */
 @SuppressWarnings("serial")
-public abstract class ConfigurablePartitioner extends Partitioner {
+public abstract class ConfigurablePartitioner extends Partitioner implements Component {
 
   /**
    * Configure the partitioner.

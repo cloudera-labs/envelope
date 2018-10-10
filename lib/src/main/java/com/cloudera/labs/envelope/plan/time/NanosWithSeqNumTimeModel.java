@@ -17,19 +17,18 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
-import java.math.BigDecimal;
-import java.util.List;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 public class NanosWithSeqNumTimeModel implements TimeModel, ProvidesAlias {
 

@@ -17,17 +17,6 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
@@ -37,6 +26,17 @@ import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
 
 public class TestEventTimeHistoryPlanner {
 
@@ -48,7 +48,7 @@ public class TestEventTimeHistoryPlanner {
   private StructType existingSchema;
   private Map<String, Object> configMap;
   private Config config;
-  private RandomPlanner p;
+  private EventTimeHistoryPlanner p;
 
   @Before
   public void before() {
@@ -86,6 +86,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingNoneExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -103,6 +104,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingNoneExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -125,6 +127,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -147,6 +150,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExistingButSameValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -161,6 +165,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -175,6 +180,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithDifferentValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -194,6 +200,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingEarlierThanExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -213,6 +220,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingLaterThanAllExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -237,6 +245,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithSameValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -253,6 +262,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithDifferentValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -274,6 +284,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingBetweenTwoExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -298,6 +309,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingEarlierThanAllExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -318,6 +330,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereAllArrivingLaterThanExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -350,6 +363,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithSameValuesAndRestArrivingLaterThanExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -378,6 +392,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithDifferentValuesAndRestArrivingLaterThanExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -407,6 +422,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithSameValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -425,6 +441,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithDifferentValues() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 199L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO, ""));
@@ -458,6 +475,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testNoneArrivingNoneExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     key = new RowWithSchema(keySchema, "a");
@@ -470,6 +488,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testNoneArrivingOneExisting() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -484,6 +503,7 @@ public class TestEventTimeHistoryPlanner {
   public void testCarryForwardWhenNull() {
     p = new EventTimeHistoryPlanner();
     config = config.withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -508,6 +528,7 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testNoCarryForwardWhenNull() {
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -533,6 +554,7 @@ public class TestEventTimeHistoryPlanner {
   public void testCarryForwardMultipleWhenNull() {
     p = new EventTimeHistoryPlanner();
     config = config.withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));
@@ -566,6 +588,7 @@ public class TestEventTimeHistoryPlanner {
     config = config.
         withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true)).
         withValue(EventTimeHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -617,6 +640,7 @@ public class TestEventTimeHistoryPlanner {
     config = config.
         withValue(EventTimeHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true)).
         withValue(EventTimeHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -674,6 +698,7 @@ public class TestEventTimeHistoryPlanner {
     p = new EventTimeHistoryPlanner();
     config = config.
         withValue(EventTimeHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -736,6 +761,7 @@ public class TestEventTimeHistoryPlanner {
         withValue(EventTimeHistoryPlanner.CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagNo));
 
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -764,6 +790,7 @@ public class TestEventTimeHistoryPlanner {
             ConfigValueFactory.fromAnyRef("longmillis"));
     
     p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, ""));

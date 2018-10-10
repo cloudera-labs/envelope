@@ -17,12 +17,12 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
+import com.cloudera.labs.envelope.input.translate.KVPTranslator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
@@ -34,12 +34,13 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
-import com.cloudera.labs.envelope.input.translate.KVPTranslator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -50,30 +51,30 @@ public class TestFileSystemInput {
   private static final String JSON_DATA = "/filesystem/sample-fs.json";
   private static final String TEXT_DATA = "/filesystem/sample-fs.txt";
 
-  private Config config;
+  private Config config = ConfigFactory.empty();
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingFormat() throws Exception {
     config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": null").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void invalidFormat() throws Exception {
     config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": WILLGOBOOM").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingPath() throws Exception {
     config = ConfigFactory.parseString(FileSystemInput.PATH_CONFIG + ": null").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void multipleSchema() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -83,10 +84,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingFieldNames() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -95,10 +96,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingFieldTypes() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -107,10 +108,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void multipleAvroSchemas() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -120,10 +121,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingAvroLiteral() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -132,10 +133,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void missingAvroFile() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
@@ -144,7 +145,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput fileSystemInput = new FileSystemInput();
-    fileSystemInput.configure(config);
+    assertValidationFailures(fileSystemInput, config);
   }
 
   @Test
@@ -155,6 +156,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -173,6 +175,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -194,6 +197,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -224,6 +228,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -244,6 +249,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -265,6 +271,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
+    assertNoValidationFailures(csvInput, config);
     csvInput.configure(config);
 
     Dataset<Row> dataFrame = csvInput.read();
@@ -279,7 +286,7 @@ public class TestFileSystemInput {
     assertEquals(DataTypes.IntegerType, first.schema().fields()[0].dataType());
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void readInputFormatMissingInputFormat() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
@@ -287,10 +294,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
-    formatInput.configure(config);
+    assertValidationFailures(formatInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void readInputFormatMissingKey() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
@@ -299,10 +306,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
-    formatInput.configure(config);
+    assertValidationFailures(formatInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void readInputFormatMissingValue() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
@@ -312,10 +319,10 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
-    formatInput.configure(config);
+    assertValidationFailures(formatInput, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void readInputFormatMissingTranslator() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
@@ -326,7 +333,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
-    formatInput.configure(config);
+    assertValidationFailures(formatInput, config);
   }
 
   @Test (expected = SparkException.class)
@@ -341,6 +348,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
+    assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
     formatInput.read().show();
   }
@@ -357,6 +365,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
+    assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
 
     Dataset<Row> results = formatInput.read();
@@ -374,6 +383,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(configMap);
     
     FileSystemInput formatInput = new FileSystemInput();
+    assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
     
     Dataset<Row> results = formatInput.read();
@@ -396,6 +406,7 @@ public class TestFileSystemInput {
     config = ConfigFactory.parseMap(configMap);
     
     FileSystemInput formatInput = new FileSystemInput();
+    assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
     
     Dataset<Row> results = formatInput.read();

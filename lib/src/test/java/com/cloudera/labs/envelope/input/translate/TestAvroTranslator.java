@@ -17,11 +17,10 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-
+import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
@@ -37,10 +36,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import java.io.ByteArrayOutputStream;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestAvroTranslator {
 
@@ -64,8 +64,9 @@ public class TestAvroTranslator {
 
     Config config = ConfigFactory.empty()
         .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()));
-    
-    Translator<byte[], byte[]> t = new AvroTranslator();
+
+    AvroTranslator t = new AvroTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     
     Row r = t.translate(null, a).iterator().next();
@@ -94,8 +95,9 @@ public class TestAvroTranslator {
     Config config = ConfigFactory.empty()
         .withValue(AvroTranslator.AVRO_PATH_CONFIG, 
             ConfigValueFactory.fromAnyRef(getClass().getResource("/translator/avro-translator-test.avsc").getFile()));
-    
-    Translator<byte[], byte[]> t = new AvroTranslator();
+
+    AvroTranslator t = new AvroTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     
     Row r = t.translate(null, a).iterator().next();
@@ -124,8 +126,9 @@ public class TestAvroTranslator {
     Config config = ConfigFactory.empty()
         .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()))
         .withValue(TranslatorUtils.APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
-    
-    Translator<byte[], byte[]> t = new AvroTranslator();
+
+    AvroTranslator t = new AvroTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     
     Row r = t.translate(null, a).iterator().next();

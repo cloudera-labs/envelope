@@ -17,10 +17,10 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.google.common.collect.Lists;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -28,10 +28,9 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.ConfigFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestLongMillisTimeModel {
   

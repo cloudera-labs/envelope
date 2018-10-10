@@ -17,6 +17,19 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -24,18 +37,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
-
-public class StringDateTimeModel implements TimeModel, ProvidesAlias {
+public class StringDateTimeModel implements TimeModel, ProvidesAlias, ProvidesValidations {
 
   public static final String DATETIME_FORMAT_CONFIG = "format";
 
@@ -129,6 +131,13 @@ public class StringDateTimeModel implements TimeModel, ProvidesAlias {
   @Override
   public String getAlias() {
     return "stringdate";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(DATETIME_FORMAT_CONFIG, ConfigValueType.STRING)
+        .build();
   }
 
 }

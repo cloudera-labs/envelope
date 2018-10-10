@@ -18,8 +18,7 @@
 package com.cloudera.labs.envelope.utils;
 
 
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
@@ -35,7 +34,7 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import java.util.List;
 
 /**
  *

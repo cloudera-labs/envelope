@@ -18,12 +18,16 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
-import java.util.List;
-import java.util.Map;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import scala.collection.JavaConversions;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>Execute a LEFT ANTI JOIN on the designated dataset, returning only the rows of the designated compareDataset that do not
@@ -36,7 +40,7 @@ import scala.collection.JavaConversions;
  * </pre>
  * <p>Note that both datasets must have identically named columns/fields in the USING statement.</p>
  */
-public class ExcludeDeriver implements Deriver, ProvidesAlias {
+public class ExcludeDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   public static final String EXCLUSION_COMPARE_CONFIG = "compare";
   public static final String EXCLUSION_WITH_CONFIG = "with";
@@ -48,30 +52,13 @@ public class ExcludeDeriver implements Deriver, ProvidesAlias {
 
   @Override
   public void configure(Config config) {
-
-    if (!config.hasPath(EXCLUSION_COMPARE_CONFIG) || config.getString(EXCLUSION_COMPARE_CONFIG).isEmpty()) {
-      throw new RuntimeException("Missing comparison target parameter, '" + EXCLUSION_COMPARE_CONFIG + "'");
-    } else {
-      compareDataset = config.getString(EXCLUSION_COMPARE_CONFIG);
-    }
-
-    if (!config.hasPath(EXCLUSION_WITH_CONFIG) || config.getString(EXCLUSION_WITH_CONFIG).isEmpty()) {
-      throw new RuntimeException("Missing comparison reference parameter, '" + EXCLUSION_WITH_CONFIG + "'");
-    } else {
-      withDataset = config.getString(EXCLUSION_WITH_CONFIG);
-    }
-
-    if (!config.hasPath(EXCLUSION_FIELDS_CONFIG) || config.getStringList(EXCLUSION_FIELDS_CONFIG).isEmpty()) {
-      throw new RuntimeException("Missing comparison field names parameter, '" + EXCLUSION_FIELDS_CONFIG + "'");
-    } else {
-      fields = config.getStringList(EXCLUSION_FIELDS_CONFIG);
-    }
-
+    this.compareDataset = config.getString(EXCLUSION_COMPARE_CONFIG);
+    this.withDataset = config.getString(EXCLUSION_WITH_CONFIG);
+    this.fields = config.getStringList(EXCLUSION_FIELDS_CONFIG);
   }
 
   @Override
   public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-
     Dataset<Row> compare, with;
 
     if (!dependencies.containsKey(compareDataset)) {
@@ -87,11 +74,20 @@ public class ExcludeDeriver implements Deriver, ProvidesAlias {
     }
 
     return compare.join(with, JavaConversions.asScalaBuffer(fields).toList(), "leftanti");
-
   }
 
   @Override
   public String getAlias() {
     return "exclude";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(EXCLUSION_COMPARE_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(EXCLUSION_FIELDS_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(EXCLUSION_WITH_CONFIG, ConfigValueType.STRING)
+        .build();
+  }
+  
 }

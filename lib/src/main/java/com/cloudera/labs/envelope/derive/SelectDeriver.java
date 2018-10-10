@@ -19,13 +19,17 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
-import java.util.Map;
-import java.util.List;
-import java.util.Arrays;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import com.typesafe.config.Config;
 import scala.collection.JavaConverters;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Deriver class for selecting specific columns from a dataset provided by "Dependencies".
@@ -34,41 +38,33 @@ import scala.collection.JavaConverters;
  * Deriver takes list of columns to be selected or rejected   
  *
  */
-public class SelectDeriver implements Deriver, ProvidesAlias {
-  // Variables for config strings
+public class SelectDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
+
   public static final String INCLUDE_FIELDS = "include-fields";
   public static final String EXCLUDE_FIELDS = "exclude-fields";
   public static final String STEP_NAME_CONFIG = "step";
   
-  private String stepName = null;
+  private String stepName;
   private List<String> includeFields;
   private List<String> excludeFields;
   private boolean useIncludeFields = true;
 
   
-  // Get and check all configurations
   @Override
   public void configure(Config config) {
-    if (config.hasPath(STEP_NAME_CONFIG)){
+    if (config.hasPath(STEP_NAME_CONFIG)) {
       stepName = config.getString(STEP_NAME_CONFIG);
     }
 
-    if (config.hasPath(INCLUDE_FIELDS) && config.hasPath(EXCLUDE_FIELDS)) {
-      throw new RuntimeException("Select deriver takes either " + INCLUDE_FIELDS + " or " + EXCLUDE_FIELDS + " as list of fields for output.");
-    }
-    else if (config.hasPath(INCLUDE_FIELDS)){
+    if (config.hasPath(INCLUDE_FIELDS)) {
       includeFields = config.getStringList(INCLUDE_FIELDS);
       useIncludeFields = true;
     }
-    else if (config.hasPath(EXCLUDE_FIELDS)){
+    else {
       excludeFields = config.getStringList(EXCLUDE_FIELDS);
       useIncludeFields = false;
     }
-    else {
-      throw new RuntimeException("Select deriver requires either " + INCLUDE_FIELDS + " or " + EXCLUDE_FIELDS + " as list of fields to be selected.");
-    }
   }
-  
   
   @Override
   public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
@@ -116,4 +112,13 @@ public class SelectDeriver implements Deriver, ProvidesAlias {
   public String getAlias() {
     return "select";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(STEP_NAME_CONFIG, ConfigValueType.STRING)
+        .exactlyOnePathExists(ConfigValueType.LIST, INCLUDE_FIELDS, EXCLUDE_FIELDS)
+        .build();
+  }
+
 }

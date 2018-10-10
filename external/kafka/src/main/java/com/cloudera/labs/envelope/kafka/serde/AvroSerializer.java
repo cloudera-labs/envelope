@@ -17,12 +17,8 @@
  */
 package com.cloudera.labs.envelope.kafka.serde;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -40,8 +36,11 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Sets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Set;
 
 public class AvroSerializer implements Serializer<Row> {
 

@@ -17,30 +17,34 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A planner implementation for storing all versions of the values of a key (its history) using
  * Type II SCD modeling.
  */
-public class EventTimeHistoryPlanner implements RandomPlanner, ProvidesAlias {
+public class EventTimeHistoryPlanner
+    implements RandomPlanner, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   public static final String KEY_FIELD_NAMES_CONFIG_NAME = "fields.key";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";
@@ -67,22 +71,12 @@ public class EventTimeHistoryPlanner implements RandomPlanner, ProvidesAlias {
   @Override
   public void configure(Config config) {
     this.config = config;
-    ConfigUtils.assertConfig(config, KEY_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, VALUE_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME);
-    ConfigUtils.assertConfig(config, EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME);
     
-    Config eventTimeModelConfig = config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    Config lastUpdatedTimeModelConfig = config.hasPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) ? 
-        config.getConfig(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
-    
-    this.eventTimeModel = TimeModelFactory.create(eventTimeModelConfig, getTimestampFieldNames());
-    this.effectiveFromTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEffectiveFromFieldNames());
-    this.effectiveToTimeModel = TimeModelFactory.create(eventTimeModelConfig, getEffectiveToFieldNames());
+    this.eventTimeModel = getEventTimeModel(true);
+    this.effectiveFromTimeModel = getEffectiveFromTimeModel(true);
+    this.effectiveToTimeModel = getEffectiveToTimeModel(true);
     if (hasLastUpdatedField()) {
-      this.lastUpdatedTimeModel = TimeModelFactory.create(lastUpdatedTimeModelConfig, getLastUpdatedFieldName());
+      this.lastUpdatedTimeModel = getLastUpdatedTimeModel(true);
     }
   }
 
@@ -353,10 +347,73 @@ public class EventTimeHistoryPlanner implements RandomPlanner, ProvidesAlias {
       this.lastUpdatedTimeModel.configureCurrentSystemTime(currentSystemTimeMillis);
     }
   }
+  
+  private Config getEventTimeModelConfig() {
+    return config.hasPath(EVENT_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(EVENT_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+  
+  private Config getLastUpdatedTimeModelConfig() {
+    return config.hasPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) ? 
+        config.getConfig(LAST_UPDATED_TIME_MODEL_CONFIG_NAME) : ConfigFactory.empty();
+  }
+
+  private TimeModel getEventTimeModel(boolean configure) {
+    return TimeModelFactory.create(getEventTimeModelConfig(), getTimestampFieldNames(), configure);
+  }
+
+  private TimeModel getEffectiveFromTimeModel(boolean configure) {
+    return TimeModelFactory.create(getEventTimeModelConfig(), getEffectiveFromFieldNames(), configure);
+  }
+
+  private TimeModel getEffectiveToTimeModel(boolean configure) {
+    return TimeModelFactory.create(getEventTimeModelConfig(), getEffectiveToFieldNames(), configure);
+  }
+
+  private TimeModel getLastUpdatedTimeModel(boolean configure) {
+    return TimeModelFactory.create(getLastUpdatedTimeModelConfig(), getLastUpdatedFieldName(), configure);
+  }
 
   @Override
   public String getAlias() {
     return "history";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(KEY_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(TIMESTAMP_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
+        .optionalPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(CARRY_FORWARD_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .optionalPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(EVENT_TIME_MODEL_CONFIG_NAME)
+        .handlesOwnValidationPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME)
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    this.config = config;
+
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    components.add(new InstantiatedComponent(
+        getEventTimeModel(configure), getEventTimeModelConfig(), "Event Time Model"));
+
+    if (hasLastUpdatedField()) {
+      components.add(new InstantiatedComponent(getLastUpdatedTimeModel(configure),
+          getLastUpdatedTimeModelConfig(), "Last Updated Time Model"));
+    }
+
+    return components;
   }
 
 }

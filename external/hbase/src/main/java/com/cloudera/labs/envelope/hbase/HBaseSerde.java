@@ -17,18 +17,15 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import java.util.List;
-
+import com.typesafe.config.Config;
 import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Query;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
 
-import com.typesafe.config.Config;
+import java.util.List;
 
 /**
  * Interface defining methods to convert to/from HBase cells from/to Spark {@link Row}s.

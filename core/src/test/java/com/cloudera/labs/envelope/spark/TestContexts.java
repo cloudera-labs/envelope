@@ -17,13 +17,9 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.junit.Before;
@@ -31,9 +27,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestContexts {
 
@@ -106,7 +105,8 @@ public class TestContexts {
   @Test (expected = AnalysisException.class)
   public void testHiveDisabledConfiguration() {
     Map<String, Object> sparamMap = new HashMap<>();
-    sparamMap.put(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, "false");
+    sparamMap.put(Contexts.APPLICATION_SECTION_PREFIX + "." +
+        Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, false);
     Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveDisabled(d int)");
     try {
@@ -135,9 +135,11 @@ public class TestContexts {
     Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
     Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
     Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
+  }
 
-    sparamMap.put(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, "true");
-    Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
+  @Test
+  public void testHiveEnabledByDefault() {
+    Contexts.initialize(ConfigFactory.empty(), Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
     Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
     Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
@@ -146,9 +148,10 @@ public class TestContexts {
   @Test
   public void testDriverMemoryClusterMode() {
     Properties props = new Properties();
-    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." +
+            Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
         Contexts.SPARK_DEPLOY_MODE_CLUSTER);
-    props.setProperty(Contexts.DRIVER_MEMORY_PROPERTY, "2G");
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." + Contexts.DRIVER_MEMORY_PROPERTY, "2G");
     Config config = ConfigFactory.parseProperties(props);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
@@ -161,9 +164,10 @@ public class TestContexts {
   @Test
   public void testDriverMemoryClientMode() {
     Properties props = new Properties();
-    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." +
+            Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
         Contexts.SPARK_DEPLOY_MODE_CLIENT);
-    props.setProperty(Contexts.DRIVER_MEMORY_PROPERTY, "2G");
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." + Contexts.DRIVER_MEMORY_PROPERTY, "2G");
     Config config = ConfigFactory.parseProperties(props);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     thrown.expect(RuntimeException.class);
@@ -174,14 +178,16 @@ public class TestContexts {
   @Test
   public void testAppDriverMemoryClientMode() {
     Properties props = new Properties();
-    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." +
+            Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DEPLOY_MODE_PROPERTY,
         Contexts.SPARK_DEPLOY_MODE_CLIENT);
-    props.setProperty(Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DRIVER_MEMORY_PROPERTY, "2G");
+    props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." +
+        Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DRIVER_MEMORY_PROPERTY, "2G");
     Config config = ConfigFactory.parseProperties(props);
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("Driver memory can not be set");
     Contexts.getSparkSession().sparkContext().getConf();
   }
-  
+
 }

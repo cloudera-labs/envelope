@@ -17,28 +17,36 @@
  */
 package com.cloudera.labs.envelope.run;
 
-import java.util.Set;
-
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+
+import java.util.Set;
 
 /**
  * A step is a unit of work to be submitted in dependency order.
  */
-public abstract class Step {
+public abstract class Step implements ProvidesValidations {
+
+  public static final String DEPENDENCIES_CONFIG = "dependencies";
 
   protected String name;
   protected Config config;
   
   private boolean submitted = false;
   private Set<String> dependencyNames;
-  
-  public Step(String name, Config config) {
+
+  public Step(String name) {
     this.name = name;
+  }
+
+  public void configure(Config config) {
     this.config = config;
-    
-    if (config.hasPath("dependencies")) {
-      dependencyNames = Sets.newHashSet(config.getStringList("dependencies"));
+
+    if (config.hasPath(DEPENDENCIES_CONFIG)) {
+      dependencyNames = Sets.newHashSet(config.getStringList(DEPENDENCIES_CONFIG));
     }
     else {
       dependencyNames = Sets.newHashSet();
@@ -82,6 +90,13 @@ public abstract class Step {
   // Can be overridden if the step holds additional state
   public void reset() {
     setSubmitted(false);
+  }
+  
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(DEPENDENCIES_CONFIG, ConfigValueType.LIST)
+        .build();
   }
   
   @Override

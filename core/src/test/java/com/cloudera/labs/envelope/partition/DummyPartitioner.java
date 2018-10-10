@@ -17,10 +17,9 @@
  */
 package com.cloudera.labs.envelope.partition;
 
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.sql.Row;
-
-import com.typesafe.config.Config;
 
 @SuppressWarnings("serial")
 public class DummyPartitioner extends ConfigurablePartitioner {

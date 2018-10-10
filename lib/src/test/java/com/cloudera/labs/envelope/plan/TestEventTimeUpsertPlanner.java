@@ -17,18 +17,6 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
@@ -36,6 +24,18 @@ import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestEventTimeUpsertPlanner {
 
@@ -46,7 +46,7 @@ public class TestEventTimeUpsertPlanner {
   StructType recordSchema;
   Map<String, Object> configMap;
   Config config;
-  RandomPlanner p;
+  EventTimeUpsertPlanner p;
 
   @Before
   public void before() { 
@@ -70,6 +70,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testNotExisting() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -84,6 +85,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testEarlierExistingWithNewValues() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
@@ -99,6 +101,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testEarlierExistingWithSameValues() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
@@ -113,6 +116,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testLaterExisting() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 150L));
@@ -127,6 +131,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testSameTimeExistingWithNewValues() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 100L));
@@ -142,6 +147,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testSameTimeExistingWithSameValues() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 100L));
@@ -156,6 +162,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testOnlyUsesLatestArrivingRecordForAKey() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));
@@ -177,6 +184,7 @@ public class TestEventTimeUpsertPlanner {
     configMap.put(EventTimeUpsertPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
     config = ConfigFactory.parseMap(configMap);
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -192,6 +200,7 @@ public class TestEventTimeUpsertPlanner {
   @Test
   public void testNoLastUpdated() {
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
@@ -212,6 +221,7 @@ public class TestEventTimeUpsertPlanner {
             ConfigValueFactory.fromAnyRef("longmillis"));
     
     p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(recordSchema, "a", "world", 50L));

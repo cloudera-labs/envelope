@@ -17,17 +17,17 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CheckForNullsRowRule implements RowRule, ProvidesAlias {
+public class CheckForNullsRowRule implements RowRule, ProvidesAlias, ProvidesValidations {
 
   private static final String FIELDS_CONFIG = "fields";
 
@@ -52,4 +52,12 @@ public class CheckForNullsRowRule implements RowRule, ProvidesAlias {
   public String getAlias() {
     return "checknulls";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
+        .build();
+  }
+  
 }

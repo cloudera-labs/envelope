@@ -17,18 +17,16 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import scala.Tuple2;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class OverwritePlanner implements BulkPlanner, ProvidesAlias {
 
@@ -54,4 +52,5 @@ public class OverwritePlanner implements BulkPlanner, ProvidesAlias {
   public String getAlias() {
     return "overwrite";
   }
+  
 }

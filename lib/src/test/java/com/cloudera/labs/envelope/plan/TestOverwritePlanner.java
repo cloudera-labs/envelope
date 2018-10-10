@@ -17,17 +17,15 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-
+import com.cloudera.labs.envelope.spark.Contexts;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Test;
-
-import com.cloudera.labs.envelope.spark.Contexts;
-
 import scala.Tuple2;
+
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestOverwritePlanner {
 

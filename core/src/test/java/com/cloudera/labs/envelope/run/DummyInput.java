@@ -17,17 +17,16 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
-
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
 
 public class DummyInput implements BatchInput {
   

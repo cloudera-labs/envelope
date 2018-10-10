@@ -17,11 +17,10 @@
  */
 package com.cloudera.labs.envelope.partition;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
 import org.apache.spark.RangePartitioner;
@@ -31,10 +30,10 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestPartitionerFactory {
 

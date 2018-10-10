@@ -6,7 +6,7 @@
   <version>0.6.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   
-  <inceptionYear>2016</inceptionYear>
+  <inceptionYear>2015</inceptionYear>
   <description>Envelope is an Apache Spark application framework for implementing streaming and batch data pipelines on a CDH cluster.</description>
   <url>https://github.com/cloudera-labs/envelope</url>
   <organization>

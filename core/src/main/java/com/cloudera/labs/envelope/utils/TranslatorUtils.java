@@ -17,7 +17,9 @@
  */
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 
 public class TranslatorUtils {
 
@@ -26,27 +28,25 @@ public class TranslatorUtils {
   public static final String APPEND_RAW_VALUE_FIELD_NAME_CONFIG_NAME = "append.raw.value.field.name";
   public static final String APPEND_RAW_DEFAULT_KEY_FIELD_NAME = "_key";
   public static final String APPEND_RAW_DEFAULT_VALUE_FIELD_NAME = "_value";
+
+  public static final Validations APPEND_RAW_VALIDATIONS = Validations.builder()
+      .optionalPath(APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueType.BOOLEAN)
+      .ifPathHasValue(APPEND_RAW_ENABLED_CONFIG_NAME, true,
+          Validations.single().optionalPath(APPEND_RAW_DEFAULT_KEY_FIELD_NAME, ConfigValueType.STRING))
+      .ifPathHasValue(APPEND_RAW_ENABLED_CONFIG_NAME, true,
+          Validations.single().optionalPath(APPEND_RAW_DEFAULT_VALUE_FIELD_NAME, ConfigValueType.STRING))
+      .build();
   
   public static boolean doesAppendRaw(Config config) {
-    return config.hasPath(APPEND_RAW_ENABLED_CONFIG_NAME) && config.getBoolean(APPEND_RAW_ENABLED_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, APPEND_RAW_ENABLED_CONFIG_NAME, false);
   }
   
   public static String getAppendRawKeyFieldName(Config config) {
-    if (config.hasPath(APPEND_RAW_KEY_FIELD_NAME_CONFIG_NAME)) {
-      return config.getString(APPEND_RAW_KEY_FIELD_NAME_CONFIG_NAME);
-    }
-    else {
-      return APPEND_RAW_DEFAULT_KEY_FIELD_NAME;
-    }
+    return ConfigUtils.getOrElse(config, APPEND_RAW_KEY_FIELD_NAME_CONFIG_NAME, APPEND_RAW_DEFAULT_KEY_FIELD_NAME);
   }
   
   public static String getAppendRawValueFieldName(Config config) {
-    if (config.hasPath(APPEND_RAW_VALUE_FIELD_NAME_CONFIG_NAME)) {
-      return config.getString(APPEND_RAW_VALUE_FIELD_NAME_CONFIG_NAME);
-    }
-    else {
-      return APPEND_RAW_DEFAULT_VALUE_FIELD_NAME;
-    }
+    return ConfigUtils.getOrElse(config, APPEND_RAW_VALUE_FIELD_NAME_CONFIG_NAME, APPEND_RAW_DEFAULT_VALUE_FIELD_NAME);
   }
   
 }

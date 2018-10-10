@@ -15,6 +15,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>com.cloudera.labs.envelope</groupId>
+      <artifactId>envelope-core</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.kitesdk</groupId>
       <artifactId>kite-morphlines-core</artifactId>
       <version>${kite-sdk.version}</version>

@@ -17,16 +17,21 @@
  */
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.derive.dq.DatasetRule;
 import com.cloudera.labs.envelope.derive.dq.DatasetRuleFactory;
 import com.cloudera.labs.envelope.derive.dq.RowRule;
 import com.cloudera.labs.envelope.derive.dq.RowRuleFactory;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -39,6 +44,8 @@ import scala.collection.JavaConverters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Deriver which allows the Datasets to be checked against a list of configured data quality rules.
@@ -46,7 +53,8 @@ import java.util.Map;
  * The deriver can operate at a whole dataset level (e.g. count) or on a row-level (e.g. fields match
  * a regex).
  */
-public class DataQualityDeriver implements Deriver, ProvidesAlias {
+public class DataQualityDeriver
+    implements Deriver, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   public static final String SCOPE_CONFIG = "scope";
   public static final String RULES_CONFIG = "rules";
@@ -73,24 +81,20 @@ public class DataQualityDeriver implements Deriver, ProvidesAlias {
 
   @Override
   public void configure(Config config) {
-    ConfigUtils.assertConfig(config, SCOPE_CONFIG);
-    ConfigUtils.assertConfig(config, RULES_CONFIG);
     scope = Scope.valueOf(config.getString(SCOPE_CONFIG).toUpperCase());
+
     if (config.hasPath(DATASET_CONFIG)) {
       dataset = config.getString(DATASET_CONFIG);
     }
-    ConfigObject rulesConfig = config.getObject(RULES_CONFIG);
+
+    Config rulesConfig = config.getConfig(RULES_CONFIG);
     if (scope == Scope.DATASET) {
-      for (String rule : rulesConfig.keySet()) {
-        datasetRules.put(rule, DatasetRuleFactory.create(rule, config.getConfig(RULES_CONFIG).getConfig(rule)));
-      }
+      datasetRules = getDatasetRules(rulesConfig, true);
     } else {
       if (config.hasPath(RESULTS_FIELD_CONFIG)) {
         resultsField = config.getString(RESULTS_FIELD_CONFIG);
       }
-      for (String rule : rulesConfig.keySet()) {
-        rowRules.put(rule, RowRuleFactory.create(rule, config.getConfig(RULES_CONFIG).getConfig(rule)));
-      }
+      rowRules = getRowRules(rulesConfig, true);
     }
   }
 
@@ -112,7 +116,7 @@ public class DataQualityDeriver implements Deriver, ProvidesAlias {
         if (theResults == null) {
           theResults = rule.check(theDataset, dependencies);
         } else {
-          theResults = theResults.unionAll(rule.check(theDataset, dependencies));
+          theResults = theResults.union(rule.check(theDataset, dependencies));
         }
       }
     } else {
@@ -131,8 +135,28 @@ public class DataQualityDeriver implements Deriver, ProvidesAlias {
     return theResults;
   }
 
-  private static class CheckRowRules implements MapFunction<Row, Row> {
+  private Map<String, DatasetRule> getDatasetRules(Config rulesConfig, boolean configure) {
+    Map<String, DatasetRule> datasetRules = Maps.newHashMap();
 
+    for (String rule : rulesConfig.root().keySet()) {
+      datasetRules.put(rule, DatasetRuleFactory.create(rule, rulesConfig.getConfig(rule), configure));
+    }
+
+    return datasetRules;
+  }
+
+  private Map<String, RowRule> getRowRules(Config rulesConfig, boolean configure) {
+    Map<String, RowRule> rowRules = Maps.newHashMap();
+
+    for (String rule : rulesConfig.root().keySet()) {
+      rowRules.put(rule, RowRuleFactory.create(rule, rulesConfig.getConfig(rule), configure));
+    }
+
+    return rowRules;
+  }
+
+  @SuppressWarnings("serial")
+  private static class CheckRowRules implements MapFunction<Row, Row> {
     private Map<String, RowRule> rules;
     private String resultsFieldName;
 
@@ -155,7 +179,47 @@ public class DataQualityDeriver implements Deriver, ProvidesAlias {
     private static <A,B> scala.collection.mutable.Map<A,B> toScalaMap(java.util.Map<A,B> jMap) {
       return JavaConverters.mapAsScalaMapConverter(jMap).asScala();
     }
+  }
 
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(SCOPE_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(RULES_CONFIG, ConfigValueType.OBJECT)
+        .optionalPath(DATASET_CONFIG, ConfigValueType.STRING)
+        .optionalPath(RESULTS_FIELD_CONFIG, ConfigValueType.STRING)
+        .handlesOwnValidationPath(RULES_CONFIG)
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    Scope scope = Scope.valueOf(config.getString(SCOPE_CONFIG).toUpperCase());
+
+    if (scope == Scope.DATASET) {
+      Map<String, DatasetRule> datasetRules = getDatasetRules(config.getConfig(RULES_CONFIG), configure);
+      for (Entry<String, DatasetRule> datasetRuleEntry : datasetRules.entrySet()) {
+        String ruleName = datasetRuleEntry.getKey();
+        DatasetRule rule = datasetRuleEntry.getValue();
+
+        components.add(new InstantiatedComponent(
+            rule, config.getConfig(RULES_CONFIG).getConfig(ruleName), "Rule " + ruleName));
+      }
+    }
+    else {
+      Map<String, RowRule> rowRules = getRowRules(config.getConfig(RULES_CONFIG), configure);
+      for (Entry<String, RowRule> rowRuleEntry : rowRules.entrySet()) {
+        String ruleName = rowRuleEntry.getKey();
+        RowRule rule = rowRuleEntry.getValue();
+
+        components.add(new InstantiatedComponent(
+            rule, config.getConfig(RULES_CONFIG).getConfig(ruleName), "Rule " + ruleName));
+      }
+    }
+
+    return components;
   }
 
 }

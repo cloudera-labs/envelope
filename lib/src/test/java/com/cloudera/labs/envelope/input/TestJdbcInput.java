@@ -17,16 +17,9 @@
  */
 package com.cloudera.labs.envelope.input;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
+import mockit.integration.junit4.JMockit;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -36,9 +29,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.cloudera.labs.envelope.utils.ConfigUtils;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 
-import mockit.integration.junit4.JMockit;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test h2 table user with two columns firstname, lastname and three rows using JdbcInput
@@ -46,7 +46,6 @@ import mockit.integration.junit4.JMockit;
 
 @RunWith(JMockit.class)
 public class TestJdbcInput {
-
 
   public static final String JDBC_PROPERTIES_PATH = "/JdbcTest/jdbc-table-user.properties";
   public static Server server;
@@ -64,7 +63,6 @@ public class TestJdbcInput {
     stmt.executeUpdate("insert into user values ('f3','p1')");
   }
 
-
   @Test
   public void checkDB_OK() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
@@ -74,11 +72,12 @@ public class TestJdbcInput {
     assertEquals(3, resultSet.getInt(1));
   }
 
-
   @Test
   public void checkJdbcInput_works() throws Exception {
+    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_PATH).getPath());
     JdbcInput jdbcInput = new JdbcInput();
-    jdbcInput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_PATH).getPath()));
+    assertNoValidationFailures(jdbcInput, config);
+    jdbcInput.configure(config);
     Dataset<Row> read = jdbcInput.read();
     assertNotNull(read);
     assertEquals(3, read.count());
@@ -95,4 +94,5 @@ public class TestJdbcInput {
   public static void afterClass() {
     server.stop();
   }
+
 }

@@ -17,15 +17,13 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import static org.junit.Assert.assertEquals;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-
+import com.cloudera.labs.envelope.input.JdbcInput;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ValidationAssert;
+import com.typesafe.config.Config;
+import mockit.integration.junit4.JMockit;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
@@ -35,19 +33,19 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import com.cloudera.labs.envelope.input.JdbcInput;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-
-import mockit.integration.junit4.JMockit;
 import scala.Tuple2;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(JMockit.class)
 public class TestJdbcOutput {
-
 
   public static final String JDBC_PROPERTIES_TABLE_USER_PATH = "/JdbcTest/jdbc-table-user.properties";
   public static final String JDBC_PROPERTIES_TABLE_USER2_PATH = "/JdbcTest/jdbc-table-user2.properties";
@@ -66,7 +64,6 @@ public class TestJdbcOutput {
     Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
     Statement stmt = connection.createStatement();
     stmt.executeUpdate("create table if not exists user (firstname varchar(30), lastname varchar(30))");
-
   }
 
   @Test
@@ -75,11 +72,12 @@ public class TestJdbcOutput {
     connection.createStatement();
   }
 
-
   @Test
   public void checkApplyBulkMutations_works() throws Exception {
+    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER2_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
-    jdbcOutput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER2_PATH).getPath()));
+    ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
+    jdbcOutput.configure(config);
 
     ArrayList<Tuple2<MutationType, Dataset<Row>>> planned = new ArrayList<>();
     Dataset<Row> o = Contexts.getSparkSession().read().json(JdbcInput.class.getResource(SAMPLE_DATA_PATH).getPath());
@@ -96,11 +94,12 @@ public class TestJdbcOutput {
     assertEquals(2, resultSet.getInt(1));
   }
 
-
   @Test(expected = AnalysisException.class)
-  public void checkApplyBulkMutations_Exception_TableExist() throws Exception {
+  public void checkApplyBulkMutations_Exception_TableExist() {
+    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
-    jdbcOutput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath()));
+    ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
+    jdbcOutput.configure(config);
 
     ArrayList<Tuple2<MutationType, Dataset<Row>>> planned = new ArrayList<>();
     Dataset<Row> o = Contexts.getSparkSession().read().json(JdbcInput.class.getResource(SAMPLE_DATA_PATH).getPath());
@@ -111,11 +110,12 @@ public class TestJdbcOutput {
     jdbcOutput.applyBulkMutations(planned);
   }
 
-
   @Test(expected = RuntimeException.class)
-  public void checkApplyBulkMutations_Exception_MutationTypeNotSupported() throws Exception {
+  public void checkApplyBulkMutations_Exception_MutationTypeNotSupported() {
+    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
-    jdbcOutput.configure(ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath()));
+    ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
+    jdbcOutput.configure(config);
 
     ArrayList<Tuple2<MutationType, Dataset<Row>>> planned = new ArrayList<>();
     Dataset<Row> o = Contexts.getSparkSession().read().json(JdbcInput.class.getResource(SAMPLE_DATA_PATH).getPath());
@@ -130,6 +130,5 @@ public class TestJdbcOutput {
   public static void afterClass() {
     server.stop();
   }
-
 
 }

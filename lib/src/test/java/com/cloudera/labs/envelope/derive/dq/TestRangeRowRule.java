@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -53,6 +54,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34, new BigDecimal("0.00"));
@@ -83,6 +85,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34l, new BigDecimal("0.00"));
@@ -114,6 +117,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34.0f, new BigDecimal("0.00"));
@@ -145,6 +149,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34.0, new BigDecimal("0.00"));
@@ -176,6 +181,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34.0, new BigDecimal("-1.00"));
@@ -206,6 +212,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));
@@ -229,6 +236,7 @@ public class TestRangeRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     RangeRowRule rule = new RangeRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agerange", config);
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));

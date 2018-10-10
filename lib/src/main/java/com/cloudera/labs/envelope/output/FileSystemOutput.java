@@ -17,28 +17,32 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import java.util.List;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
-public class FileSystemOutput implements BulkOutput, ProvidesAlias {
+import java.util.List;
+import java.util.Set;
+
+public class FileSystemOutput implements BulkOutput, ProvidesAlias, ProvidesValidations {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemOutput.class);
 
   public final static String FORMAT_CONFIG = "format";
+  public final static String CSV_FORMAT = "csv";
+  public final static String PARQUET_FORMAT = "parquet";
+  public final static String JSON_FORMAT = "json";
   public final static String PATH_CONFIG = "path";
   public final static String PARTITION_COLUMNS_CONFIG = "partition.by";
 
@@ -54,26 +58,20 @@ public class FileSystemOutput implements BulkOutput, ProvidesAlias {
   public final static String CSV_DATE_CONFIG = "date-format";
   public final static String CSV_TIMESTAMP_CONFIG = "timestamp-format";
 
-  private Config config;
   private ConfigUtils.OptionMap options;
+  private String format;
+  private String path;
+  private List<String> columns;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
-
-    if (!config.hasPath(FORMAT_CONFIG) || config.getString(FORMAT_CONFIG).isEmpty()) {
-      throw new RuntimeException("Filesystem output requires '" + FORMAT_CONFIG + "' property");
+    format = config.getString(FORMAT_CONFIG);
+    path = config.getString(PATH_CONFIG);
+    if (config.hasPath(PARTITION_COLUMNS_CONFIG)) {
+      columns = config.getStringList(PARTITION_COLUMNS_CONFIG);
     }
 
-    if (!config.hasPath(PATH_CONFIG) || config.getString(PATH_CONFIG).isEmpty() ) {
-      throw new RuntimeException("Filesystem output requires '" + PATH_CONFIG + "' property");
-    }
-
-    if (config.hasPath(PARTITION_COLUMNS_CONFIG) && config.getList(PARTITION_COLUMNS_CONFIG).isEmpty() ) {
-      throw new RuntimeException("Filesystem output '" + PATH_CONFIG + "' property cannot be empty if defined");
-    }
-
-    if (config.getString(FORMAT_CONFIG).equals("csv")) {
+    if (config.getString(FORMAT_CONFIG).equals(CSV_FORMAT)) {
       options = new ConfigUtils.OptionMap(config)
           .resolve("sep", CSV_SEPARATOR_CONFIG)
           .resolve("quote", CSV_QUOTE_CONFIG)
@@ -94,14 +92,11 @@ public class FileSystemOutput implements BulkOutput, ProvidesAlias {
       MutationType mutationType = plan._1();
       Dataset<Row> mutation = plan._2();
 
-      String format = config.getString(FORMAT_CONFIG);
-      String path = config.getString(PATH_CONFIG);
-
       DataFrameWriter<Row> writer = mutation.write();
 
-      if (config.hasPath(PARTITION_COLUMNS_CONFIG)) {
+      if (columns != null) {
         LOG.debug("Partitioning output");
-        List<String> columns = config.getStringList(PARTITION_COLUMNS_CONFIG);
+
         writer = writer.partitionBy(columns.toArray(new String[columns.size()]));
       }
 
@@ -117,15 +112,15 @@ public class FileSystemOutput implements BulkOutput, ProvidesAlias {
       }
 
       switch (format) {
-        case "parquet":
+        case PARQUET_FORMAT:
           LOG.debug("Writing Parquet: {}", path);
           writer.parquet(path);
           break;
-        case "csv":
+        case CSV_FORMAT:
           LOG.debug("Writing CSV: {}", path);
           writer.options(options).csv(path);
           break;
-        case "json":
+        case JSON_FORMAT:
           LOG.debug("Writing JSON: {}", path);
           writer.json(path);
           break;
@@ -143,5 +138,25 @@ public class FileSystemOutput implements BulkOutput, ProvidesAlias {
   @Override
   public String getAlias() {
     return "filesystem";
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(FORMAT_CONFIG, ConfigValueType.STRING)
+        .allowedValues(FORMAT_CONFIG, PARQUET_FORMAT, CSV_FORMAT, JSON_FORMAT)
+        .mandatoryPath(PATH_CONFIG, ConfigValueType.STRING)
+        .optionalPath(PARTITION_COLUMNS_CONFIG, ConfigValueType.LIST)
+        .optionalPath(CSV_SEPARATOR_CONFIG)
+        .optionalPath(CSV_QUOTE_CONFIG)
+        .optionalPath(CSV_ESCAPE_CONFIG)
+        .optionalPath(CSV_ESCAPE_QUOTES_CONFIG)
+        .optionalPath(CSV_QUOTE_ALL_CONFIG)
+        .optionalPath(CSV_HEADER_CONFIG)
+        .optionalPath(CSV_NULL_VALUE_CONFIG)
+        .optionalPath(CSV_COMPRESSION_CONFIG)
+        .optionalPath(CSV_DATE_CONFIG)
+        .optionalPath(CSV_TIMESTAMP_CONFIG)
+        .build();
   }
 }

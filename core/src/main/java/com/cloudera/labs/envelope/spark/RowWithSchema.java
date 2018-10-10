@@ -17,17 +17,16 @@
  */
 package com.cloudera.labs.envelope.spark;
 
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.StructType;
+import scala.collection.Seq;
+
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.StructType;
-
-import scala.collection.Seq;
 
 /**
  * Allows individual Spark SQL Rows to be created with a schema. This is achieved by

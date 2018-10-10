@@ -37,20 +37,23 @@ public class RepetitionFactory extends LoadableFactory<Repetition> {
    * @param repetitionConfig the configuration of the repetition
    * @return the Repetition instance
    */
-  public static Repetition create(BatchStep step, String name, Config repetitionConfig) {
+  public static Repetition create(BatchStep step, String name, Config repetitionConfig, boolean configure) {
     if (!repetitionConfig.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Repetition type not specified");
     }
 
     LOG.debug("Loaded repetitions from services: {}" + getLoadables(Repetition.class));
     String repetitionType = repetitionConfig.getString(TYPE_CONFIG_NAME);
-    Repetition repetition = null;
+    Repetition repetition;
     try {
       repetition = loadImplementation(Repetition.class, repetitionType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    repetition.configure(step, name, repetitionConfig);
+
+    if (configure) {
+      repetition.configure(step, name, repetitionConfig);
+    }
 
     return repetition;
   }

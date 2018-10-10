@@ -17,17 +17,9 @@
  */
 package com.cloudera.labs.envelope.utils;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-import java.nio.ByteBuffer;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -39,14 +31,20 @@ import org.apache.spark.sql.types.MapType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTime;
-
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.google.common.collect.Lists;
-import com.google.common.collect.ObjectArrays;
-
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.nio.ByteBuffer;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class RowUtils {
 

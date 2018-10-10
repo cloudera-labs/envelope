@@ -17,19 +17,6 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -37,8 +24,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import scala.Tuple2;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestAppendPlanner {
 
@@ -54,7 +53,8 @@ public class TestAppendPlanner {
   @Test
   public void testPlansInserts() {
     Config config = ConfigFactory.empty();
-    BulkPlanner ap = new AppendPlanner();
+    AppendPlanner ap = new AppendPlanner();
+    assertNoValidationFailures(ap, config);
     ap.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
@@ -67,11 +67,12 @@ public class TestAppendPlanner {
   @Test
   public void testUUIDKey() {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(AppendPlanner.UUID_KEY_CONFIG_NAME, "true");
+    configMap.put(AppendPlanner.UUID_KEY_CONFIG_NAME, true);
     configMap.put(AppendPlanner.KEY_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("key"));
     Config config = ConfigFactory.parseMap(configMap);
 
-    BulkPlanner ap = new AppendPlanner();
+    AppendPlanner ap = new AppendPlanner();
+    assertNoValidationFailures(ap, config);
     ap.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
@@ -95,7 +96,8 @@ public class TestAppendPlanner {
     configMap.put(AppendPlanner.KEY_FIELD_NAMES_CONFIG_NAME, Lists.newArrayList("key"));
     Config config = ConfigFactory.parseMap(configMap);
 
-    BulkPlanner ap = new AppendPlanner();
+    AppendPlanner ap = new AppendPlanner();
+    assertNoValidationFailures(ap, config);
     ap.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
@@ -118,7 +120,8 @@ public class TestAppendPlanner {
     configMap.put(AppendPlanner.LAST_UPDATED_FIELD_NAME_CONFIG_NAME, "lastupdated");
     Config config = ConfigFactory.parseMap(configMap);
 
-    BulkPlanner ap = new AppendPlanner();
+    AppendPlanner ap = new AppendPlanner();
+    assertNoValidationFailures(ap, config);
     ap.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);
@@ -138,7 +141,8 @@ public class TestAppendPlanner {
   @Test(expected=IllegalArgumentException.class)
   public void testNoLastUpdated() {
     Config config = ConfigFactory.empty();
-    BulkPlanner ap = new AppendPlanner();
+    AppendPlanner ap = new AppendPlanner();
+    assertNoValidationFailures(ap, config);
     ap.configure(config);
 
     List<Tuple2<MutationType, Dataset<Row>>> planned = ap.planMutationsForSet(dataFrame);

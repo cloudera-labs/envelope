@@ -17,21 +17,21 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
-import java.util.List;
-
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 
+import java.util.List;
+
 public class TimeModelFactory extends LoadableFactory<TimeModel> {
-  
+
   public static final String TYPE_CONFIG_NAME = "type";
-  
-  public static TimeModel create(Config timeModelConfig, String fieldName) {
-    return TimeModelFactory.create(timeModelConfig, Lists.newArrayList(fieldName));
+
+  public static TimeModel create(Config timeModelConfig, String fieldName, boolean configure) {
+    return create(timeModelConfig, Lists.newArrayList(fieldName), configure);
   }
   
-  public static TimeModel create(Config timeModelConfig, List<String> fieldNames) {
+  public static TimeModel create(Config timeModelConfig, List<String> fieldNames, boolean configure) {
     String timeModelType;
     if (timeModelConfig.hasPath(TYPE_CONFIG_NAME)) {
       timeModelType = timeModelConfig.getString(TYPE_CONFIG_NAME);
@@ -47,7 +47,9 @@ public class TimeModelFactory extends LoadableFactory<TimeModel> {
       throw new RuntimeException(e);
     }
 
-    timeModel.configure(timeModelConfig, fieldNames);
+    if (configure) {
+      timeModel.configure(timeModelConfig, fieldNames);
+    }
 
     return timeModel;
   }

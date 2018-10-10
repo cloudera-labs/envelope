@@ -17,15 +17,10 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import static junit.framework.Assert.assertNull;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -46,10 +41,14 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestDefaultHBaseSerde {
 

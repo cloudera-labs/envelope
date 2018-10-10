@@ -17,27 +17,26 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.MorphlineUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
-import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.typesafe.config.Config;
+import java.util.List;
+import java.util.Map;
 
-/**
- *
- */
-public class MorphlineDeriver implements Deriver, ProvidesAlias {
+public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineDeriver.class);
 
@@ -59,30 +58,18 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias {
     LOG.trace("Configuring Morphline Deriver");
 
     // Designate which dependency step to act upon
-    if (!config.hasPath(STEP_NAME_CONFIG) || config.getString(STEP_NAME_CONFIG).trim().isEmpty()) {
-      throw new RuntimeException("Missing parameter, " + STEP_NAME_CONFIG);
-    } else {
-      this.stepName = config.getString(STEP_NAME_CONFIG);
-    }
+    this.stepName = config.getString(STEP_NAME_CONFIG);
 
     // Set up the Morphline configuration, the file must be located on the local file system
     this.morphlineFile = config.getString(MORPHLINE);
     this.morphlineId = config.getString(MORPHLINE_ID);
-
-    if (this.morphlineFile == null || this.morphlineFile.trim().length() == 0) {
-      throw new MorphlineCompilationException("Missing or empty Morphline File configuration parameter", null);
-    }
 
     // Construct the StructType schema for the Rows
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
     List<String> fieldTypes = config.getStringList(FIELD_TYPES);
     this.schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
 
-    if (!config.hasPath(ERROR_ON_EMPTY) || config.getString(ERROR_ON_EMPTY).trim().isEmpty()) {
-      errorOnEmpty = true;
-    } else {
-      errorOnEmpty = config.getBoolean(ERROR_ON_EMPTY);
-    }
+    errorOnEmpty = ConfigUtils.getOrElse(config, ERROR_ON_EMPTY, true);
   }
 
   @Override
@@ -113,4 +100,17 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias {
   public String getAlias() {
     return "morphline";
   }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(STEP_NAME_CONFIG, ConfigValueType.STRING)
+        .mandatoryPath(MORPHLINE, ConfigValueType.STRING)
+        .mandatoryPath(MORPHLINE_ID, ConfigValueType.STRING)
+        .mandatoryPath(FIELD_NAMES, ConfigValueType.LIST)
+        .mandatoryPath(FIELD_TYPES, ConfigValueType.LIST)
+        .optionalPath(ERROR_ON_EMPTY, ConfigValueType.BOOLEAN)
+        .build();
+  }
+  
 }

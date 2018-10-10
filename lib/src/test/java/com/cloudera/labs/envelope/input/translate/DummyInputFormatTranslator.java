@@ -17,8 +17,8 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import java.util.Collections;
-
+import com.google.common.collect.Lists;
+import com.typesafe.config.Config;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.sql.Row;
@@ -26,8 +26,7 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-import com.google.common.collect.Lists;
-import com.typesafe.config.Config;
+import java.util.Collections;
 
 /**
  *

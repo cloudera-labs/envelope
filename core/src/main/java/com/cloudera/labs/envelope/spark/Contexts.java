@@ -17,9 +17,11 @@
  */
 package com.cloudera.labs.envelope.spark;
 
-import java.io.File;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
+import com.typesafe.config.ConfigValue;
 import org.apache.commons.io.FileUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -30,10 +32,8 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigRenderOptions;
-import com.typesafe.config.ConfigValue;
+import java.io.File;
+import java.util.Map;
 
 /**
  * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts, and have them
@@ -45,15 +45,16 @@ public enum Contexts {
 
   private static final Logger LOG = LoggerFactory.getLogger(Contexts.class);
 
-  public static final String APPLICATION_NAME_PROPERTY = "application.name";
-  public static final String BATCH_MILLISECONDS_PROPERTY = "application.batch.milliseconds";
-  public static final String NUM_INITIAL_EXECUTORS_PROPERTY = "application.executor.initial.instances";
-  public static final String NUM_EXECUTORS_PROPERTY = "application.executor.instances";
-  public static final String NUM_EXECUTOR_CORES_PROPERTY = "application.executor.cores";
-  public static final String EXECUTOR_MEMORY_PROPERTY = "application.executor.memory";
-  public static final String SPARK_CONF_PROPERTY_PREFIX = "application.spark.conf";
-  public static final String SPARK_SESSION_ENABLE_HIVE_SUPPORT = "application.hive.enabled";
-  public static final String DRIVER_MEMORY_PROPERTY = "application.driver.memory";
+  public static final String APPLICATION_SECTION_PREFIX = "application";
+  public static final String APPLICATION_NAME_PROPERTY = "name";
+  public static final String BATCH_MILLISECONDS_PROPERTY = "batch.milliseconds";
+  public static final String NUM_INITIAL_EXECUTORS_PROPERTY = "executor.initial.instances";
+  public static final String NUM_EXECUTORS_PROPERTY = "executor.instances";
+  public static final String NUM_EXECUTOR_CORES_PROPERTY = "executor.cores";
+  public static final String EXECUTOR_MEMORY_PROPERTY = "executor.memory";
+  public static final String SPARK_CONF_PROPERTY_PREFIX = "spark.conf";
+  public static final String SPARK_SESSION_ENABLE_HIVE_SUPPORT = "hive.enabled";
+  public static final String DRIVER_MEMORY_PROPERTY = "driver.memory";
   public static final String SPARK_DRIVER_MEMORY_PROPERTY = "spark.driver.memory";
   public static final String SPARK_DEPLOY_MODE_PROPERTY = "spark.submit.deployMode";
   public static final String SPARK_DEPLOY_MODE_CLIENT = "client";
@@ -112,7 +113,8 @@ public enum Contexts {
   }
 
   public static void initialize(Config config, ExecutionMode mode) {
-    INSTANCE.config = config;
+    INSTANCE.config = config.hasPath(APPLICATION_SECTION_PREFIX) ?
+        config.getConfig(APPLICATION_SECTION_PREFIX) : ConfigFactory.empty();
     INSTANCE.mode = mode;
   }
 
@@ -238,11 +240,10 @@ public enum Contexts {
   private static boolean enablesHiveSupport() {
     if (INSTANCE.mode == ExecutionMode.UNIT_TEST) return false;
 
-    if (INSTANCE.config.hasPath(SPARK_SESSION_ENABLE_HIVE_SUPPORT)) {
-      return INSTANCE.config.getBoolean(SPARK_SESSION_ENABLE_HIVE_SUPPORT);
-    } else {
-      return SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT;
-    }
+    return ConfigUtils.getOrElse(
+        INSTANCE.config,
+        SPARK_SESSION_ENABLE_HIVE_SUPPORT,
+        SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT);
   }
 
   public enum ExecutionMode {

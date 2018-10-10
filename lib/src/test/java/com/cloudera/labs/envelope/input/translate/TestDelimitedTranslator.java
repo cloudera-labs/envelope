@@ -17,21 +17,21 @@
  */
 package com.cloudera.labs.envelope.input.translate;
 
-import static org.junit.Assert.assertEquals;
-
-import org.apache.spark.sql.Row;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDateTime;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.sql.Row;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+import org.junit.Test;
 
 import java.sql.Timestamp;
 import java.util.List;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
 
 public class TestDelimitedTranslator {
   @Test
@@ -69,8 +69,9 @@ public class TestDelimitedTranslator {
             Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"))
         .withValue(TranslatorUtils.APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
-    
-    Translator<String, String> t = new DelimitedTranslator();
+
+    DelimitedTranslator t = new DelimitedTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate("testkey", delimited).iterator().next();
     assertEquals(r.length(), 9);
@@ -98,7 +99,8 @@ public class TestDelimitedTranslator {
             .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(fieldTypes))
             .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("|"));
 
-    Translator<String, String> t = new DelimitedTranslator();
+    DelimitedTranslator t = new DelimitedTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
 
     Row r1 = t.translate("testkey1", delimited1).iterator().next();
@@ -128,8 +130,9 @@ public class TestDelimitedTranslator {
         .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
             Lists.newArrayList("string", "int", "long", "int", "boolean")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef(" "));
-    
-    Translator<String, String> t = new DelimitedTranslator();
+
+    DelimitedTranslator t = new DelimitedTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate("testkey", delimited).iterator().next();
     assertEquals(r.length(), 5);
@@ -151,10 +154,11 @@ public class TestDelimitedTranslator {
             Lists.newArrayList("string", "string", "string", "string")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, 
             ConfigValueFactory.fromAnyRef(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
-        .withValue(DelimitedTranslator.DELIMITER_REGEX_CONFIG_NAME, 
-            ConfigValueFactory.fromAnyRef(true));
-    
-    Translator<String, String> t = new DelimitedTranslator();
+        .withValue(DelimitedTranslator.DELIMITER_REGEX_CONFIG_NAME,
+    ConfigValueFactory.fromAnyRef(true));
+
+    DelimitedTranslator t = new DelimitedTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate("testkey", delimited).iterator().next();
     assertEquals(r.length(), 4);
@@ -177,7 +181,8 @@ public class TestDelimitedTranslator {
         .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
             Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));
 
-    Translator<String, String> t = new DelimitedTranslator();
+    DelimitedTranslator t = new DelimitedTranslator();
+    assertNoValidationFailures(t, config);
     t.configure(config);
     Row r = t.translate(null, delimited).iterator().next();
     assertEquals(r.length(), 8);
@@ -194,4 +199,5 @@ public class TestDelimitedTranslator {
     assertEquals(new LocalDateTime(r.get(7)).
         toDateTime(DateTimeZone.UTC).toString(), "2018-09-19T00:00:00.000Z");
   }
+
 }

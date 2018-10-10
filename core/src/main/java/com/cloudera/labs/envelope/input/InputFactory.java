@@ -24,20 +24,22 @@ public class InputFactory extends LoadableFactory<Input> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Input create(Config config) {
+  public static Input create(Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Input type not specified");
     }
 
     String inputType = config.getString(TYPE_CONFIG_NAME);
-    Input input = null;
+    Input input;
     try {
       input = loadImplementation(Input.class, inputType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    input.configure(config);
+    if (configure) {
+      input.configure(config);
+    }
 
     return input;
   }

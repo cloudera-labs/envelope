@@ -17,13 +17,13 @@
  */
 package com.cloudera.labs.envelope.plan.time;
 
-import java.util.Comparator;
-import java.util.List;
-
+import com.cloudera.labs.envelope.component.Component;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
-import com.typesafe.config.Config;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * A time model class contains a set of logic for representing time on a
@@ -35,7 +35,7 @@ import com.typesafe.config.Config;
  * instance does not belong to any particular Row object so that it
  * can be reused across rows.
  */
-public interface TimeModel extends Comparator<Row> {
+public interface TimeModel extends Component, Comparator<Row> {
 
   /**
    * Configure the time model instance.

@@ -17,8 +17,9 @@
  */
 package com.cloudera.labs.envelope.derive.dq;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.typesafe.config.Config;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -26,9 +27,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.expressions.Aggregator;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.typesafe.config.Config;
+import java.util.Map;
 
 public class DatasetRowRuleWrapper implements DatasetRule, ProvidesAlias {
 
@@ -38,7 +37,7 @@ public class DatasetRowRuleWrapper implements DatasetRule, ProvidesAlias {
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    this.rowRule = RowRuleFactory.create(name, config);
+    this.rowRule = RowRuleFactory.create(name, config, true);
   }
 
   @Override

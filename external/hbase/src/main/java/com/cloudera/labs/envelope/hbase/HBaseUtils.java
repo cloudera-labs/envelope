@@ -17,12 +17,14 @@
  */
 package com.cloudera.labs.envelope.hbase;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.utils.JVMUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -36,13 +38,10 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.labs.envelope.utils.JVMUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.util.List;
+import java.util.Map;
 
 public class HBaseUtils {
 
@@ -60,47 +59,6 @@ public class HBaseUtils {
   public static final int DEFAULT_HBASE_BATCH_SIZE = 1000;
   public static final String DEFAULT_SERDE_PROPERTY = "default";
   public static final String DEFAULT_KEY_SEPARATOR = ":";
-
-  private static final List<String> REQUIRED_CONFIGS = Lists.newArrayList(
-      TABLE_NAME_PROPERTY,
-      ROWKEY_PROPERTY,
-      COLUMNS_PROPERTY
-  );
-
-  public static boolean validateConfig(Config config) {
-    boolean isValid = true;
-
-    // Does config have all required sections?
-    // TODO localize required properties to individual serdes
-    for (String property : REQUIRED_CONFIGS) {
-      if (!config.hasPath(property)) {
-        LOG.error("'{}' not specified in config", property);
-        isValid = false;
-      }
-    }
-
-    // Specific checks for columns
-    if (config.hasPath(COLUMNS_PROPERTY)) {
-      ConfigObject columnConfig = config.getConfig(COLUMNS_PROPERTY).root();
-      Set<String> columns = columnConfig.keySet();
-      for (String column : columns) {
-        if (!config.hasPath(COLUMNS_PROPERTY + "." + column + ".col")) {
-          LOG.error("'col' not specified in column {}", column);
-          isValid = false;
-        }
-        if (!config.hasPath(COLUMNS_PROPERTY + "." + column + ".type")) {
-          LOG.error("'type' not specified in column {}", column);
-          isValid = false;
-        }
-        if (!config.hasPath(COLUMNS_PROPERTY + "." + column + ".cf")) {
-          LOG.error("'cf' not specified in column {}", column);
-          isValid = false;
-        }
-      }
-    }
-
-    return isValid;
-  }
 
   public synchronized static Connection getConnection(Config config) throws IOException {
     LOG.info("Opening connection to HBase");
@@ -266,6 +224,21 @@ public class HBaseUtils {
     }
     
     return stopRow;
+  }
+  
+  public static Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(TABLE_NAME_PROPERTY, ConfigValueType.STRING)
+        .mandatoryPath(ROWKEY_PROPERTY)
+        .mandatoryPath(COLUMNS_PROPERTY, ConfigValueType.OBJECT)
+        .optionalPath(ZK_QUORUM_PROPERTY, ConfigValueType.STRING)
+        .optionalPath(HBASE_BATCH_SIZE, ConfigValueType.NUMBER)
+        .optionalPath(SERDE_PROPERTY, ConfigValueType.STRING)
+        .optionalPath(KEY_SEPARATOR, ConfigValueType.STRING)
+        .handlesOwnValidationPath(COLUMNS_PROPERTY)
+        .handlesOwnValidationPath(HBASE_PASSTHRU_PREFIX)
+        .add(new HBaseColumnsValidation())
+        .build();
   }
 
 }

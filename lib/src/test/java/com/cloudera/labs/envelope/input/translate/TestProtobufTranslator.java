@@ -21,8 +21,16 @@ import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.TestProtobufUtils;
 import com.google.protobuf.ByteString;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.functions;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,18 +41,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.functions;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class TestProtobufTranslator {
 
@@ -84,6 +87,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     assertThat(translator.getSchema(), is(TestProtobufUtils.SINGLE_SCHEMA));
@@ -97,48 +101,50 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
   }
 
-  @Test (expected = IllegalStateException.class)
+  @Test
   public void configureMissingFilepath() {
     Config config = ConfigFactory.empty();
 
     ProtobufTranslator translator = new ProtobufTranslator();
-    translator.configure(config);
+    assertValidationFailures(translator, config);
   }
 
-  @Test (expected = ConfigException.WrongType.class)
+  @Test
   public void configureWrongTypeFilepath() {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, new HashMap<>());
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
-    translator.configure(config);
+    assertValidationFailures(translator, config);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test(expected = RuntimeException.class)
   public void configureIllegalFilepath() {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, "not found");
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
   }
 
-  @Test (expected = IllegalArgumentException.class)
+  @Test
   public void configureBlankFilepath() {
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, "  ");
+    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, "");
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
-    translator.configure(config);
+    assertValidationFailures(translator, config);
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test (expected = RuntimeException.class)
   public void configMultipleNoDesignation() {
     String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
 
@@ -147,10 +153,11 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
   }
 
-  @Test(expected = ConfigException.WrongType.class)
+  @Test
   public void configMultipleWrongTypeDesignation() {
     String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
 
@@ -160,20 +167,20 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
-    translator.configure(config);
+    assertValidationFailures(translator, config);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void configMultipleBlankDesignation() {
     String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_MESSAGE, "  ");
+    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_MESSAGE, "");
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
-    translator.configure(config);
+    assertValidationFailures(translator, config);
   }
 
   @Test
@@ -185,7 +192,7 @@ public class TestProtobufTranslator {
     configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
-    Translator translator = TranslatorFactory.create(config);
+    Translator translator = TranslatorFactory.create(config, true);
     assertThat(translator, instanceOf(Translator.class));
   }
 
@@ -198,6 +205,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -259,6 +267,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -283,6 +292,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -308,6 +318,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -332,6 +343,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -353,6 +365,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();
@@ -370,6 +383,7 @@ public class TestProtobufTranslator {
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
+    assertNoValidationFailures(translator, config);
     translator.configure(config);
 
     byte[] key = "foo".getBytes();

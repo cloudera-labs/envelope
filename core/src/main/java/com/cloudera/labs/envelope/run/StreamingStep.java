@@ -17,40 +17,49 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.input.CanRecordProgress;
+import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.input.translate.TranslateFunction;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
-import com.cloudera.labs.envelope.input.CanRecordProgress;
-import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.input.translate.TranslateFunction;
-import com.typesafe.config.Config;
+import java.util.Set;
 
 /**
  * A streaming step is a data step that provides a DataFrame per Spark Streaming micro-batch.
  */
-public class StreamingStep extends DataStep implements CanRecordProgress {
+public class StreamingStep extends DataStep implements CanRecordProgress, ProvidesValidations, InstantiatesComponents {
 
+  public static final String TRANSLATOR_PROPERTY = "input.translator";
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
   
   @SuppressWarnings("rawtypes")
   private TranslateFunction translateFunction;
 
-  public StreamingStep(String name, Config config) {
-    super(name, config);
+  public StreamingStep(String name) {
+    super(name);
+  }
+
+  @Override
+  public void configure(Config config) {
+    super.configure(config);
     
-    if (!config.hasPath("input.translator")) {
-      throw new RuntimeException("Stream input '" + name + "' must have a translator");
-    }
-    
-    translateFunction = new TranslateFunction<>(config.getConfig("input.translator"));
+    translateFunction = new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
   }
 
   @SuppressWarnings("rawtypes")
   public JavaDStream<?> getStream() throws Exception {
-    JavaDStream stream = ((StreamInput)getInput()).getDStream();
+    JavaDStream stream = ((StreamInput)getInput(true)).getDStream();
     
     if (doesRepartition()) {
       stream = repartition(stream);
@@ -65,14 +74,14 @@ public class StreamingStep extends DataStep implements CanRecordProgress {
   
   @Override
   public void recordProgress(JavaRDD<?> batch) throws Exception {
-    if (getInput() instanceof CanRecordProgress) {
-      ((CanRecordProgress)getInput()).recordProgress(batch);
+    if (getInput(true) instanceof CanRecordProgress) {
+      ((CanRecordProgress)getInput(true)).recordProgress(batch);
     }
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public JavaRDD<Row> translate(JavaRDD raw) {
-    JavaPairRDD<?, ?> prepared = raw.mapToPair(((StreamInput)getInput()).getPrepareFunction());
+    JavaPairRDD<?, ?> prepared = raw.mapToPair(((StreamInput)getInput(true)).getPrepareFunction());
     JavaRDD<Row> translated = prepared.flatMap(translateFunction);
     
     return translated;
@@ -80,7 +89,8 @@ public class StreamingStep extends DataStep implements CanRecordProgress {
 
   @Override
   public Step copy() {
-    StreamingStep copy = new StreamingStep(name, config);
+    StreamingStep copy = new StreamingStep(name);
+    copy.configure(config);
     
     copy.setSubmitted(hasSubmitted());
     
@@ -99,6 +109,30 @@ public class StreamingStep extends DataStep implements CanRecordProgress {
     int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
 
     return stream.repartition(numPartitions);
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .mandatoryPath(TRANSLATOR_PROPERTY, ConfigValueType.OBJECT)
+        .optionalPath(REPARTITION_NUM_PARTITIONS_PROPERTY, ConfigValueType.NUMBER)
+        .handlesOwnValidationPath(TRANSLATOR_PROPERTY)
+        .addAll(super.getValidations())
+        .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    Set<InstantiatedComponent> components = Sets.newHashSet();
+
+    components.addAll(super.getComponents(config, configure));
+
+    if (config.hasPath(TRANSLATOR_PROPERTY)) {
+      translateFunction = new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
+      components.addAll(translateFunction.getComponents(config.getConfig(TRANSLATOR_PROPERTY), configure));
+    }
+
+    return components;
   }
 
 }

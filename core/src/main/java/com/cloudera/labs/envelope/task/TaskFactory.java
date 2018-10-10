@@ -23,8 +23,12 @@ import com.typesafe.config.Config;
 public class TaskFactory extends LoadableFactory<Task> {
 
   public static final String CLASS_CONFIG_NAME = "class";
-  
+
   public static Task create(Config taskConfig) {
+    return create(taskConfig, true);
+  }
+  
+  public static Task create(Config taskConfig, boolean configure) {
     if (!taskConfig.hasPath(CLASS_CONFIG_NAME)) {
       throw new RuntimeException("Task class not specified");
     }
@@ -32,14 +36,15 @@ public class TaskFactory extends LoadableFactory<Task> {
     String taskType = taskConfig.getString(CLASS_CONFIG_NAME);
 
     Task task;
-    
     try {
       task = loadImplementation(Task.class, taskType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    task.configure(taskConfig);
+    if (configure) {
+      task.configure(taskConfig);
+    }
 
     return task;
   }

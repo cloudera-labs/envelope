@@ -17,37 +17,50 @@
  */
 package com.cloudera.labs.envelope.output;
 
-import java.util.List;
-import java.util.Set;
-
+import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.plan.MutationType;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.Config;
-
 import scala.Tuple2;
 
-public class LogOutput implements BulkOutput, ProvidesAlias {
+import java.util.List;
+import java.util.Set;
+
+public class LogOutput implements BulkOutput, ProvidesAlias, ProvidesValidations {
 
   public static final String DELIMITER_CONFIG_NAME = "delimiter";
   public static final String LOG_LEVEL_CONFIG_NAME = "level";
 
-  private Config config;
-
   private static Logger LOG = LoggerFactory.getLogger(LogOutput.class);
 
+  private String delimiter;
+  private String logLevel;
 
   @Override
   public void configure(Config config) {
-    this.config = config;
+    if (config.hasPath(DELIMITER_CONFIG_NAME)) {
+      delimiter = config.getString(DELIMITER_CONFIG_NAME);
+    }
+    else {
+      delimiter = ",";
+    }
+
+    if (config.hasPath(LOG_LEVEL_CONFIG_NAME)) {
+      logLevel = config.getString(LOG_LEVEL_CONFIG_NAME).toUpperCase();
+    }
+    else {
+      logLevel = "INFO";
+    }
   }
 
   @Override
@@ -57,7 +70,7 @@ public class LogOutput implements BulkOutput, ProvidesAlias {
       Dataset<Row> mutationDF = mutation._2();
 
       if (mutationType.equals(MutationType.INSERT)) {
-        mutationDF.javaRDD().foreach(new SendRowToLogFunction(getDelimiter(), getLogLevel()));
+        mutationDF.javaRDD().foreach(new SendRowToLogFunction(delimiter, logLevel));
       }
     }
   }
@@ -65,18 +78,6 @@ public class LogOutput implements BulkOutput, ProvidesAlias {
   @Override
   public Set<MutationType> getSupportedBulkMutationTypes() {
     return Sets.newHashSet(MutationType.INSERT);
-  }
-
-  private String getDelimiter() {
-    if (!config.hasPath(DELIMITER_CONFIG_NAME)) return ",";
-
-    return config.getString(DELIMITER_CONFIG_NAME);
-  }
-
-  private String getLogLevel() {
-    if (!config.hasPath(LOG_LEVEL_CONFIG_NAME)) return "INFO";
-
-    return config.getString(LOG_LEVEL_CONFIG_NAME).toUpperCase();
   }
 
   @Override
@@ -89,7 +90,6 @@ public class LogOutput implements BulkOutput, ProvidesAlias {
     private Joiner joiner;
     private String delimiter;
     private String logLevel;
-
 
     public SendRowToLogFunction(String delimiter, String logLevel) {
       this.delimiter = delimiter;
@@ -129,6 +129,14 @@ public class LogOutput implements BulkOutput, ProvidesAlias {
           throw new RuntimeException("Invalid log level: " + logLevel);
       }
     }
+  }
+
+  @Override
+  public Validations getValidations() {
+    return Validations.builder()
+        .optionalPath(DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(LOG_LEVEL_CONFIG_NAME, ConfigValueType.STRING)
+        .build();
   }
 
 }

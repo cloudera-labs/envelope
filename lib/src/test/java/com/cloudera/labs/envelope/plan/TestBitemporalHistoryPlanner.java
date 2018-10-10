@@ -17,6 +17,24 @@
  */
 package com.cloudera.labs.envelope.plan;
 
+import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
+import com.cloudera.labs.envelope.utils.RowUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_DEFAULT_NO;
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_DEFAULT_YES;
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.CURRENT_FLAG_FIELD_NAME_CONFIG_NAME;
@@ -27,27 +45,9 @@ import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.SYSTEM_TI
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.SYSTEM_TIME_EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME;
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.TIMESTAMP_FIELD_NAMES_CONFIG_NAME;
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME;
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 public class TestBitemporalHistoryPlanner {
 
@@ -59,7 +59,7 @@ public class TestBitemporalHistoryPlanner {
   private StructType existingSchemaWithoutCurrentFlag;
   private Config config;
   private Config configWithoutCurrentFlag;
-  private RandomPlanner p;
+  private BitemporalHistoryPlanner p;
   private long preplanSystemTime;
 
   @Before
@@ -111,6 +111,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingNoneExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -133,6 +134,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingNoneExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -154,6 +156,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingNoneExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -189,6 +192,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingNoneExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -222,6 +226,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -265,6 +270,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExistingButSameValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -279,6 +285,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingLaterThanExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -319,6 +326,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -333,6 +341,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithSameValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -347,6 +356,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithDifferentValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -380,6 +390,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingSameTimeAsExistingWithDifferentValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -411,6 +422,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingEarlierThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -436,6 +448,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testTwoArrivingOneExistingWhereArrivingEarlierThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -471,6 +484,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingOneExistingWhereArrivingEarlierThanExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -495,6 +509,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingLaterThanAllExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -542,6 +557,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingLaterThanAllExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -586,6 +602,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithSameValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -604,6 +621,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithSameValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -622,6 +640,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithDifferentValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -659,6 +678,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingSameTimeAsLatestExistingWithDifferentValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -694,6 +714,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingBetweenTwoExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -741,6 +762,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingBetweenTwoExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -785,6 +807,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingEarlierThanAllExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -813,6 +836,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testOneArrivingMultipleExistingWhereArrivingEarlierThanAllExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -840,6 +864,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereAllArrivingLaterThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -905,6 +930,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereAllArrivingLaterThanExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -965,6 +991,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithSameValuesAndRestArrivingLaterThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -1020,6 +1047,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithSameValuesAndRestArrivingLaterThanExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -1071,6 +1099,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithDifferentValuesAndRestArrivingLaterThanExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -1126,6 +1155,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingOneExistingWhereOneArrivingSameTimeAsExistingWithDifferentValuesAndRestArrivingLaterThanExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -1177,6 +1207,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithSameValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -1197,6 +1228,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithSameValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -1217,6 +1249,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithDifferentValues() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L, CURRENT_FLAG_DEFAULT_NO));
@@ -1293,6 +1326,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testMultipleArrivingMultipleExistingWhereAllArrivingSameTimeAsExistingWithDifferentValuesNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 2L));
@@ -1363,6 +1397,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testNoneArrivingNoneExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     Row key = new RowWithSchema(keySchema, "a");
@@ -1375,6 +1410,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testNoneArrivingOneExisting() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -1388,6 +1424,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testNoneArrivingOneExistingNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -1402,6 +1439,7 @@ public class TestBitemporalHistoryPlanner {
   public void testCarryForwardWhenNull() {
     p = new BitemporalHistoryPlanner();
     config = config.withValue(BitemporalHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -1446,6 +1484,7 @@ public class TestBitemporalHistoryPlanner {
   public void testCarryForwardWhenNullNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
     configWithoutCurrentFlag = configWithoutCurrentFlag.withValue(BitemporalHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -1486,6 +1525,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testNoCarryForwardWhenNull() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
@@ -1529,6 +1569,7 @@ public class TestBitemporalHistoryPlanner {
   @Test
   public void testNoCarryForwardWhenNullNoCurrentFlag() {
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, configWithoutCurrentFlag);
     p.configure(configWithoutCurrentFlag);
 
     existing.add(new RowWithSchema(existingSchemaWithoutCurrentFlag, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L));
@@ -1572,6 +1613,7 @@ public class TestBitemporalHistoryPlanner {
     config = config.
         withValue(BitemporalHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true)).
         withValue(BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -1650,6 +1692,7 @@ public class TestBitemporalHistoryPlanner {
     config = config.
         withValue(BitemporalHistoryPlanner.CARRY_FORWARD_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true)).
         withValue(BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -1729,6 +1772,7 @@ public class TestBitemporalHistoryPlanner {
     p = new BitemporalHistoryPlanner();
     config = config.
         withValue(BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -1806,6 +1850,7 @@ public class TestBitemporalHistoryPlanner {
     p = new BitemporalHistoryPlanner();
     config = config.
         withValue(BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromAnyRef(Lists.newArrayList("value1","value2")));
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arrivingSchema = DataTypes.createStructType(Lists.newArrayList(
@@ -1827,7 +1872,6 @@ public class TestBitemporalHistoryPlanner {
     existing.add(new RowWithSchema(existingSchema, "a", null, "hello2:100", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello1:50", null, 50L));
     arriving.add(new RowWithSchema(arrivingSchema, "a", null, "hello2:150", 150L));
-
 
     Row key = new RowWithSchema(keySchema, "a");
 
@@ -1891,6 +1935,7 @@ public class TestBitemporalHistoryPlanner {
         withValue(BitemporalHistoryPlanner.CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueFactory.fromAnyRef(currFlagNo));
 
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     arriving.add(new RowWithSchema(arrivingSchema, "a", "hello", 100L));
@@ -1932,6 +1977,7 @@ public class TestBitemporalHistoryPlanner {
             ConfigValueFactory.fromAnyRef("longmillis"));
     
     p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
     p.configure(config);
 
     existing.add(new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES));

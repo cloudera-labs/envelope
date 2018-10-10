@@ -84,7 +84,10 @@ Application-level configurations have the `application.` prefix.
 |Used to pass configurations directly to Spark. The `spark.conf.` prefix is removed and the configuration is set in the SparkConf object used to create the Spark context.
 
 |hive.enabled
-|Enables hive support. Default is true. Must be enabled before reading and writing data stored in Apache Hive. Setting the value to false when Hive integration is not required avoids the associated overhead.
+|Enables Hive support. Default is true. Must be enabled before reading and writing data stored in Apache Hive. Setting the value to false when Hive integration is not required avoids the associated overhead.
+
+|configuration.validation.enabled
+|Enables upfront validation of the provided Envelope configuration. Default is true.
 
 |driver.memory
 |The amount of memory allocated for a Spark driver. Please note that this configuration is only applicable when application is deployed in _cluster_ mode, and will cause an exception if deployment mode is _client_. To set driver memory for the applications running in client mode, use Spark's command line argument _--driver-memory_.
@@ -225,9 +228,6 @@ Input configurations belong to data steps, and have the `steps.[stepname].input.
 
 |type
 |The input type to be used. Envelope provides `filesystem`, `hive`, `jdbc`, `kafka`, `kudu`. To use a custom input, specify the fully qualified name or alias of the `Input` implementation class.
-
-|repartition.partitions
-|The number of DataFrame partitions to repartition the input data by.  Applies to streaming input types only (e.g. `kafka`).  In Spark this will run `DStream#repartition`.
 
 |===
 
@@ -486,7 +486,7 @@ Translator `type` = `delimited`.
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 |timestamp.formats
-|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered valid. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
+|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
@@ -520,7 +520,7 @@ Translator `type` = `kvp`.
 |The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
 
 |timestamp.formats
-|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered valid. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
+|Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
@@ -1480,6 +1480,12 @@ Typesafe Config duration, e.g. `60s`. `5m`, `1d` or, without suffix, as raw mill
 after this many consecutive failures. Defaults to 10.
 
 |===
+
+== Validations
+
+Envelope automatically validates the pipeline configuration before starting execution. This feature can be disabled by setting `configuration.validation.enabled = false` either at the top-level for the whole pipeline, or within any scope that would be validated.
+
+The configurations of a custom Envelope plugin (e.g. a custom deriver) can also be validated by implementing the `ProvidesValidations` interface. In the less common case that the plugin has its own plugins (similarly to how the data quality deriver has pluggable rules) then the higher-level plugin can implement the `InstantiatesComponents` interface to provide its own plugins to Envelope for configuration validation. For both of these interfaces see the Envelope code for various examples of their implementations.
 
 == User-defined functions
 

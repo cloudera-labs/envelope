@@ -17,14 +17,14 @@
  */
 package com.cloudera.labs.envelope.task;
 
-import java.util.Map;
-
+import com.cloudera.labs.envelope.component.Component;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import com.typesafe.config.Config;
+import java.util.Map;
 
-public interface Task {
+public interface Task extends Component {
   
   void configure(Config config);
 

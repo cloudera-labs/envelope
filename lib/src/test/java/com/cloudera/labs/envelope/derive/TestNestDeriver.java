@@ -17,11 +17,11 @@
  */
 package com.cloudera.labs.envelope.derive;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-import java.util.Map;
-
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -29,11 +29,11 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
-import com.cloudera.labs.envelope.spark.Contexts;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import java.util.List;
+import java.util.Map;
+
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
+import static org.junit.Assert.assertEquals;
 
 public class TestNestDeriver {
 
@@ -72,7 +72,8 @@ public class TestNestDeriver {
     configMap.put(NestDeriver.NESTED_FIELD_NAME_CONFIG_NAME, "orders");
     Config config = ConfigFactory.parseMap(configMap);
 
-    Deriver deriver = new NestDeriver();
+    NestDeriver deriver = new NestDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Dataset<Row> nested = deriver.derive(dependencies);
@@ -127,7 +128,8 @@ public class TestNestDeriver {
     configMap.put(NestDeriver.NESTED_FIELD_NAME_CONFIG_NAME, "orders");
     Config config = ConfigFactory.parseMap(configMap);
 
-    Deriver deriver = new NestDeriver();
+    NestDeriver deriver = new NestDeriver();
+    assertNoValidationFailures(deriver, config);
     deriver.configure(config);
 
     Dataset<Row> nested = deriver.derive(dependencies);

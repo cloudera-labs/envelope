@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -54,6 +55,7 @@ public class TestEnumRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     EnumRowRule rule = new EnumRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("namecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
@@ -73,6 +75,7 @@ public class TestEnumRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     EnumRowRule rule = new EnumRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("namecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "ian", 34, new BigDecimal("0.00"));
@@ -91,6 +94,7 @@ public class TestEnumRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     EnumRowRule rule = new EnumRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("agecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
@@ -109,6 +113,7 @@ public class TestEnumRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     EnumRowRule rule = new EnumRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("scorecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34L, new BigDecimal("0.00"));
@@ -127,6 +132,7 @@ public class TestEnumRowRule {
     Config config = ConfigFactory.parseMap(configMap);
 
     EnumRowRule rule = new EnumRowRule();
+    assertNoValidationFailures(rule, config);
     rule.configure("scorecheck", config);
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));

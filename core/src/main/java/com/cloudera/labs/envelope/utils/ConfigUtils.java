@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
@@ -62,12 +63,6 @@ public class ConfigUtils {
     }
 
     return applySubstitutions(config);
-  }
-
-  public static void assertConfig(Config config, String key) {
-    if (!config.hasPath(key)) {
-      throw new RuntimeException("Missing required property [" + key + "]");
-    }
   }
 
   @SuppressWarnings("serial")
@@ -114,6 +109,32 @@ public class ConfigUtils {
     }
     
     return config;
+  }
+
+  public static boolean canBeCoerced(Config config, String path, ConfigValueType type) {
+    if (type == ConfigValueType.BOOLEAN) {
+      try {
+        config.getBoolean(path);
+      }
+      catch (ConfigException.WrongType e) {
+        return false;
+      }
+    }
+    else {
+      // Other data type coercions could be added here in the future
+      return false;
+    }
+
+    return true;
+  }
+
+  public static <T> T getOrElse(Config config, String path, T orElse) {
+    if (config.hasPath(path)) {
+      return (T)config.getAnyRef(path);
+    }
+    else {
+      return orElse;
+    }
   }
 
 }

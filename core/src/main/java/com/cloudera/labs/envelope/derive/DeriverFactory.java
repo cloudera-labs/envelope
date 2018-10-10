@@ -24,20 +24,22 @@ public class DeriverFactory extends LoadableFactory<Deriver> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Deriver create(Config config) {
+  public static Deriver create(Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Deriver type not specified");
     }
 
     String deriverType = config.getString(TYPE_CONFIG_NAME);
-    Deriver deriver = null;
+    Deriver deriver;
     try {
       deriver = loadImplementation(Deriver.class, deriverType);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    deriver.configure(config);
+    if (configure) {
+      deriver.configure(config);
+    }
 
     return deriver;
   }

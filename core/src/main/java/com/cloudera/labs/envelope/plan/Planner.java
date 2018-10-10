@@ -17,16 +17,17 @@
  */
 package com.cloudera.labs.envelope.plan;
 
-import java.util.Set;
-
+import com.cloudera.labs.envelope.component.Component;
 import com.typesafe.config.Config;
+
+import java.util.Set;
 
 /**
  * Planners determine the mutations required to be applied to the output for the data of the step.
  * Custom planners should not implement Planner directly -- they should implement BulkPlanner
  * or RandomPlanner.
  */
-public interface Planner {
+public interface Planner extends Component {
 
   /**
    * Configure the planner.
