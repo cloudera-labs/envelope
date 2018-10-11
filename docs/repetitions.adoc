@@ -1,4 +1,6 @@
-# Repetitions Guide
+= Repetitions Guide
+:toc: left
+:toclevels: 5
 
 Repetitions are a mechanism to allow your Envelope application to re-run batch steps
 according to some regularly assessed criteria. Although you can configure repetitions
@@ -18,9 +20,9 @@ There are two implementations provided as part of core Envelope:
 * `ScheduledRepetition` - run the step according to a defined schedule, e.g. every 2 hours.
 * `FlagFileRepetition` - run the step based on the presence of a file on HDFS
 
-See the link:configurations.adoc:[configuration guide] for details of how to configure these repetitions.
+See the <<configurations.adoc#,configuration guide>> for details of how to configure these repetitions.
 
-## How repetitions work
+== How repetitions work
 
 Repetitions are associated with batch steps. When the step is created at the beginning of the
 Envelope job any repetitions for the step are instantiated. Typically, repetition implementations
@@ -45,7 +47,7 @@ ScheduledExecutorPool since that is such a common method of `Repetition` instanc
 In addition, an `AbstractRepetition` provides some helper methods to make it simple to submit a
 step to be repeated.
 
-## Configuration of Repetitions
+== Configuration of Repetitions
 
 As already mentioned, repetitions are configured on a step level. They only really make sense for
 independent batch input steps, although this is not strictly enforced. One or more repetitions
@@ -77,7 +79,7 @@ steps {
 In this example, the "repeater" step has two configured repetition instances, one scheduled to re-run
 the step every hour and the other in response to the presence of a flag file on HDFS.
 
-## Developing a Repetition
+== Developing a Repetition
 
 New repetition instances must implement the `Repetition` API. The `AbstractRepetition` class
 has useful state and methods and it is recommended to extend this but this is not mandatory.
@@ -134,7 +136,7 @@ The actual work of checking to see if a repetition should be triggered is implem
 implementation is super simple - since this step should be run at the rate specified in the
 configuration we simply call `repeatStep` and `Runner` and `Repetitions` do the rest.
 
-### Specifying an alias
+=== Specifying an alias
 
 The `ProvidesAlias` interface allows for shorter aliases to be used in Envelope config files.
 This functionality only works if the fully qualified classname is

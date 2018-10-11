@@ -1,4 +1,6 @@
 = Security Guide
+:toc: left
+:toclevels: 5
 
 Since Envelope configures standard Spark applications, we can take advantage of all of the in-built
 security mechanisms that Spark provides (see https://spark.apache.org/docs/latest/running-on-yarn.html#running-in-a-secure-cluster[Spark Security]). However, some of the mechanisms require some additional

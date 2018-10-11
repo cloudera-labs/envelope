@@ -157,7 +157,7 @@ Default `MEMORY_ONLY`.
 
 === Loop steps
 
-Loop steps can, additionally to the step configurations, have the below configurations. For more information on loop steps see the link:looping.adoc[looping guide].
+Loop steps can, additionally to the step configurations, have the below configurations. For more information on loop steps see the <<looping.adoc#,looping guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -188,7 +188,7 @@ Loop steps can, additionally to the step configurations, have the below configur
 
 === Decision steps
 
-Decision steps can, additionally to the step configurations, have the below configurations. For more information on decision steps see the link:decisions.adoc[decisions guide].
+Decision steps can, additionally to the step configurations, have the below configurations. For more information on decision steps see the <<decisions.adoc#,decisions guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -213,7 +213,7 @@ Decision steps can, additionally to the step configurations, have the below conf
 
 === Task steps
 
-Task steps can, additionally to the step configurations, have the below configurations. For more information on task steps see the link:tasks.adoc[tasks guide].
+Task steps can, additionally to the step configurations, have the below configurations. For more information on task steps see the <<tasks.adoc#,tasks guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -226,7 +226,7 @@ Task steps can, additionally to the step configurations, have the below configur
 
 === Inputs
 
-Input configurations belong to data steps, and have the `steps.[stepname].input.` prefix. For more information on inputs see the link:inputs.adoc[inputs guide].
+Input configurations belong to data steps, and have the `steps.[stepname].input.` prefix. For more information on inputs see the <<inputs.adoc#,inputs guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -612,7 +612,7 @@ Translator `type` = `protobuf`.
 
 === Derivers
 
-Deriver configurations belong to data steps, and have the `steps.[stepname].deriver.` prefix. For more information on derivers see the link:derivers.adoc[derivers guide].
+Deriver configurations belong to data steps, and have the `steps.[stepname].deriver.` prefix. For more information on derivers see the <<derivers.adoc#,derivers guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -691,7 +691,7 @@ Deriver `type` = `sql`.
 |The path to the file containing the query to be submitted to Spark SQL.
 
 |parameter.parameter_name (or any parameter.*)
-|All references to '${parameter_name}' within the query string will be replaced with the value of this configuration. For more information see the link:derivers.adoc[derivers guide].
+|All references to '${parameter_name}' within the query string will be replaced with the value of this configuration. For more information see the <<derivers.adoc#,derivers guide>>.
 
 |===
 
@@ -901,7 +901,7 @@ Partitioner configurations belong to data steps, and have the `steps.[stepname].
 
 === Planners
 
-Planner configurations belong to data steps, and have the `steps.[stepname].planner.` prefix. For more information on planners see the link:planners.adoc[planners guide].
+Planner configurations belong to data steps, and have the `steps.[stepname].planner.` prefix. For more information on planners see the <<planners.adoc#,planners guide>>.
 
 [cols="2,8", options="header"]
 |===
@@ -1081,7 +1081,7 @@ Planner `type` = `upsert`.
 
 ==== Time models
 
-Time model configurations belong to planners, and have the `steps.[stepname].planner.time.model.[timename]` prefix. For more information on time models see the link:planners.adoc#Handling_time[planners guide].
+Time model configurations belong to planners, and have the `steps.[stepname].planner.time.model.[timename]` prefix. For more information on time models see the <<planners.adoc#handling_time,planners guide>>.
 
 [cols="2,8a", options="header"]
 |===
@@ -1432,7 +1432,7 @@ Output `type` = `zookeeper`.
 
 === Repetitions
 
-For more information on repetitions see the link:repetitions.adoc[repetitions guide].
+For more information on repetitions see the <<repetitions.adoc#,repetitions guide>>.
 
 The general configuration parameters for repetitions are:
 

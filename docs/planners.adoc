@@ -1,4 +1,6 @@
-# Planners guide
+= Planners guide
+:toc: left
+:toclevels: 5
 
 A planner defines which mutations should be applied to an output for a given set of data. Envelope uses planners to isolate the logic of applying data to an output from the process that creates the data and from the output itself.
 
@@ -32,15 +34,15 @@ steps {
 }
 ----
 
-## Envelope-provided planners
+== Envelope-provided planners
 
 There are a number of planners bundled with Envelope.
 
-### Append
+=== Append
 
 The `append` planner simply takes all the arriving records and plans them collectively as an INSERT. This is useful for writing to outputs that can not update records in place, such as `kafka` and `hive`.
 
-### Upsert
+=== Upsert
 
 The `upsert` planner simply takes all the arriving records and plans them collectively as an UPSERT. This is useful for writing to outputs that can update records in place, such as `kudu`, and where there can not be duplicate records for the same key.
 
@@ -48,15 +50,15 @@ The use of upsert logic is known as maintaining a Type 1 slowly changing dimensi
 
 Note that the definition of the UPSERT mutation type does not consider the timestamp on the record, so using UPSERT out of event time (real world) order can lead the output to contain stale data. For event-time upsert logic, use the `eventtimeupsert` planner.
 
-### Overwrite
+=== Overwrite
 
 The `overwrite` planner simply takes all the arriving records and plans them collectively as an OVERWRITE. This is useful for indirectly doing updates to outputs that can not update records in place, but which can overwrite higher-level containers such as tables and partitions, such as `hive` and `filesystem`.
 
-### Delete
+=== Delete
 
 The `delete` planner simply takes all the arriving records and plans them collectively as a DELETE. This is useful for removing data in cases such as cleaning up intermediate data, or for implementing a retention policy.
 
-### Event-time upsert
+=== Event-time upsert
 
 The `eventtimeupsert` planner considers the timestamp on the arriving record, and the timestamp on the existing record (if one exists), to plan the mutations that achieve an upsert in event time. This allows records to arrive out of order and the output to always contain the freshest (by event time) data. An existing record is defined by one with the same natural key (as provided to the planner configuration) as the arriving record.
 
@@ -67,13 +69,13 @@ Some of the planner rules are:
 - If the arriving record has a timestamp the same or after the existing record, and the values on the record are different, plan an UPDATE.
 - If there are multiple arriving records at once for the same key, only the latest by timestamp is used.
 
-### History
+=== History
 
 The `history` planner maintains a history of all records of a key. Every unique state of the key becomes a record in the output, with metadata columns that include marking the range of event time that the record was active/effective/current for. The planner can accept records that are out of event time order, or that are replayed multiple times, and continue to maintain the history accurately.
 
 The use of history tracking logic is known as maintaining a Type 2 slowly changing dimension. A Type 2 SCD is very efficient and easy to query for the current and for point-in-time records of a key. In many cases it is strongly recommended to use a Type 2 SCD instead of appending record in the history with only a single timestamp.
 
-#### History planner example
+==== History planner example
 
 An example could be for arriving records that contained the fields `key`, `timestamp`, and `value`. The corresponding output table columns could then be `key`, `timestamp`, `value`, `startdate`, `enddate`, `currentflag`. For the purpose of the example the output starts out with no existing records, and we will consider timestamps to be very short integers to keep the example simple.
 
@@ -152,7 +154,7 @@ And to query for any time in the past:
 |A|15|foo
 |===
 
-### Bi-temporal
+=== Bi-temporal
 
 The `bitemporal` planner is similar to the `history` planner, but instead it maintains the history of the records of a key in both event time and system time (i.e. bi-temporality). This allows end users to query the output for how the key changed over time in the real world (event time), and over time in the output table (system time), which may not be the same.
 
@@ -162,7 +164,7 @@ Event time and system time can be different for a number of reasons:
 - Records can arrive to Envelope out of event time order, perhaps due to race conditions, or due to input replays.
 - Records can arrive to Envelope with the same key and timestamp as an existing record, but with different values, which would lead to a non-system-time-tracking planner to overwrite the old state of the timestamp with the correction.
 
-#### Bi-temporal planner example
+==== Bi-temporal planner example
 
 Similarly to the history planner example, an example could be for arriving records that contained the fields `key`, `timestamp`, and `value`. The corresponding output table columns could then be `key`, `timestamp`, `value`, `eventtime_startdate`, `eventtime_enddate`, `systemtime_startdate`, `systemtime_enddate` `currentflag`. For the purpose of the example the output starts out with no existing records, and we will consider timestamps to be very short integers to keep the example simple.
 
@@ -263,15 +265,15 @@ And to query for what was at the previous system time our latest known state of 
 |A|10|hello
 |===
 
-## User-provided planners
+== User-provided planners
 
 Custom developed planners can be provided by giving the fully-qualified class name (or alias--see below) of the planner to the `type` configuration. The class must implement `BulkPlanner` or `RandomPlanner`.
 
-### Using aliases
+=== Using aliases
 
 To use an alias in configuration files, Envelope needs to be able to find your class. First, your class will need to implement the `ProvidesAlias` interface. Next, place the implementation's fully qualified class name in a `META-INF/services/com.cloudera.labs.envelope.planner.Planner` file on the class path - the usual method is to package the file with your JAR.
 
-## Bulk vs random planners
+== Bulk vs random planners
 
 Under the hood each planner is either a bulk or random planner.
 
@@ -291,33 +293,33 @@ A random planner applies individual mutation types to the mutations of the plan 
 |bitemporal|Random
 |===
 
-## Handling time
+== Handling time
 
 Planners interpret values that encode time using 'time models'. By default Envelope-provided planners use the `longmillis` time model which reads a single long field as the number of milliseconds since epoch. In total there are five time models that are provided by Envelope. Custom time models can be provided in much the same way as a custom planner. Time models can handle a time value that is encoded over a single field or over multiple fields.
 
-### Envelope-provided time models
+=== Envelope-provided time models
 
-#### Long milliseconds
+==== Long milliseconds
 
 The `longmillis` time model reads a long field as the number of milliseconds since epoch (1970-01-01 00:00:00.000 UTC).
 
-#### Nanoseconds with sequence number
+==== Nanoseconds with sequence number
 
 The `nanoswithseqnum` time model reads two fields -- a decimal(38,0) field of the number of nanoseconds since epoch, and an integer field of the 1-indexed sequence number of the records within a single nanosecond. This can be useful for financial use cases where multiple events may occur within a single nanosecond. When applying the system time with this time model (e.g. on a last updated or system time effective from attribute) the time will only have millisecond precision.
 
-#### String date
+==== String date
 
 The `stringdate` time model reads a string field as a date with no time component. Operations with this time model are at the whole date granularity. The default format for interpreting the string value is "yyyy-MM-dd". A custom format can be provided with the `format` property. Date formats are defined by http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java's SimpleDateFormat].
 
-#### String date-time
+==== String date-time
 
 The `stringdatetime` time model reads a string field as a date with a time component. Operations with this time model are at the millisecond granularity. The default format for interpreting the string value is "yyyy-MM-dd HH:mm:ss.SSS". A custom format can be provided with the `format` property. Date formats are defined by http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html[Java's SimpleDateFormat].
 
-#### Timestamp
+==== Timestamp
 
 The `timestamp` time model reads a Spark SQL timestamp field. Operations with this time model are at the nanosecond granularity.
 
-### Example
+=== Example
 
 Consider an example where the bi-temporal planner is being used in a step, and the event time on the arriving record is encoded as a string date-time with a custom format, and the system time is to be recorded on the output is a Spark SQL timestamp. We could configure the planner accordingly:
 
@@ -356,7 +358,7 @@ steps {
 }
 ----
 
-## Mutation types
+== Mutation types
 
 Envelope defines five standardized mutation types. Internally there is also a NONE mutation but this is not emitted by the provided planners.
 
@@ -370,7 +372,7 @@ Envelope defines five standardized mutation types. Internally there is also a NO
 |OVERWRITE|Replace all existing rows with the mutation.
 |===
 
-## Planner emitted mutation types
+== Planner emitted mutation types
 
 This table defines the mutation types that each provided planner can emit.
 
@@ -386,7 +388,7 @@ This table defines the mutation types that each provided planner can emit.
 |*bitemporal*|Yes|Yes|||
 |===
 
-## Output supported mutation types
+== Output supported mutation types
 
 This table defines the mutation types that each provided output can support.
 
@@ -402,7 +404,7 @@ This table defines the mutation types that each provided output can support.
 |*hbase*|||Yes|Yes|
 |===
 
-## Planner/output compatibility
+== Planner/output compatibility
 
 This table defines which planners are compatible with each output. Attempting to use incompatible planners and outputs will lead Envelope to throw an error pointing out the incompatibility.
 

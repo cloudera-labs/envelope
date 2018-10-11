@@ -1,4 +1,6 @@
-# Looping guide
+= Looping guide
+:toc: left
+:toclevels: 5
 
 Envelope provides the ability to loop over one or more steps of a pipeline so that each instance does not need to be specified. The values to be looped over can be determined dynamically either from parameters given at pipeline submission or from the data of previous steps in the pipeline.
 
@@ -14,7 +16,7 @@ Loop steps have three options for specifying the of values to be looped over:
 
 A loop step can specify a parameter, which is a string that will be used to update the configuration of each loop graph instance with the value of the loop. This could be used to run iterations of the loop over, for example, a range of dates, or a list of table names. For a given parameter `parameter_name` all instances of `${parameter_name}` in the loop graph step configurations will be replaced with the value of the loop iteration.
 
-## Example
+== Example
 
 Consider an example where there is a monthly job that needs to iterate through the dates of the month one at a time, and in sequence. Rather than individually listing out steps for each date of the month we can use a loop step to iterate over the dates.
 

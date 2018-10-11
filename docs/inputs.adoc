@@ -2,7 +2,7 @@
 :toc: left
 :toclevels: 5
 
-Inputs are used to bring external data into an Envelope pipeline. The data brought in from an input can then be further used to link:derivers.adoc[derive new data] and to write out to external outputs.
+Inputs are used to bring external data into an Envelope pipeline. The data brought in from an input can then be further used to <<derivers.adoc#,derive new data>> and to write out to external outputs.
 
 Inputs can operate as a batch or a stream. When at least one input in an Envelope pipeline is a stream then the pipeline will run in Spark Streaming mode.
 
@@ -31,7 +31,7 @@ This input can read the contents of the path in five different formats (specifie
 
 - `parquet` will read the path as Parquet files. For this format the schema of the data is retrieved from the files so it is not specified in the configuration. This format uses Spark's `DataFrameReader#parquet` functionality.
 - `json` will read the path as JSON files. A schema can be provided, or if no schema is provided then it will be inferred from the data. This format uses Spark's `DataFrameReader#json` functionality.
-- `csv` will read the path as delimited text files. A schema can be provided, or if no schema is provided then it will be inferred from the data. See the link:configurations.adoc#inputs[configurations documentation] for the many options for this format. This format uses Spark's `DataFrameReader#csv` functionality.
+- `csv` will read the path as delimited text files. A schema can be provided, or if no schema is provided then it will be inferred from the data. See the <<configurations.adoc#inputs,configurations documentation>> for the many options for this format. This format uses Spark's `DataFrameReader#csv` functionality.
 - `input-format` will read the path using the given Hadoop InputFormat class and the given Envelope translator. This format allows input formats that already exist, or have been custom developed for the pipeline, to be plugged in without making an entirely new input. The InputFormat class is used to define how records will be retrieved from the path. The translator is then used to translate the unstructured records into typed fields so that the data can be represented as a DataFrame. This format uses Spark's `SparkContext#newAPIHadoopFile` functionality.
 - `text` will read the path as text files with a record per line and then translate the lines to typed fields using the given Envelope translator. This format uses Spark's `DataFrameReader#text` functionality.
 

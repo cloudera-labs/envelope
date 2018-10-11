@@ -1,4 +1,6 @@
-# Task Guide
+= Task Guide
+:toc: left
+:toclevels: 5
 
 Tasks are a type of step that allows an Envelope pipeline to make side effects that are outside of the flow of data through the pipeline. Examples of tasks could include sending emails, or raising alerts, or updating external operational metadata.
 
@@ -6,7 +8,7 @@ Tasks can read in the data from the dependencies of the task step they are defin
 
 Envelope does not provide any task implementations. All usages of a task step must reference a custom developed task.
 
-## Custom tasks
+== Custom tasks
 
 A custom task must implement the `Task` interface. The `configure` method receives the configuration of the task from the pipeline, and the `run` method is an execution of the task.
 
@@ -23,7 +25,7 @@ To develop a custom task:
 
   spark2-submit --jars yourtask.jar envelope-*.jar yourpipeline.conf
 
-### Example
+=== Example
 
 ----
 application {

@@ -1,5 +1,6 @@
 = Derivers Guide
 :toc: left
+:toclevels: 5
 
 Derivers are used in Envelope pipelines to derive new data. Derivers transform data that has already been brought into the pipeline in previous steps, whether straight from inputs or from the results of previous derivers. Derivers can operate over one or multiple steps at a time. Derivers operate identically in batch and streaming modes. As a mapping back to Spark, derivers create new DataFrames from existing DataFrames.
 
@@ -268,7 +269,7 @@ The results of the checks are appended to the rows as a field of type `map<strin
 |===
 
 Envelope has a number of built-in rules (see below) but allows for custom user-defined rules via fully-qualified
-class name. See the link:configurations.adoc[config guide] for specific configuration parameters.
+class name. See the <<configurations.adoc#,config guide>> for specific configuration parameters.
 
 ==== Row Scope Rules
 

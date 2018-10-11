@@ -1,4 +1,6 @@
 = Decisions guide
+:toc: left
+:toclevels: 5
 
 Envelope provides the ability for a pipeline to make a decision that will determine which steps will be run. This is achieved by including a decision step that, when itself is run, decides which subsequent steps of the pipeline to remove and which ones to keep.
 
