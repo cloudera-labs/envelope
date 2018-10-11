@@ -32,18 +32,25 @@ public class ZooKeeperConnection implements Watcher {
 
   private String connection;
   private int sessionTimeoutMs;
+  private int connectionTimeoutMs;
 
   public static final String CONNECTION_CONFIG = "connection";
 
   private static final int DEFAULT_SESSION_TIMEOUT_MS = 1000;
+  private static final int DEFAULT_CONNECTION_TIMEOUT_MS = 10000;
 
   public ZooKeeperConnection(String connection) {
-    this(connection, DEFAULT_SESSION_TIMEOUT_MS);
+    this.connection = connection;
+    this.sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
+    this.connectionTimeoutMs = DEFAULT_CONNECTION_TIMEOUT_MS;
   }
 
-  public ZooKeeperConnection(String connection, int sessionTimeoutMs) {
-    this.connection = connection;
+  public void setSessionTimeoutMs(int sessionTimeoutMs) {
     this.sessionTimeoutMs = sessionTimeoutMs;
+  }
+
+  public void setConnectionTimeoutMs(int connectionTimeoutMs) {
+    this.connectionTimeoutMs = connectionTimeoutMs;
   }
 
   @Override
@@ -58,9 +65,10 @@ public class ZooKeeperConnection implements Watcher {
       latch = new CountDownLatch(1);
       zk = new ZooKeeper(connection, sessionTimeoutMs, this);
 
-      boolean done = latch.await(2, TimeUnit.SECONDS);
+      boolean done = latch.await(connectionTimeoutMs, TimeUnit.MILLISECONDS);
       if (!done) {
-        throw new InterruptedException("Did not connect to ZooKeeper within 2 seconds");
+        throw new InterruptedException("Did not connect to ZooKeeper within " +
+            connectionTimeoutMs + " seconds");
       }
     }
 

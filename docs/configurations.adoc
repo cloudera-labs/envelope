@@ -1425,6 +1425,9 @@ Output `type` = `zookeeper`.
 |session.timeout.millis
 |The client session timeout in milliseconds. Default `1000`.
 
+|connection.timeout.millis
+|The client connection timeout in milliseconds. Default `10000`.
+
 |===
 
 === Repetitions

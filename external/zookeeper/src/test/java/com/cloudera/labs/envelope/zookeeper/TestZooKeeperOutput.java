@@ -59,7 +59,7 @@ public class TestZooKeeperOutput implements Watcher {
     zk = new TestingServer(-1, true);
     Map<String, Object> configMap = Maps.newHashMap();
 
-    configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "localhost:" + zk.getPort());
+    configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "127.0.0.1:" + zk.getPort());
     configMap.put(ZooKeeperOutput.FIELD_NAMES_CONFIG, fieldNames);
     configMap.put(ZooKeeperOutput.FIELD_TYPES_CONFIG, fieldTypes);
     configMap.put(ZooKeeperOutput.KEY_FIELD_NAMES_CONFIG, keyFieldNames);

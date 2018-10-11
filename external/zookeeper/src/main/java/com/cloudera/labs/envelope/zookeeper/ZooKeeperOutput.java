@@ -50,10 +50,10 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   public static final String KEY_FIELD_NAMES_CONFIG = "key.field.names";
   public static final String ZNODE_PREFIX_CONFIG = "znode.prefix";
   public static final String SESSION_TIMEOUT_MS_CONFIG = "session.timeout.millis";
+  public static final String CONNECTION_TIMEOUT_MS_CONFIG = "connection.timeout.millis";
   
   private static final String DEFAULT_ZNODE_PREFIX = "/envelope";
 
-  
   private List<String> fieldNames;
   private List<String> fieldTypes;
   private List<String> keyFieldNames;
@@ -64,24 +64,24 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   @Override
   public void configure(Config config) {
     String connectionString = config.getString(ZooKeeperConnection.CONNECTION_CONFIG);
-    this.keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG);
-    this.fieldNames = config.getStringList(FIELD_NAMES_CONFIG);
-    this.fieldTypes = config.getStringList(FIELD_TYPES_CONFIG);
+    keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG);
+    fieldNames = config.getStringList(FIELD_NAMES_CONFIG);
+    fieldTypes = config.getStringList(FIELD_TYPES_CONFIG);
     
     if (config.hasPath(ZNODE_PREFIX_CONFIG)) {
-      this.znodePrefix = config.getString(ZNODE_PREFIX_CONFIG);
+      znodePrefix = config.getString(ZNODE_PREFIX_CONFIG);
     }
     else {
-      this.znodePrefix = DEFAULT_ZNODE_PREFIX;
+      znodePrefix = DEFAULT_ZNODE_PREFIX;
     }
 
-    int sessionTimeoutMs;
+    connection = new ZooKeeperConnection(connectionString);
+
     if (config.hasPath(SESSION_TIMEOUT_MS_CONFIG)) {
-      sessionTimeoutMs = config.getInt(SESSION_TIMEOUT_MS_CONFIG);
-      this.connection = new ZooKeeperConnection(connectionString, sessionTimeoutMs);
+      connection.setSessionTimeoutMs(config.getInt(SESSION_TIMEOUT_MS_CONFIG));
     }
-    else {
-      this.connection = new ZooKeeperConnection(connectionString);
+    if (config.hasPath(CONNECTION_TIMEOUT_MS_CONFIG)) {
+      connection.setConnectionTimeoutMs(config.getInt(CONNECTION_TIMEOUT_MS_CONFIG));
     }
   }
 
@@ -185,9 +185,9 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
     }
     
     List<String> filterFieldNames = Lists.newArrayList(filter.schema().fieldNames());
-    List<String> currentPaths = Lists.newArrayList(this.znodePrefix);
+    List<String> currentPaths = Lists.newArrayList(znodePrefix);
     
-    prepareZnode(zk, this.znodePrefix);
+    prepareZnode(zk, znodePrefix);
     
     for (String keyFieldName : keyFieldNames) {
       List<String> nextPaths = Lists.newArrayList();
@@ -234,7 +234,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
     
     String values = new String(serialized, Charsets.UTF_8);
     String fullPath = znode + values;
-    String[] levels = fullPath.replace(this.znodePrefix,  "").split(Pattern.quote("/"));
+    String[] levels = fullPath.replace(znodePrefix,  "").split(Pattern.quote("/"));
     List<Object> objects = Lists.newArrayList();
     
     for (String level : levels) {
@@ -304,6 +304,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
         .mandatoryPath(KEY_FIELD_NAMES_CONFIG, ConfigValueType.LIST)
         .optionalPath(ZNODE_PREFIX_CONFIG, ConfigValueType.STRING)
         .optionalPath(SESSION_TIMEOUT_MS_CONFIG, ConfigValueType.NUMBER)
+        .optionalPath(CONNECTION_TIMEOUT_MS_CONFIG, ConfigValueType.NUMBER)
         .build();
   }
   

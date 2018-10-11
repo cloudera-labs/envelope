@@ -38,13 +38,15 @@ public class TestZooKeeperConnection {
 
   @Test
   public void testGoodConnection() throws Exception {
-    new ZooKeeperConnection(String.format("localhost:%d", zk.getPort())).getZooKeeper();
+    new ZooKeeperConnection(String.format("127.0.0.1:%d", zk.getPort())).getZooKeeper();
   }
 
   @Test
   public void testBadConnection() throws Exception {
     thrown.expect(InterruptedException.class);
-    new ZooKeeperConnection(String.format("localhost:%d", zk.getPort() - 1)).getZooKeeper();
+    ZooKeeperConnection zkc = new ZooKeeperConnection(String.format("127.0.0.1:%d", zk.getPort() - 1));
+    zkc.setConnectionTimeoutMs(1000);
+    zkc.getZooKeeper();
   }
 
   @AfterClass
