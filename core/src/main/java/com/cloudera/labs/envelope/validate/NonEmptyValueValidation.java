@@ -39,7 +39,7 @@ public class NonEmptyValueValidation implements Validation {
     }
     // There is a 'getIsNull' API as of Config v1.3, but we are on v1.2.1
     catch (ConfigException.Null e) {
-      return new ValidationResult(Validity.INVALID, "Configuration '" + path +
+      return new ValidationResult(this, Validity.INVALID, "Configuration '" + path +
           "' is null but must be non-empty");
     }
     catch (Exception e) {
@@ -49,21 +49,21 @@ public class NonEmptyValueValidation implements Validation {
     if (config.hasPath(path)) {
       if (config.getValue(path).valueType() == ConfigValueType.STRING &&
           config.getString(path).isEmpty()) {
-        return new ValidationResult(Validity.INVALID, "Configuration '" + path +
+        return new ValidationResult(this, Validity.INVALID, "Configuration '" + path +
             "' is an empty string but must be non-empty");
       }
       else if (config.getValue(path).valueType() == ConfigValueType.LIST &&
                config.getAnyRefList(path).size() == 0) {
-        return new ValidationResult(Validity.INVALID, "Configuration '" + path +
+        return new ValidationResult(this, Validity.INVALID, "Configuration '" + path +
             "' is an empty list but must be non-empty");
       }
       else {
-        return new ValidationResult(Validity.VALID, "Configuration '" + path +
+        return new ValidationResult(this, Validity.VALID, "Configuration '" + path +
             "' is non-empty");
       }
     }
     else {
-      return new ValidationResult(Validity.VALID, "Configuration '" + path +
+      return new ValidationResult(this, Validity.VALID, "Configuration '" + path +
           "' does not exist so not checking if non-empty");
     }
   }

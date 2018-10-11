@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 public class TestPartitionerFactory {
 
   @Test
-  public void testHash() throws Exception {
+  public void testHash() {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("type", "hash");
     
@@ -51,7 +51,7 @@ public class TestPartitionerFactory {
   }
   
   @Test
-  public void testRange() throws Exception {
+  public void testRange() {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("type", "range");
     
@@ -64,7 +64,7 @@ public class TestPartitionerFactory {
   }
   
   @Test
-  public void testCustom() throws Exception {
+  public void testCustom() {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put("type", "com.cloudera.labs.envelope.partition.DummyPartitioner");
     
@@ -84,7 +84,7 @@ public class TestPartitionerFactory {
   @SuppressWarnings("serial")
   private static class LongToRowFunction implements Function<Long, Row> {
     @Override
-    public Row call(Long longValue) throws Exception {
+    public Row call(Long longValue) {
       return RowFactory.create(longValue);
     }
   }
@@ -92,7 +92,7 @@ public class TestPartitionerFactory {
   @SuppressWarnings("serial")
   private static class ItselfFunction<T> implements Function<T, T> {
     @Override
-    public T call(T v1) throws Exception {
+    public T call(T v1) {
       return v1;
     }
   }

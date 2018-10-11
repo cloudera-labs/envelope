@@ -17,44 +17,18 @@
  */
 package com.cloudera.labs.envelope.validate;
 
-import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-
 import java.util.Set;
 
-public class IfPathExistsValidation implements Validation {
-  
-  private String ifPath;
-  private Validation thenValidation;
-  
-  public IfPathExistsValidation(String ifPath, Validation thenValidation) {
-    this.ifPath = ifPath;
-    this.thenValidation = thenValidation;
-  }
+class NoopValidation implements Validation {
 
   @Override
   public ValidationResult validate(Config config) {
-    if (config.hasPath(ifPath)) {
-      return thenValidation.validate(config);
-    }
-    else {
-      return new ValidationResult(this, Validity.VALID, "Conditional configuration '" +
-          ifPath + "' does not exist, so it was not required that the validation (" + thenValidation + ") be checked");
-    }
-  }
-  
-  @Override
-  public String toString() {
-    return "Conditional validation that if path '" + ifPath + "' exists then validation (" +
-        thenValidation + ") is checked";
+    return null;
   }
 
   @Override
   public Set<String> getKnownPaths() {
-    Set<String> knownPaths = Sets.newHashSet(ifPath);
-    knownPaths.addAll(thenValidation.getKnownPaths());
-    
-    return Sets.newHashSet(knownPaths);
+    return null;
   }
-  
 }

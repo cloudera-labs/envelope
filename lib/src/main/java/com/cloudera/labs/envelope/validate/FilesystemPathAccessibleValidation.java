@@ -38,7 +38,7 @@ public class FilesystemPathAccessibleValidation implements Validation {
   @Override
   public ValidationResult validate(Config config) {
     if (!config.hasPath(path)) {
-      return new ValidationResult(Validity.VALID, "Configuration '" + path +
+      return new ValidationResult(this, Validity.VALID, "Configuration '" + path +
           "' does not exist, so will not check if its value as a filesystem path could be opened");
     }
     
@@ -51,11 +51,11 @@ public class FilesystemPathAccessibleValidation implements Validation {
       stream.close();
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Filesystem path '" + filesystemPath + "' could not be opened.", e);
     }
     
-    return new ValidationResult(Validity.VALID,
+    return new ValidationResult(this, Validity.VALID,
         "Filesystem path '" + filesystemPath + "' could be opened");
   }
   

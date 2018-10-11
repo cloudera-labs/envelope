@@ -41,14 +41,14 @@ public class IfPathHasValueValidation implements Validation {
         return thenValidation.validate(config);
       }
       else {
-        return new ValidationResult(Validity.VALID,
+        return new ValidationResult(this, Validity.VALID,
             "Conditional configuration '" + ifPath + "' did not have value '" +
                 hasValue + "', so it was not required that the validation (" +
                 thenValidation + ") be checked");
       }
     }
     else {
-      return new ValidationResult(Validity.VALID,
+      return new ValidationResult(this, Validity.VALID,
           "Conditional configuration '" + ifPath +
               "' does not exist, so it was not required that the validation (" +
               thenValidation + ") be checked");

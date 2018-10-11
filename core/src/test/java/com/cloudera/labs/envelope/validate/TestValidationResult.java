@@ -17,6 +17,9 @@
  */
 package com.cloudera.labs.envelope.validate;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import java.util.Set;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -25,9 +28,35 @@ import static org.junit.Assert.assertTrue;
 
 public class TestValidationResult {
 
+  private static class AlwaysValid implements Validation {
+
+    @Override
+    public ValidationResult validate(Config config) {
+      return new ValidationResult(this, Validity.VALID, "hello", new RuntimeException("world"));
+    }
+
+    @Override
+    public Set<String> getKnownPaths() {
+      return null;
+    }
+  }
+
+  private static class AlwaysInvalid implements Validation {
+
+    @Override
+    public ValidationResult validate(Config config) {
+      return new ValidationResult(this, Validity.INVALID, "world");
+    }
+
+    @Override
+    public Set<String> getKnownPaths() {
+      return null;
+    }
+  }
+
   @Test
   public void testWithException() {
-    ValidationResult vr = new ValidationResult(Validity.VALID, "hello", new RuntimeException("world"));
+    ValidationResult vr = new AlwaysValid().validate(ConfigFactory.empty());
 
     assertEquals("hello", vr.getMessage());
     assertEquals(vr.getValidity(), Validity.VALID);
@@ -37,7 +66,7 @@ public class TestValidationResult {
 
   @Test
   public void testWithoutException() {
-    ValidationResult vr = new ValidationResult(Validity.INVALID, "world");
+    ValidationResult vr = new AlwaysInvalid().validate(ConfigFactory.empty());
 
     assertEquals("world", vr.getMessage());
     assertEquals(vr.getValidity(), Validity.INVALID);

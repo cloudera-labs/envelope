@@ -45,21 +45,21 @@ public class OptionalPathValidation implements Validation {
         if (config.getValue(path).valueType().equals(type) ||
             ConfigUtils.canBeCoerced(config, path, type))
         {
-          return new ValidationResult(Validity.VALID,
+          return new ValidationResult(this, Validity.VALID,
               "Optional configuration was found with required type: " + path);
         }
         else {
-          return new ValidationResult(Validity.INVALID,
+          return new ValidationResult(this, Validity.INVALID,
               "Optional configuration '" + path + "' was found but does not have required type: " + type);
         }
       }
       else {
-        return new ValidationResult(Validity.VALID,
+        return new ValidationResult(this, Validity.VALID,
             "Optional configuration was found: " + path);
       }
     }
     else {
-      return new ValidationResult(Validity.VALID,
+      return new ValidationResult(this, Validity.VALID,
           "Optional configuration was not found: " + path);
     }
   }

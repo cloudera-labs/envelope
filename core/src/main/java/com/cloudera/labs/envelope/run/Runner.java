@@ -17,20 +17,43 @@
  */
 package com.cloudera.labs.envelope.run;
 
+import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
+import static com.cloudera.labs.envelope.spark.Contexts.APPLICATION_SECTION_PREFIX;
+
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
+import com.cloudera.labs.envelope.security.SecurityUtils;
+import com.cloudera.labs.envelope.security.TokenStoreManager;
+import com.cloudera.labs.envelope.security.UsesDelegationTokens;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.Contexts.ExecutionMode;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.StepUtils;
-import com.cloudera.labs.envelope.validate.*;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.ValidationUtils;
+import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.Validator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.typesafe.config.*;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigList;
+import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.sql.Dataset;
@@ -40,13 +63,6 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * Runner merely submits the pipeline steps to Spark in dependency order.
@@ -66,6 +82,7 @@ public class Runner {
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
 
   private static ExecutorService threadPool;
+  private static TokenStoreManager tokenStoreManager;
   private static Logger LOG = LoggerFactory.getLogger(Runner.class);
 
   /**
@@ -80,7 +97,9 @@ public class Runner {
 
     ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
     Contexts.initialize(config, mode);
-    
+
+    initializeSecurity(config, steps);
+
     initializeAccumulators(steps);
     
     initializeUDFs(config);
@@ -100,6 +119,7 @@ public class Runner {
     }
     finally {
       shutdownThreadPool();
+      shutdownSecurity();
     }
 
     LOG.debug("Runner finished");
@@ -446,6 +466,39 @@ public class Runner {
     }
 
     LOG.info("Provided Envelope configuration is valid (" + results.size() + " checks passed)");
+  }
+
+  private static void initializeSecurity(Config config, Set<Step> steps) throws Exception {
+    tokenStoreManager = new TokenStoreManager(ConfigUtils.getOrElse(config,
+        APPLICATION_SECTION_PREFIX + "." + SECURITY_PREFIX, ConfigFactory.empty()));
+    LOG.info("Security manager created");
+
+    Set<InstantiatedComponent> secureComponents = Sets.newHashSet();
+
+    // Get all security providers
+    for (Step step : steps) {
+      if (step instanceof InstantiatesComponents) {
+        InstantiatesComponents thisStep = (InstantiatesComponents) step;
+        // Check for secure components - components have already been configured at this stage
+        Set<InstantiatedComponent> components = thisStep.getComponents(step.getConfig(), true);
+
+        for (InstantiatedComponent instantiatedComponent : components) {
+          secureComponents.addAll(SecurityUtils.getAllSecureComponents(instantiatedComponent));
+        }
+      }
+    }
+
+    // Get all token providers
+    for (InstantiatedComponent secureComponent : secureComponents) {
+      tokenStoreManager.addTokenProvider(((UsesDelegationTokens)secureComponent.getComponent()).getTokenProvider());
+    }
+
+    LOG.debug("Starting TokenStoreManager thread");
+    tokenStoreManager.start();
+  }
+
+  private static void shutdownSecurity() {
+    tokenStoreManager.stop();
   }
   
   private static void initializeAccumulators(Set<Step> steps) {

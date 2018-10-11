@@ -189,10 +189,10 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
           config.hasPath(REPARTITION_COLUMNS_PROPERTY)) &&
           config.hasPath(COALESCE_NUM_PARTITIONS_PROPERTY))
       {
-        return new ValidationResult(Validity.INVALID, "Can not both repartition and coalesce");
+        return new ValidationResult(this, Validity.INVALID, "Can not both repartition and coalesce");
       }
       else {
-        return new ValidationResult(Validity.VALID, "Does not both repartition and coalesce");
+        return new ValidationResult(this, Validity.VALID, "Does not both repartition and coalesce");
       }
     }
 

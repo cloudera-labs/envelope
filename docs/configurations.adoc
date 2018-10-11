@@ -92,6 +92,12 @@ Application-level configurations have the `application.` prefix.
 |driver.memory
 |The amount of memory allocated for a Spark driver. Please note that this configuration is only applicable when application is deployed in _cluster_ mode, and will cause an exception if deployment mode is _client_. To set driver memory for the applications running in client mode, use Spark's command line argument _--driver-memory_.
 
+|security.check-interval
+|How often the security token manager in the driver checks if tokens need refreshing. Default is "60s". Accepts any Typesafe duration string. Recommended to leave at default.
+
+|security.renew-factor
+|At what proportion of a token's lifetime to request a new token. Defaults to 0.8. Recommended to leave at default.
+
 |===
 
 == Steps
@@ -1274,8 +1280,6 @@ Output `type` = `kafka`.
 
 Output `type` = `kudu`.
 
-Note: For Envelope pipelines with a Kudu output, and with security enabled, and in YARN cluster mode, and where using a random planner (such as history or bitemporal), then you must add `--conf spark.kudu.master.addresses=yourkuduconnectionstringhere` to your `spark2-submit` call.
-
 [cols="2,8", options="header"]
 |===
 |Configuration suffix|Description
@@ -1291,6 +1295,9 @@ Note: For Envelope pipelines with a Kudu output, and with security enabled, and 
 
 |ignore.missing.columns
 |Ignore writing columns that do not exist in the Kudu schema (default: false)
+
+|secure
+|Is the target Kudu cluster secured by Kerberos? This must be set to `true` for automatic token management to take effect, which is a requirement for random output planners. (default: `true` if `hadoop.security.authentication` is `kerberos`, `false` otherwise).
 
 |===
 

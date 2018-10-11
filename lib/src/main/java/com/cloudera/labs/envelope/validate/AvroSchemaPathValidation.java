@@ -40,7 +40,7 @@ public class AvroSchemaPathValidation implements Validation {
       literal = FilesystemUtils.filesystemPathContents(config.getString(path));
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Avro schema could not be retrieved from path. " +
               "See stack trace below for more information.", e);
     }
@@ -50,7 +50,7 @@ public class AvroSchemaPathValidation implements Validation {
       schema = new Schema.Parser().parse(literal);
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Avro schema from path could not be parsed. " +
               "See stack trace below for more information.", e);
     }
@@ -59,12 +59,12 @@ public class AvroSchemaPathValidation implements Validation {
       AvroUtils.structTypeFor(schema);
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Avro schema from path could be parsed, but could not be converted " +
               "to a Spark SQL StructType. See stack trace below for more information.", e);
     }
 
-    return new ValidationResult(Validity.VALID,
+    return new ValidationResult(this, Validity.VALID,
         "Avro schema from path could be parsed and converted to a Spark SQL StructType");
   }
 

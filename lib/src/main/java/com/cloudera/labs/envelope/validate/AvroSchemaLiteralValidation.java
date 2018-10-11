@@ -39,7 +39,7 @@ public class AvroSchemaLiteralValidation implements Validation {
       schema = new Schema.Parser().parse(config.getString(path));
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Avro schema literal could not be parsed. See stack trace below for more " +
               "information.", e);
     }
@@ -48,12 +48,12 @@ public class AvroSchemaLiteralValidation implements Validation {
       AvroUtils.structTypeFor(schema);
     }
     catch (Exception e) {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Avro schema literal could be parsed, but could not be converted to a " +
               "Spark SQL StructType. See stack trace below for more information.", e);
     }
 
-    return new ValidationResult(Validity.VALID, "Avro schema literal could be parsed and " +
+    return new ValidationResult(this, Validity.VALID, "Avro schema literal could be parsed and " +
         "converted to a Spark SQL StructType");
   }
 

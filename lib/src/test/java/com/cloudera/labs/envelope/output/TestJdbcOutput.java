@@ -23,6 +23,8 @@ import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import java.util.Properties;
 import mockit.integration.junit4.JMockit;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.AnalysisException;
@@ -47,37 +49,44 @@ import static org.junit.Assert.assertEquals;
 @RunWith(JMockit.class)
 public class TestJdbcOutput {
 
-  public static final String JDBC_PROPERTIES_TABLE_USER_PATH = "/JdbcTest/jdbc-table-user.properties";
-  public static final String JDBC_PROPERTIES_TABLE_USER2_PATH = "/JdbcTest/jdbc-table-user2.properties";
-
-  public static final String SAMPLE_DATA_PATH = "/JdbcTest/sample.json";
-  public static final String JDBC_URL = "jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1";
-  public static final String JDBC_USERNAME = "sa";
-  public static final String JDBC_PASSWORD = "";
-  public static Server server;
-  public static SparkContext sparkContext;
+  private static final String SAMPLE_DATA_PATH = "/JdbcTest/sample.json";
+  private static final String JDBC_URL = "jdbc:h2:tcp://127.0.0.1:%d/mem:test;DB_CLOSE_DELAY=-1";
+  private static final String JDBC_USERNAME = "sa";
+  private static final String JDBC_PASSWORD = "";
+  private static final String JDBC_TABLE = "user";
+  private static Config config;
+  private static Server server;
 
   @BeforeClass
-  public static void beforeClass() throws SQLException, ClassNotFoundException, InterruptedException {
+  public static void beforeClass() throws SQLException, ClassNotFoundException {
     Class.forName("org.h2.Driver");
-    server = Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "9092").start();
-    Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
+    server = Server.createTcpServer("-tcp", "-tcpAllowOthers").start();
+    Connection connection = DriverManager.getConnection(String.format(JDBC_URL, server.getPort()),
+        JDBC_USERNAME, JDBC_PASSWORD);
     Statement stmt = connection.createStatement();
     stmt.executeUpdate("create table if not exists user (firstname varchar(30), lastname varchar(30))");
+
+    Properties properties = new Properties();
+    properties.setProperty("url", String.format(JDBC_URL, server.getPort()));
+    properties.setProperty("tablename", JDBC_TABLE);
+    properties.setProperty("username", JDBC_USERNAME);
+    properties.setProperty("password", JDBC_PASSWORD);
+
+    config = ConfigFactory.parseProperties(properties);
   }
 
   @Test
   public void checkDB_OK() throws SQLException {
-    Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
+    Connection connection = DriverManager.getConnection(String.format(JDBC_URL, server.getPort()),
+        JDBC_USERNAME, JDBC_PASSWORD);
     connection.createStatement();
   }
 
   @Test
   public void checkApplyBulkMutations_works() throws Exception {
-    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER2_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
     ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
-    jdbcOutput.configure(config);
+    jdbcOutput.configure(ConfigFactory.parseString("tablename=user2").withFallback(config));
 
     ArrayList<Tuple2<MutationType, Dataset<Row>>> planned = new ArrayList<>();
     Dataset<Row> o = Contexts.getSparkSession().read().json(JdbcInput.class.getResource(SAMPLE_DATA_PATH).getPath());
@@ -87,7 +96,8 @@ public class TestJdbcOutput {
 
     jdbcOutput.applyBulkMutations(planned);
 
-    Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD);
+    Connection connection = DriverManager.getConnection(String.format(JDBC_URL, server.getPort()),
+        JDBC_USERNAME, JDBC_PASSWORD);
     Statement stmt = connection.createStatement();
     ResultSet resultSet = stmt.executeQuery("select count(*) from user2");
     resultSet.next();
@@ -96,7 +106,6 @@ public class TestJdbcOutput {
 
   @Test(expected = AnalysisException.class)
   public void checkApplyBulkMutations_Exception_TableExist() {
-    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
     ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
     jdbcOutput.configure(config);
@@ -112,7 +121,6 @@ public class TestJdbcOutput {
 
   @Test(expected = RuntimeException.class)
   public void checkApplyBulkMutations_Exception_MutationTypeNotSupported() {
-    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_TABLE_USER_PATH).getPath());
     JdbcOutput jdbcOutput = new JdbcOutput();
     ValidationAssert.assertNoValidationFailures(jdbcOutput, config);
     jdbcOutput.configure(config);

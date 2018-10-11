@@ -56,10 +56,10 @@ public class TestZooKeeperOutput implements Watcher {
   
   @BeforeClass
   public static void setup() throws Exception {
-    zk = new TestingServer(2181, true);
-
+    zk = new TestingServer(-1, true);
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "localhost:2181");
+
+    configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "localhost:" + zk.getPort());
     configMap.put(ZooKeeperOutput.FIELD_NAMES_CONFIG, fieldNames);
     configMap.put(ZooKeeperOutput.FIELD_TYPES_CONFIG, fieldTypes);
     configMap.put(ZooKeeperOutput.KEY_FIELD_NAMES_CONFIG, keyFieldNames);

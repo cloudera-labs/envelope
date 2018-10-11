@@ -36,16 +36,16 @@ public class AllowedValuesValidation implements Validation {
   public ValidationResult validate(Config config) {
     if (config.hasPath(path)) {
       if (allowedValues.contains(config.getAnyRef(path))) {
-        return new ValidationResult(Validity.VALID, "Configuration '" + path +
+        return new ValidationResult(this, Validity.VALID, "Configuration '" + path +
             "' has one of the allowed values: " + allowedValues);
       }
       else {
-        return new ValidationResult(Validity.INVALID, "Configuration '" + path +
+        return new ValidationResult(this, Validity.INVALID, "Configuration '" + path +
             "' does not have one of the allowed values: " + allowedValues);
       }
     }
     else {
-      return new ValidationResult(Validity.VALID, "Configuration '" + path +
+      return new ValidationResult(this, Validity.VALID, "Configuration '" + path +
           "' does not exist, so will not check it for allowed values");
     }
   }

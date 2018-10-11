@@ -19,6 +19,8 @@ package com.cloudera.labs.envelope.input;
 
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import java.util.Properties;
 import mockit.integration.junit4.JMockit;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
@@ -47,25 +49,38 @@ import static org.junit.Assert.assertNotNull;
 @RunWith(JMockit.class)
 public class TestJdbcInput {
 
-  public static final String JDBC_PROPERTIES_PATH = "/JdbcTest/jdbc-table-user.properties";
-  public static Server server;
-  public static SparkContext sparkContext;
+  private static final String JDBC_URL = "jdbc:h2:tcp://127.0.0.1:%d/mem:test;DB_CLOSE_DELAY=-1";
+  private static final String JDBC_USERNAME = "sa";
+  private static final String JDBC_PASSWORD = "";
+  private static final String JDBC_TABLE = "user";
+  private static Server server;
+  private static Config config;
 
   @BeforeClass
-  public static void beforeClass() throws SQLException, ClassNotFoundException, InterruptedException {
+  public static void beforeClass() throws SQLException, ClassNotFoundException {
     Class.forName("org.h2.Driver");
-    server = Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "9092").start();
-    Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
+    server = Server.createTcpServer("-tcp", "-tcpAllowOthers").start();
+    Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:" + server.getPort() +
+        "/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
     Statement stmt = connection.createStatement();
     stmt.executeUpdate("create table if not exists user (firstname varchar(30), lastname varchar(30))");
     stmt.executeUpdate("insert into user values ('f1','p1')");
     stmt.executeUpdate("insert into user values ('f2','p1')");
     stmt.executeUpdate("insert into user values ('f3','p1')");
+
+    Properties properties = new Properties();
+    properties.setProperty("url", String.format(JDBC_URL, server.getPort()));
+    properties.setProperty("tablename", JDBC_TABLE);
+    properties.setProperty("username", JDBC_USERNAME);
+    properties.setProperty("password", JDBC_PASSWORD);
+
+    config = ConfigFactory.parseProperties(properties);
   }
 
   @Test
   public void checkDB_OK() throws SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:9092/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
+    Connection connection = DriverManager.getConnection("jdbc:h2:tcp://127.0.0.1:" + server.getPort() +
+        "/mem:test;DB_CLOSE_DELAY=-1", "sa", "");
     Statement stmt = connection.createStatement();
     ResultSet resultSet = stmt.executeQuery("select count(*) from user");
     resultSet.next();
@@ -74,7 +89,6 @@ public class TestJdbcInput {
 
   @Test
   public void checkJdbcInput_works() throws Exception {
-    Config config = ConfigUtils.configFromPath(JdbcInput.class.getResource(JDBC_PROPERTIES_PATH).getPath());
     JdbcInput jdbcInput = new JdbcInput();
     assertNoValidationFailures(jdbcInput, config);
     jdbcInput.configure(config);

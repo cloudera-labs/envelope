@@ -35,18 +35,18 @@ public class HBaseColumnsValidation implements Validation {
       Set<String> columns = columnConfig.keySet();
       for (String column : columns) {
         if (!config.hasPath(HBaseUtils.COLUMNS_PROPERTY + "." + column + ".col")) {
-          return new ValidationResult(Validity.INVALID, "'col' not specified in column " + column);
+          return new ValidationResult(this, Validity.INVALID, "'col' not specified in column " + column);
         }
         if (!config.hasPath(HBaseUtils.COLUMNS_PROPERTY + "." + column + ".type")) {
-          return new ValidationResult(Validity.INVALID, "'type' not specified in column " + column);
+          return new ValidationResult(this, Validity.INVALID, "'type' not specified in column " + column);
         }
         if (!config.hasPath(HBaseUtils.COLUMNS_PROPERTY + "." + column + ".cf")) {
-          return new ValidationResult(Validity.INVALID, "'cf' not specified in column " + column);
+          return new ValidationResult(this, Validity.INVALID, "'cf' not specified in column " + column);
         }
       }
     }
     
-    return new ValidationResult(Validity.VALID, "HBase column entries are all valid");
+    return new ValidationResult(this, Validity.VALID, "HBase column entries are all valid");
   }
 
   @Override

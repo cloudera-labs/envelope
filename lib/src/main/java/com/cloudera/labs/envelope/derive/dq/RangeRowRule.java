@@ -148,10 +148,10 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
           @Override
           public ValidationResult validate(Config config) {
             if (config.getAnyRefList(RANGE_CONFIG).size() != 2) {
-              return new ValidationResult(Validity.INVALID, "Range must be a length-2 list");
+              return new ValidationResult(this, Validity.INVALID, "Range must be a length-2 list");
             }
             else {
-              return new ValidationResult(Validity.VALID, "Range is a length-2 list");
+              return new ValidationResult(this, Validity.VALID, "Range is a length-2 list");
             }
           }
           @Override

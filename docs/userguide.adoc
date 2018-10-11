@@ -40,3 +40,5 @@ The final configuration is constructed with the following layers (in order of pr
 - Command line parameters (either as HOCON or JSON; see link:http://typesafehub.github.io/config/latest/api/com/typesafe/config/ConfigFactory.html#parseString-java.lang.String-[ConfigFactory.parseString()])
 
 Then the composite is resolved for substitutions and used throughout the pipeline.
+
+Configurations and runtime information required for running Envelope in secure clusters can be found in the link:security.adoc[security guide]

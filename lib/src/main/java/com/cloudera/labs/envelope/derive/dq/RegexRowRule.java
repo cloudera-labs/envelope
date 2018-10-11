@@ -84,9 +84,9 @@ public class RegexRowRule implements RowRule, ProvidesAlias, ProvidesValidations
               Pattern.compile(config.getString(REGEX_CONFIG));
             }
             catch (PatternSyntaxException pse) {
-              return new ValidationResult(Validity.INVALID, "Regular expression does not have valid syntax");
+              return new ValidationResult(this, Validity.INVALID, "Regular expression does not have valid syntax");
             }
-            return new ValidationResult(Validity.VALID, "Regular expression has valid syntax");
+            return new ValidationResult(this, Validity.VALID, "Regular expression has valid syntax");
           }
           @Override
           public Set<String> getKnownPaths() {

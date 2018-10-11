@@ -59,6 +59,7 @@ public enum Contexts {
   public static final String SPARK_DEPLOY_MODE_PROPERTY = "spark.submit.deployMode";
   public static final String SPARK_DEPLOY_MODE_CLIENT = "client";
   public static final String SPARK_DEPLOY_MODE_CLUSTER = "cluster";
+  public static final String ENVELOPE_CONFIGURATION_SPARK = "spark.envelope.configuration";
 
   public static final boolean SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT = true;
 
@@ -232,7 +233,7 @@ public enum Contexts {
     }
 
     String envelopeConf = config.root().render(ConfigRenderOptions.concise());
-    sparkConf.set("envelope.configuration", envelopeConf);
+    sparkConf.set(ENVELOPE_CONFIGURATION_SPARK, envelopeConf);
 
     return sparkConf;
   }

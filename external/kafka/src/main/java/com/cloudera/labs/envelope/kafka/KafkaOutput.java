@@ -58,7 +58,7 @@ public class KafkaOutput implements BulkOutput, ProvidesAlias, ProvidesValidatio
   private Config config;
 
   @Override
-  public void configure(Config config) {    
+  public void configure(Config config) {
     this.config = config;
   }
 

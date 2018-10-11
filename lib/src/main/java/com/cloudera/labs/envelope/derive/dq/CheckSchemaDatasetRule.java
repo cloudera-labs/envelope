@@ -180,10 +180,10 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, Provi
         parseSchema(config.getObjectList(FIELDS_CONFIG));
       }
       catch (Exception e) {
-        return new ValidationResult(Validity.INVALID, "Schema configuration is invalid");
+        return new ValidationResult(this, Validity.INVALID, "Schema configuration is invalid");
       }
 
-      return new ValidationResult(Validity.VALID, "Schema configuration is valid");
+      return new ValidationResult(this, Validity.VALID, "Schema configuration is valid");
     }
 
     @Override

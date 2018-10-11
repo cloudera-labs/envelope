@@ -22,21 +22,32 @@ package com.cloudera.labs.envelope.validate;
  */
 public class ValidationResult {
 
+  private Validation validation;
   private Validity validity;
   private String message;
   private Exception exception;
 
+  ValidationResult(Validity validity, String message) {
+    this(new NoopValidation(), validity, message, null);
+  }
+
+  ValidationResult(Validity validity, String message, Exception e) {
+    this(new NoopValidation(), validity, message, e);
+  }
+
   /**
+   * @param validation The validation rule for this result.
    * @param validity Whether the configuration was validity for the validation rule.
    * @param message A human readable message back to the user that describes the outcome of the
    *                validation. Messages should be provided even if the configuration was found
    *                to be validity.
    */
-  public ValidationResult(Validity validity, String message) {
-    this(validity, message, null);
+  public ValidationResult(Validation validation, Validity validity, String message) {
+    this(validation, validity, message, null);
   }
 
   /**
+   * @param validation The validation rule for this result.
    * @param validity Whether the configuration was validity for the validation rule.
    * @param message A human readable message back to the user that describes the outcome of the
    *                validation. A message should be provided even if the configuration was found
@@ -45,10 +56,15 @@ public class ValidationResult {
    *                  null can be provided, otherwise use the exception-less constructor of this
    *                  class.
    */
-  public ValidationResult(Validity validity, String message, Exception exception) {
+  public ValidationResult(Validation validation, Validity validity, String message, Exception exception) {
+    this.validation = validation;
     this.validity = validity;
     this.exception = exception;
     setMessage(message);
+  }
+
+  public Validation getValidation() {
+    return validation;
   }
 
   public Validity getValidity() {

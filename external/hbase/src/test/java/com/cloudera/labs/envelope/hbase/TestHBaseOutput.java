@@ -156,8 +156,6 @@ public class TestHBaseOutput {
     utility.startMiniZKCluster();
     utility.startMiniHBaseCluster(1,1);
     connection = utility.getConnection();
-
-    Contexts.initialize(appConfig, Contexts.ExecutionMode.UNIT_TEST);
   }
 
   @AfterClass
@@ -190,7 +188,6 @@ public class TestHBaseOutput {
 
     HBaseOutput output = new HBaseOutput();
     output.configure(config);
-
     List<Row> filters = Lists.newArrayList();
     filters.add(new RowWithSchema(filterSchema, "AAPL", 1_000_000_000L));
     filters.add(new RowWithSchema(filterSchema, "GOOG", 1_000_000_004L));

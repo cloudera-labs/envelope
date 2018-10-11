@@ -45,21 +45,21 @@ public class MandatoryPathValidation implements Validation {
         if (config.getValue(path).valueType().equals(type) ||
             ConfigUtils.canBeCoerced(config, path, type))
         {
-          return new ValidationResult(Validity.VALID,
+          return new ValidationResult(this, Validity.VALID,
               "Mandatory configuration exists and with the required type: " + path);
         }
         else {
-          return new ValidationResult(Validity.INVALID,
+          return new ValidationResult(this, Validity.INVALID,
               "Mandatory configuration '" + path + "' does not have required type: " + type);
         }
       }
       else {
-        return new ValidationResult(Validity.VALID,
+        return new ValidationResult(this, Validity.VALID,
             "Mandatory configuration exists: " + path);
       }
     }
     else {
-      return new ValidationResult(Validity.INVALID,
+      return new ValidationResult(this, Validity.INVALID,
           "Mandatory configuration does not exist: " + path);
     }
   }

@@ -45,7 +45,7 @@ public class AtMostOnePathExistsValidation implements Validation {
     for (String path : paths) {
       if (config.hasPath(path)) {
         if (found == 1) {
-          return new ValidationResult(Validity.INVALID,
+          return new ValidationResult(this, Validity.INVALID,
               "More than one of the following configurations was found, " +
                   "when at most one must exist: " + paths);
         }
@@ -54,7 +54,7 @@ public class AtMostOnePathExistsValidation implements Validation {
               !config.getValue(path).valueType().equals(type) &&
               !ConfigUtils.canBeCoerced(config, path, type))
           {
-            return new ValidationResult(Validity.INVALID,
+            return new ValidationResult(this, Validity.INVALID,
                 "The configuration '" + path + "' was found but not of required type: " + type);
           }
 
@@ -64,11 +64,11 @@ public class AtMostOnePathExistsValidation implements Validation {
     }
     
     if (found == 1) {
-      return new ValidationResult(Validity.VALID,
+      return new ValidationResult(this, Validity.VALID,
           "One of the following configurations was found, when at most one must exist: " + paths);
     }
     else {
-      return new ValidationResult(Validity.VALID,
+      return new ValidationResult(this, Validity.VALID,
           "None of the following configurations was found, when at most one must exist: " + paths);
     }
   }

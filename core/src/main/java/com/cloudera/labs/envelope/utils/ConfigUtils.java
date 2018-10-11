@@ -130,7 +130,11 @@ public class ConfigUtils {
 
   public static <T> T getOrElse(Config config, String path, T orElse) {
     if (config.hasPath(path)) {
-      return (T)config.getAnyRef(path);
+      if (config.getValue(path).valueType() == ConfigValueType.OBJECT) {
+        return (T) config.getConfig(path);
+      } else {
+        return (T) config.getAnyRef(path);
+      }
     }
     else {
       return orElse;

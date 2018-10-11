@@ -43,9 +43,6 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   public static final String TRANSLATOR_PROPERTY = "input.translator";
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
   
-  @SuppressWarnings("rawtypes")
-  private TranslateFunction translateFunction;
-
   public StreamingStep(String name) {
     super(name);
   }
@@ -53,8 +50,6 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   @Override
   public void configure(Config config) {
     super.configure(config);
-    
-    translateFunction = new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
   }
 
   @SuppressWarnings("rawtypes")
@@ -69,7 +64,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   }
   
   public StructType getSchema() {
-    return translateFunction.getSchema();
+    return getTranslateFunction(config).getSchema();
   }
   
   @Override
@@ -81,6 +76,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public JavaRDD<Row> translate(JavaRDD raw) {
+    TranslateFunction translateFunction = getTranslateFunction(config);
     JavaPairRDD<?, ?> prepared = raw.mapToPair(((StreamInput)getInput(true)).getPrepareFunction());
     JavaRDD<Row> translated = prepared.flatMap(translateFunction);
     
@@ -128,11 +124,15 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     components.addAll(super.getComponents(config, configure));
 
     if (config.hasPath(TRANSLATOR_PROPERTY)) {
-      translateFunction = new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
+      TranslateFunction translateFunction = getTranslateFunction(config);
       components.addAll(translateFunction.getComponents(config.getConfig(TRANSLATOR_PROPERTY), configure));
     }
 
     return components;
+  }
+
+  private TranslateFunction getTranslateFunction(Config config) {
+    return new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
   }
 
 }

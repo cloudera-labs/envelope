@@ -17,7 +17,7 @@ Some examples of what you can easily do with Envelope:
 
 Envelope requires a CDH5.7+ cluster with:
 
-- Cloudera's distribution of Apache Spark 2.2.0 Release 2 or above
+- Cloudera's distribution of Apache Spark 2.1.0 Release 1 or above
 - Cloudera's distribution of Apache Kafka 2.1.0 (based on Apache Kafka 0.10) or above, if using that component
 - Cloudera's distribution of Apache Kudu 1.3.0 or above, if using that component
 
@@ -60,3 +60,4 @@ If you are ready for more, dive in:
 * [Looping Guide](docs/looping.adoc) - information and an example for defining loops in an Envelope pipeline
 * [Decisions Guide](docs/decisions.adoc) - information on using decisions to dynamically choose which parts of the pipeline to run
 * [Tasks Guide](docs/tasks.adoc) - how to apply side-effects in an Envelope pipeline that are separate from the data flow
+* [Security Guide](docs/security.adoc) - how to run Envelope in secure cluster configurations
