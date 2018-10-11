@@ -33,18 +33,18 @@ public class TestZooKeeperConnection {
 
   @BeforeClass
   public static void before() throws Exception {
-    zk = new TestingServer(2181, true);
+    zk = new TestingServer(-1, true);
   }
 
   @Test
   public void testGoodConnection() throws Exception {
-    new ZooKeeperConnection("localhost:2181").getZooKeeper();
+    new ZooKeeperConnection(String.format("localhost:%d", zk.getPort())).getZooKeeper();
   }
 
   @Test
   public void testBadConnection() throws Exception {
     thrown.expect(InterruptedException.class);
-    new ZooKeeperConnection("localhost:2182").getZooKeeper();
+    new ZooKeeperConnection(String.format("localhost:%d", zk.getPort() - 1)).getZooKeeper();
   }
 
   @AfterClass
