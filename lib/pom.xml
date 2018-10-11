@@ -5,7 +5,12 @@
     <artifactId>envelope-parent</artifactId>
     <version>0.6.0-SNAPSHOT</version>
   </parent>
+
   <artifactId>envelope-lib</artifactId>
+
+  <properties>
+    <parent.relative.dir>../</parent.relative.dir>
+  </properties>
   
   <dependencies>
     <dependency>

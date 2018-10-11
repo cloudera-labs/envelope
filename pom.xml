@@ -40,6 +40,7 @@
   </modules>
   
   <properties>
+    <!-- Dependencies -->
     <scala.version>2.11</scala.version>
     <spark.version>2.1.0.cloudera1</spark.version>
     <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
@@ -51,11 +52,24 @@
     <guava.version>16.0.1</guava.version>
     <protobuf.version>3.6.0</protobuf.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
+    <!-- Test Dependencies -->
     <junit.version>4.12</junit.version>
     <hamcrest.version>2.0.0.0</hamcrest.version>
     <jmockit.version>1.22</jmockit.version>
     <h2.version>1.4.193</h2.version>
     <curator.version>2.12.0</curator.version>
+    <!-- Plugins -->
+    <maven.compiler.version>2.3.1</maven.compiler.version>
+    <maven.javadoc.version>3.0.0</maven.javadoc.version>
+    <maven.surefire.version>2.22.0</maven.surefire.version>
+    <maven.dependency.version>2.1</maven.dependency.version>
+    <maven.assembly.version>2.6</maven.assembly.version>
+    <maven.shade.version>2.4</maven.shade.version>
+    <maven.release.version>2.5.3</maven.release.version>
+    <apache.rat.version>0.12</apache.rat.version>
+    <license.maven.version>3.0</license.maven.version>
+    <!-- Build -->
+    <parent.relative.dir/>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
@@ -139,13 +153,13 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.1</version>
+        <version>${maven.compiler.version}</version>
         <configuration>
           <source>1.7</source>
           <target>1.7</target>
@@ -154,7 +168,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.20</version>
+        <version>${maven.surefire.version}</version>
         <!-- Set working directory for SparkSession's Hive support -->
         <configuration>
           <workingDirectory>${project.build.directory}</workingDirectory>
@@ -167,7 +181,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>2.4</version>
+        <version>${maven.shade.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -198,51 +212,53 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.12</version>
-        <executions>
-          <execution>
-            <id>timestamp-property</id>
-            <goals>
-              <goal>timestamp-property</goal>
-            </goals>
-            <phase>validate</phase>
-            <configuration>
-              <name>currentYear</name>
-              <pattern>yyyy</pattern>
-              <locale>en_US</locale>
-            </configuration>
-          </execution>
-        </executions>
+        <version>${maven.release.version}</version>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>3.0</version>
+        <version>${license.maven.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.mycila</groupId>
+            <artifactId>license-maven-plugin-git</artifactId>
+            <version>${license.maven.version}</version>
+          </dependency>
+        </dependencies>
         <configuration>
-          <header>licenses/APACHE-2.txt</header>
+          <header>${parent.relative.dir}licenses/APACHE-2.template</header>
+          <headerDefinitions>
+            <headerDefinition>${parent.relative.dir}licenses/slashstar-format.xml</headerDefinition>
+          </headerDefinitions>
           <includes>
             <include>**/*.java</include>
           </includes>
+          <properties>
+            <owner>${project.organization.name}</owner>
+            <url>${project.organization.url}</url>
+          </properties>
+          <mapping>
+            <java>SLASHSTAR_STYLE</java>
+          </mapping>
         </configuration>
         <executions>
           <execution>
+            <!--
+              Check every build and update the license header on all code files.
+            -->
             <id>format</id>
             <goals>
               <goal>format</goal>
             </goals>
-            <phase>process-sources</phase>
+            <phase>initialize</phase>
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>0.12</version>
+        <version>${apache.rat.version}</version>
         <configuration>
           <includes>
             <include>**/*.java</include>
@@ -258,5 +274,7 @@
         </executions>
       </plugin>
     </plugins>
+
   </build>
+
 </project>

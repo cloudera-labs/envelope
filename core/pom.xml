@@ -6,7 +6,12 @@
     <version>0.6.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
+
   <artifactId>envelope-core</artifactId>
+
+  <properties>
+    <parent.relative.dir>../</parent.relative.dir>
+  </properties>
 
   <dependencies>
     <dependency>
