@@ -25,13 +25,13 @@ Additionally, if using these components, Envelope requires:
 
 For Cloudera's distributions, Kafka requires Cloudera's Kafka 2.1.0 or above, and HBase and ZooKeeper requires CDH5.7 or above. Note that CDH6.x has not yet been tested.
 
-### Compiling Envelope
+### Compiling Envelope  
 
 You can build the Envelope application from the top-level directory of the source code by running the Maven command:
 
     mvn clean package
 
-This will create `envelope-0.6.0-SNAPSHOT.jar` in the `build/envelope/target` directory.
+This will create `envelope-0.6.0.jar` in the `build/envelope/target` directory.
 
 ### Finding examples
 
@@ -48,7 +48,7 @@ Envelope provides these example pipelines that you can run for yourself:
 
 You can run Envelope by submitting it to Spark with the configuration file for your pipeline:
 
-    spark2-submit envelope-0.6.0-SNAPSHOT.jar yourpipeline.conf
+    spark2-submit envelope-0.6.0.jar yourpipeline.conf
 
 A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI.
 
