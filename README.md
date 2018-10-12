@@ -1,6 +1,6 @@
 # Envelope
 
-Envelope is a configuration-driven framework for Apache Spark that makes it easy to develop Spark-based data processing pipelines on a Cloudera EDH.
+Envelope is a configuration-driven framework for Apache Spark that makes it easy to develop Spark-based data processing pipelines.
 
 Envelope is simply a pre-made Spark application that implements many of the tasks commonly found in ETL pipelines. In many cases, Envelope allows large pipelines to be developed on Spark with no coding required. When custom code is needed, there are pluggable points in Envelope for core functionality to be extended. Envelope works in batch and streaming modes.
 
@@ -15,11 +15,15 @@ Some examples of what you can easily do with Envelope:
 
 ### Requirements
 
-Envelope requires a CDH5.7+ cluster with:
+Envelope requires Apache Spark 2.1.0 or above.
 
-- Cloudera's distribution of Apache Spark 2.1.0 Release 1 or above
-- Cloudera's distribution of Apache Kafka 2.1.0 (based on Apache Kafka 0.10) or above, if using that component
-- Cloudera's distribution of Apache Kudu 1.3.0 or above, if using that component
+Additionally, if using these components, Envelope requires:
+- Apache Kafka 0.10 or above
+- Apache Kudu 1.4.0 or above
+- Apache HBase 1.2.0 or above (note: 2.x has not yet been tested)
+- Apache ZooKeeper 3.4.5 or above
+
+For Cloudera's distributions, Kafka requires Cloudera's Kafka 2.1.0 or above, and HBase and ZooKeeper requires CDH5.7 or above. Note that CDH6.x has not yet been tested.
 
 ### Compiling Envelope
 
@@ -46,7 +50,7 @@ You can run Envelope by submitting it to Spark with the configuration file for y
 
     spark2-submit envelope-0.6.0-SNAPSHOT.jar yourpipeline.conf
 
-A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI, which can be found in Cloudera Manager by navigating to the YARN service and then to the ResourceManager Web UI link.
+A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI.
 
 ## More information
 
@@ -61,3 +65,4 @@ If you are ready for more, dive in:
 * [Decisions Guide](docs/decisions.adoc) - information on using decisions to dynamically choose which parts of the pipeline to run
 * [Tasks Guide](docs/tasks.adoc) - how to apply side-effects in an Envelope pipeline that are separate from the data flow
 * [Security Guide](docs/security.adoc) - how to run Envelope in secure cluster configurations
+* [Repetitions Guide](docs/repetitions.adoc) - how to re-run cached steps in a streaming job based on provided criteria

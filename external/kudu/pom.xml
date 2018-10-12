@@ -12,6 +12,7 @@
 
   <properties>
     <parent.relative.dir>../../</parent.relative.dir>
+    <kudu.version>1.4.0</kudu.version>
   </properties>
 
   <dependencies>

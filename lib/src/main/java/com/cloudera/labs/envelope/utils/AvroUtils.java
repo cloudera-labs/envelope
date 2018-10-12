@@ -15,7 +15,6 @@
 
 package com.cloudera.labs.envelope.utils;
 
-
 import com.google.common.collect.Lists;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.LogicalType;
@@ -33,6 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+
+import static org.apache.avro.Schema.Field;
+import static org.apache.avro.Schema.Type.NULL;
+import static org.apache.avro.Schema.Type.RECORD;
+import static org.apache.avro.Schema.Type.UNION;
 
 /**
  *
@@ -172,7 +176,7 @@ public class AvroUtils {
         }
     }
 
-    if (isOptional && !typeSchema.getType().equals(Schema.Type.NULL)) {
+    if (isOptional && !typeSchema.getType().equals(NULL)) {
       return SchemaBuilder.builder().nullable().type(typeSchema);
     }
 
@@ -190,7 +194,7 @@ public class AvroUtils {
   public static StructType structTypeFor(Schema schema) {
     LOG.debug("Converting Avro schema to StructType");
 
-    if (!schema.getType().equals(Schema.Type.RECORD)) {
+    if (!schema.getType().equals(RECORD)) {
       throw new AvroRuntimeException("Unable to convert to Schema to StructType: Schema must be a Record");
     }
 
@@ -214,7 +218,7 @@ public class AvroUtils {
       if (schemaType.getTypes().size() == 2) {
         LOG.trace("Unwrapping simple 'optional' union for {}", schemaType);
         for (Schema s : schemaType.getTypes()) {
-          if (s.getType().equals(Schema.Type.NULL)) {
+          if (s.getType().equals(NULL)) {
             continue;
           }
           // Unwrap
@@ -245,7 +249,7 @@ public class AvroUtils {
       case RECORD:
         // StructType
         List<StructField> structFieldList = Lists.newArrayListWithCapacity(schemaType.getFields().size());
-        for (Schema.Field f : schemaType.getFields()) {
+        for (Field f : schemaType.getFields()) {
           structFieldList.add(DataTypes.createStructField(f.name(), dataTypeFor(f.schema()), isNullable(f.schema())));
         }
         return DataTypes.createStructType(structFieldList);
@@ -287,9 +291,9 @@ public class AvroUtils {
   }
 
   private static boolean isNullable(Schema schema) {
-    if (schema.getType().equals(Schema.Type.UNION)) {
+    if (schema.getType().equals(UNION)) {
       for (Schema s : schema.getTypes()){
-        if (s.getType().equals(Schema.Type.NULL)) {
+        if (s.getType().equals(NULL)) {
           return true;
         }
       }

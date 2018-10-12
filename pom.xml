@@ -7,7 +7,7 @@
   <packaging>pom</packaging>
   
   <inceptionYear>2015</inceptionYear>
-  <description>Envelope is an Apache Spark application framework for implementing streaming and batch data pipelines on a CDH cluster.</description>
+  <description>Envelope is an Apache Spark application framework for implementing streaming and batch data pipelines.</description>
   <url>https://github.com/cloudera-labs/envelope</url>
   <organization>
     <name>Cloudera, Inc.</name>
@@ -20,13 +20,6 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <developers>
-    <developer>
-      <id>cloudera</id>
-      <organization>Cloudera</organization>
-      <organizationUrl>http://www.cloudera.com</organizationUrl>
-    </developer>
-  </developers>
   
   <modules>
     <module>core</module>
@@ -42,22 +35,16 @@
   <properties>
     <!-- Dependencies -->
     <scala.version>2.11</scala.version>
-    <spark.version>2.1.0.cloudera1</spark.version>
-    <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
-    <kudu.version>1.4.0-cdh5.12.0</kudu.version>
-    <hbase.version>1.2.0-cdh5.7.0</hbase.version>
-    <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
-    <kite-sdk.version>1.0.0-cdh5.7.0</kite-sdk.version>
-    <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
+    <spark.version>2.1.0</spark.version>
     <guava.version>16.0.1</guava.version>
-    <protobuf.version>3.6.0</protobuf.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
+    <slf4j.version>1.7.5</slf4j.version>
+    <log4j.version>1.2.17</log4j.version>
+    <snappy.java.version>1.1.2.4</snappy.java.version>
     <!-- Test Dependencies -->
     <junit.version>4.12</junit.version>
     <hamcrest.version>2.0.0.0</hamcrest.version>
     <jmockit.version>1.22</jmockit.version>
-    <h2.version>1.4.193</h2.version>
-    <curator.version>2.12.0</curator.version>
     <!-- Plugins -->
     <maven.compiler.version>2.3.1</maven.compiler.version>
     <maven.javadoc.version>3.0.0</maven.javadoc.version>
@@ -66,20 +53,14 @@
     <maven.assembly.version>2.6</maven.assembly.version>
     <maven.shade.version>2.4</maven.shade.version>
     <maven.release.version>2.5.3</maven.release.version>
+    <maven.jar.version>2.2</maven.jar.version>
     <apache.rat.version>0.12</apache.rat.version>
     <license.maven.version>3.0</license.maven.version>
     <!-- Build -->
     <parent.relative.dir/>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-  
-  <repositories>
-    <repository>
-      <id>cloudera</id>
-      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-    </repository>
-  </repositories>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.spark</groupId>
@@ -124,9 +105,27 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>${log4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
-      <version>1.1.2.4</version>
+      <version>${snappy.java.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -144,12 +143,6 @@
       <groupId>org.jmockit</groupId>
       <artifactId>jmockit</artifactId>
       <version>${jmockit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -196,6 +189,12 @@
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
               </transformers>
+              <relocations>
+                <relocation>
+                  <pattern>com.slf4j</pattern>
+                  <shadedPattern>envelope.shaded.com.slf4j</shadedPattern>
+                </relocation>
+              </relocations>
               <filters>
                 <filter>
                   <!-- exclude invalid signature contained in kitesdk dependencies -->
@@ -274,7 +273,5 @@
         </executions>
       </plugin>
     </plugins>
-
   </build>
-
 </project>

@@ -12,6 +12,8 @@
 
   <properties>
     <parent.relative.dir>../../</parent.relative.dir>
+    <zookeeper.version>3.4.5</zookeeper.version>
+    <curator.version>2.12.0</curator.version>
   </properties>
 
   <dependencies>

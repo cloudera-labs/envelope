@@ -10,8 +10,13 @@
 
   <properties>
     <parent.relative.dir>../</parent.relative.dir>
+    <kite-sdk.version>1.0.0</kite-sdk.version>
+    <avro.version>1.8.0</avro.version>
+    <protobuf.version>3.6.0</protobuf.version>
+    <parquet.avro.version>1.5.0</parquet.avro.version>
+    <h2.version>1.4.193</h2.version>
   </properties>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.cloudera.labs.envelope</groupId>
@@ -38,7 +43,24 @@
       <version>${protobuf.version}</version>
       <scope>compile</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${avro.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>parquet-avro</artifactId>
+      <version>${parquet.avro.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -46,7 +68,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>2.4</version>
+        <version>${maven.shade.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -57,11 +79,15 @@
               <relocations>
                 <relocation>
                   <pattern>org.joda.time</pattern>
-                  <shadedPattern>envelope.shaded.org.joda.time</shadedPattern>
+                  <shadedPattern>com.cloudera.labs.envelope.shaded.org.joda.time</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>com.google.protobuf</pattern>
-                  <shadedPattern>com.cloudera.labs.envelope.input.shaded.com.google.protobuf</shadedPattern>
+                  <shadedPattern>com.cloudera.labs.envelope.shaded.com.google.protobuf</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.avro</pattern>
+                  <shadedPattern>com.cloudera.labs.envelope.shaded.org.apache.avro</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>

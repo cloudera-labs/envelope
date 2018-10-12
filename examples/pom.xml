@@ -10,8 +10,9 @@
 
   <properties>
     <parent.relative.dir>../</parent.relative.dir>
+    <kafka.version>0.10.0.0</kafka.version>
   </properties>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.cloudera.labs.envelope</groupId>
@@ -23,24 +24,6 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
       <version>${kafka.version}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.kitesdk</groupId>
-      <artifactId>kite-morphlines-core</artifactId>
-      <version>${kite-sdk.version}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.kitesdk</groupId>
-      <artifactId>kite-morphlines-json</artifactId>
-      <version>${kite-sdk.version}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.kitesdk</groupId>
-      <artifactId>kite-morphlines-solr-core</artifactId>
-      <version>${kite-sdk.version}</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

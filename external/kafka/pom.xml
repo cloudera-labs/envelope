@@ -12,6 +12,7 @@
 
   <properties>
     <parent.relative.dir>../../</parent.relative.dir>
+    <kafka.version>0.10.0.0</kafka.version>
   </properties>
 
   <dependencies>
