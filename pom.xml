@@ -56,6 +56,7 @@
     <maven.jar.version>2.2</maven.jar.version>
     <apache.rat.version>0.12</apache.rat.version>
     <license.maven.version>3.0</license.maven.version>
+    <asciidoctor.maven.version>1.5.6</asciidoctor.maven.version>
     <!-- Build -->
     <parent.relative.dir/>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -269,6 +270,26 @@
               <goal>check</goal>
             </goals>
             <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.asciidoctor</groupId>
+        <artifactId>asciidoctor-maven-plugin</artifactId>
+        <version>${asciidoctor.maven.version}</version>
+        <configuration>
+          <sourceDirectory>docs</sourceDirectory>
+          <outputDirectory>build/docs/html</outputDirectory>
+          <backend>html</backend>
+          <doctype>book</doctype>
+        </configuration>
+        <executions>
+          <execution>
+            <id>output-html</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>process-asciidoc</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
