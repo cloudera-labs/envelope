@@ -139,4 +139,8 @@ public class ConfigUtils {
     }
   }
 
+  public static <T> T getOrNull(Config config, String path) {
+    return getOrElse(config, path, null);
+  }
+
 }

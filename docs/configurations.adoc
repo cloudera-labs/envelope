@@ -619,7 +619,7 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list` and `dq`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, and `dq`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
 
 |===
 
@@ -872,16 +872,38 @@ Deriver `type` = `in-list`.
 |The name of the dataset whose records will be filtered based on the suppled list of values. Only required if there is more than one dependency, otherwise optional. If provided, must be present in the list of dependencies.
 
 |field
-|The name of the field in dataset's schema whose values will be compared with the suppled list of values. Only required if dataset schema contains more than one field, otherwise optional. 
+|The name of the field in dataset's schema whose values will be compared with the suppled list of values. Only required if dataset schema contains more than one field, otherwise optional.
 
 |values
-|A list of values that will be used as a filter against designated `field` 's content. Required unless the list is going to be derived via reference (see below). 
+|A list of values that will be used as a filter against designated `field` 's content. Required unless the list is going to be derived via reference (see below).
 
 |values-step
 |Step whose records will be used to generate a set of values to filter records against. Can only be specified when literal list (`values`) is not provided. If specified, the name must be present in the `dependencies`.
 
 |values-field
-|The name of the field in `values-step` 's schema whose values will be used to populate the filter. Only required if `values-step` is specified, and its schema has more than one field. 
+|The name of the field in `values-step` 's schema whose values will be used to populate the filter. Only required if `values-step` is specified, and its schema has more than one field.
+
+|===
+
+==== Hash
+
+Deriver `type` = `hash`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|step
+|The name of the dataset whose records will be hashed. Only required if there is more than one dependency, otherwise optional.
+
+|hash-field
+|The name of the field that will be added with the hash string. Default 'hash'.
+
+|delimiter
+|The delimiter that the deriver will use to concatenate the field values of a row. Default empty string.
+
+|null-string
+|The string that the deriver will use in place of NULLs when concatenating the field values of a row. Default 'pass:[__]NULLpass:[__]'.
 
 |===
 

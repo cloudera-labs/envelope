@@ -136,4 +136,16 @@ public class TestConfigUtils {
     assertEquals(false, ConfigUtils.getOrElse(config, "world", false));
   }
 
+  @Test
+  public void getOrNullExists() {
+    Config config = ConfigFactory.empty().withValue("hello", ConfigValueFactory.fromAnyRef(true));
+    assertEquals(true, ConfigUtils.getOrNull(config, "hello"));
+  }
+
+  @Test
+  public void getOrNullNotExists() {
+    Config config = ConfigFactory.empty();
+    assertNull(ConfigUtils.getOrNull(config, "hello"));
+  }
+
 }

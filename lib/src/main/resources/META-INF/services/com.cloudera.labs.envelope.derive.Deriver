@@ -1,10 +1,11 @@
 com.cloudera.labs.envelope.derive.DataQualityDeriver
+com.cloudera.labs.envelope.derive.DistinctDeriver
 com.cloudera.labs.envelope.derive.ExcludeDeriver
+com.cloudera.labs.envelope.derive.HashDeriver
+com.cloudera.labs.envelope.derive.InListDeriver
 com.cloudera.labs.envelope.derive.MorphlineDeriver
 com.cloudera.labs.envelope.derive.NestDeriver
 com.cloudera.labs.envelope.derive.PassthroughDeriver
 com.cloudera.labs.envelope.derive.PivotDeriver
 com.cloudera.labs.envelope.derive.SQLDeriver
-com.cloudera.labs.envelope.derive.DistinctDeriver
 com.cloudera.labs.envelope.derive.SelectDeriver
-com.cloudera.labs.envelope.derive.InListDeriver
