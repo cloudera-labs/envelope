@@ -3,6 +3,7 @@ com.cloudera.labs.envelope.derive.DistinctDeriver
 com.cloudera.labs.envelope.derive.ExcludeDeriver
 com.cloudera.labs.envelope.derive.HashDeriver
 com.cloudera.labs.envelope.derive.InListDeriver
+com.cloudera.labs.envelope.derive.LatestDeriver
 com.cloudera.labs.envelope.derive.MorphlineDeriver
 com.cloudera.labs.envelope.derive.NestDeriver
 com.cloudera.labs.envelope.derive.PassthroughDeriver
