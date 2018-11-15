@@ -25,6 +25,7 @@ import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.security.SecurityUtils;
+import com.cloudera.labs.envelope.security.TokenProvider;
 import com.cloudera.labs.envelope.security.TokenStoreManager;
 import com.cloudera.labs.envelope.security.UsesDelegationTokens;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
@@ -488,7 +489,10 @@ public class Runner {
 
     // Get all token providers
     for (InstantiatedComponent secureComponent : secureComponents) {
-      tokenStoreManager.addTokenProvider(((UsesDelegationTokens)secureComponent.getComponent()).getTokenProvider());
+      TokenProvider tokenProvider = ((UsesDelegationTokens)secureComponent.getComponent()).getTokenProvider();
+      if (tokenProvider != null) {
+        tokenStoreManager.addTokenProvider(tokenProvider);
+      }
     }
 
     LOG.debug("Starting TokenStoreManager thread");
