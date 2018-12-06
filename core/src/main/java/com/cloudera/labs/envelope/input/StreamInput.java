@@ -15,26 +15,31 @@
 
 package com.cloudera.labs.envelope.input;
 
-import org.apache.spark.api.java.function.PairFunction;
+import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.Row;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
 /**
  * Stream inputs read in a JavaDStream of Spark SQL Rows from an external stream source.
- * Custom inputs that point to a streaming data source should implement StreamingInput.
+ * Custom inputs that point to a streaming data source should implement StreamInput.
+ *
+ * Stream inputs must declare the schema they provide so that DataFrames can be made
+ * from the micro-batches.
  */
-public interface StreamInput extends Input {
+public interface StreamInput extends Input, DeclaresProvidingSchema {
 
   /**
-   * Provide the JavaDStream for the input stream. If the stream contains a key and message
-   * they should be wrapped together in a single object.
+   * Get the raw JavaDStream for the input stream.
    */
   JavaDStream<?> getDStream() throws Exception;
-  
+
   /**
-   * Provide a Spark pair function that prepares an object from the JavaDStream for
-   * translation by turning it into a key and value.
-   * @return
+   * Get the Spark function that encodes the message object from the JavaDStream as
+   * a Spark SQL Row where the raw message is the 'value' field and any other associated
+   * metadata of the message can optionally be added as other fields. The output Row of this
+   * function will be sent to the translator associated with the corresponding streaming step.
    */
-  PairFunction<?, ?, ?> getPrepareFunction();
+  Function<?, Row> getMessageEncoderFunction();
 
 }

@@ -23,15 +23,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.MapType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTime;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-import scala.runtime.AbstractFunction1;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -607,33 +603,6 @@ public class RowUtils {
     }
   }
 
-  public static StructType subsetSchema(StructType schema, final List<String> fieldNames) {
-    Seq<StructField> fieldSeq = schema.toTraversable().filter(new AbstractFunction1<StructField, Object>() {
-      @Override
-      public Object apply(StructField field) {
-        return fieldNames.contains(field.name());
-      }
-    }).toSeq();
-
-    StructType subset = DataTypes.createStructType(JavaConversions.seqAsJavaList(fieldSeq));
-
-    return subset;
-  }
-  
-  public static StructType subtractSchema(StructType schema, List<String> subtractFieldNames) {
-    List<String> fieldNames = Lists.newArrayList();
-    
-    for (StructField schemaField : schema.fields()) {
-      if (!subtractFieldNames.contains(schemaField.name())) {
-        fieldNames.add(schemaField.name());
-      }
-    }
-    
-    StructType subtracted = subsetSchema(schema, fieldNames);
-    
-    return subtracted;
-  }
-
   public static Row subsetRow(Row row, StructType subsetSchema) {
     Object[] values = new Object[subsetSchema.length()];
 
@@ -648,8 +617,8 @@ public class RowUtils {
     return subset;
   }
 
-  public static Object get(Row row, String fieldName) {
-    return row.get(row.fieldIndex(fieldName));
+  public static <T> T get(Row row, String fieldName) {
+    return row.getAs(row.fieldIndex(fieldName));
   }
 
   public static Row set(Row row, String fieldName, Object replacement) {
@@ -681,16 +650,6 @@ public class RowUtils {
     return appendedRow;
   }
 
-  public static StructType appendFields(StructType from, List<StructField> fields) {
-    StructType to = DataTypes.createStructType(from.fields());
-
-    for (StructField field : fields) {
-      to = to.add(field);
-    }
-
-    return to;
-  }
-  
   public static Row remove(Row row, String fieldName) {
     List<StructField> removedFields = Lists.newArrayList(row.schema().fields());
     removedFields.remove(row.fieldIndex(fieldName));
@@ -710,57 +669,6 @@ public class RowUtils {
     }
 
     return values;
-  }
-
-  public static StructType structTypeFor(List<String> fieldNames, List<String> fieldTypes) {
-    List<StructField> fields = Lists.newArrayList();
-
-    for (int i = 0; i < fieldNames.size(); i++) {
-      String fieldName = fieldNames.get(i);
-      String fieldType = fieldTypes.get(i);
-
-      StructField field;
-      switch (fieldType) {
-        case "string":
-          field = DataTypes.createStructField(fieldName, DataTypes.StringType, true);
-          break;
-        case "float":
-          field = DataTypes.createStructField(fieldName, DataTypes.FloatType, true);
-          break;
-        case "double":
-          field = DataTypes.createStructField(fieldName, DataTypes.DoubleType, true);
-          break;
-        case "byte":
-          field = DataTypes.createStructField(fieldName, DataTypes.ByteType, true);
-          break;
-        case "short":
-          field = DataTypes.createStructField(fieldName, DataTypes.ShortType, true);
-          break;
-        case "int":
-          field = DataTypes.createStructField(fieldName, DataTypes.IntegerType, true);
-          break;
-        case "long":
-          field = DataTypes.createStructField(fieldName, DataTypes.LongType, true);
-          break;
-        case "boolean":
-          field = DataTypes.createStructField(fieldName, DataTypes.BooleanType, true);
-          break;
-        case "binary":
-          field = DataTypes.createStructField(fieldName, DataTypes.BinaryType, true);
-          break;
-        case "timestamp":
-          field = DataTypes.createStructField(fieldName, DataTypes.TimestampType, true);
-          break;
-        default:
-          throw new RuntimeException("Unsupported provided field type: " + fieldType);
-      }
-
-      fields.add(field);
-    }
-
-    StructType schema = DataTypes.createStructType(fields);
-
-    return schema;
   }
 
   public static boolean different(Row first, Row second, List<String> valueFieldNames) {

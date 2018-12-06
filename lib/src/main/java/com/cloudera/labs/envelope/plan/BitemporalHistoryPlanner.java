@@ -23,6 +23,7 @@ import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
@@ -416,7 +417,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
   
   private Row getCurrentSystemTimeRow(long currentSystemTimeMillis) {
     StructType schema = 
-        RowUtils.appendFields(systemEffectiveFromTimeModel.getSchema(), 
+        SchemaUtils.appendFields(systemEffectiveFromTimeModel.getSchema(),
             Lists.newArrayList(systemEffectiveToTimeModel.getSchema().fields()));
     Object[] nulls = new Object[schema.size()];
     Row row = new RowWithSchema(schema, nulls);

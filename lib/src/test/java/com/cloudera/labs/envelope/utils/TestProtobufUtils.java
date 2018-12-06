@@ -19,7 +19,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.cloudera.labs.envelope.input.translate.ProtobufSingleMessage;
+import com.cloudera.labs.envelope.translate.ProtobufSingleMessage;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.util.Arrays;

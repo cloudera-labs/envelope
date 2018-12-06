@@ -23,6 +23,7 @@ import com.cloudera.labs.envelope.derive.dq.RowRule;
 import com.cloudera.labs.envelope.derive.dq.RowRuleFactory;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
@@ -127,7 +128,7 @@ public class DataQualityDeriver
               DataTypes.createMapType(DataTypes.StringType, DataTypes.BooleanType),
               false, Metadata.empty()));
       theResults = theDataset.map(new CheckRowRules(rowRules, resultsField),
-          RowEncoder.apply(RowUtils.appendFields(theDataset.schema(), checkField)));
+          RowEncoder.apply(SchemaUtils.appendFields(theDataset.schema(), checkField)));
     }
 
     return theResults;

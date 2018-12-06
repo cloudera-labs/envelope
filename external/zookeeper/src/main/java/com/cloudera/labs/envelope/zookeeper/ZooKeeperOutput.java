@@ -21,6 +21,7 @@ import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.base.Charsets;
@@ -112,9 +113,9 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
       MutationType mutationType = PlannerUtils.getMutationType(plan);
       plan = PlannerUtils.removeMutationTypeField(plan);
       
-      Row key = RowUtils.subsetRow(plan, RowUtils.subsetSchema(plan.schema(), keyFieldNames));
+      Row key = RowUtils.subsetRow(plan, SchemaUtils.subsetSchema(plan.schema(), keyFieldNames));
       String znode = znodesForFilter(zk, key).iterator().next(); // There can only be one znode per full key
-      byte[] value = serializeRow(RowUtils.subsetRow(plan, RowUtils.subtractSchema(plan.schema(), keyFieldNames)));
+      byte[] value = serializeRow(RowUtils.subsetRow(plan, SchemaUtils.subtractSchema(plan.schema(), keyFieldNames)));
       
       switch (mutationType) {
         case DELETE:
@@ -228,7 +229,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   }
   
   private Row toFullRow(String znode, byte[] serialized) throws ClassNotFoundException, IOException {
-    StructType schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    StructType schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
     
     String values = new String(serialized, Charsets.UTF_8);
     String fullPath = znode + values;

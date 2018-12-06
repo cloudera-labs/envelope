@@ -17,7 +17,7 @@ package com.cloudera.labs.envelope.plan;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -43,7 +43,7 @@ public class TestAppendPlanner {
 
   @BeforeClass
   public static void beforeClass() {
-    StructType schema = RowUtils.structTypeFor(Lists.newArrayList("key", "value"), Lists.newArrayList("string", "int"));
+    StructType schema = SchemaUtils.structTypeFor(Lists.newArrayList("key", "value"), Lists.newArrayList("string", "int"));
     Row row = new RowWithSchema(schema, null, 1);
     dataFrame = Contexts.getSparkSession().createDataFrame(Lists.newArrayList(row), schema);
   }

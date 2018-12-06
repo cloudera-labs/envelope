@@ -15,6 +15,8 @@
 
 package com.cloudera.labs.envelope.kafka;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
@@ -22,13 +24,14 @@ import com.cloudera.labs.envelope.output.Output;
 import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
+import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.translate.Translator;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -39,22 +42,20 @@ import com.typesafe.config.ConfigValueType;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.kafka010.CanCommitOffsets;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.HasOffsetRanges;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.OffsetRange;
-import org.apache.spark.streaming.kafka010.CanCommitOffsets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 
 import java.util.Collections;
 import java.util.List;
@@ -62,14 +63,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class KafkaInput
-    implements StreamInput, CanRecordProgress, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
-
-  private static Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
+public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias,
+    ProvidesValidations, InstantiatesComponents, UsesExpectedSchema {
 
   public static final String BROKERS_CONFIG = "brokers";
   public static final String TOPICS_CONFIG = "topics";
-  public static final String ENCODING_CONFIG = "encoding";
   public static final String WINDOW_ENABLED_CONFIG = "window.enabled";
   public static final String WINDOW_MILLISECONDS_CONFIG = "window.milliseconds";
   public static final String WINDOW_SLIDE_MILLISECONDS_CONFIG = "window.slide.milliseconds";
@@ -77,80 +75,78 @@ public class KafkaInput
   public static final String OFFSETS_OUTPUT_CONFIG = "offsets.output";
   public static final String GROUP_ID_CONFIG = "group.id";
 
-  @VisibleForTesting
-  String groupID;
-  @VisibleForTesting
-  Set<String> topics;
-  @VisibleForTesting
-  RandomOutput offsetsOutput;
+  private static final String KEY_FIELD_NAME = "key";
+
+  @VisibleForTesting Set<String> topics;
+  @VisibleForTesting RandomOutput offsetsOutput;
+  @VisibleForTesting String groupID;
   private Config config;
-  private String encoding;
+  private StructType expectedSchema;
   private Map<String, Object> kafkaParams;
   private JavaDStream<?> dStream;
 
   @Override
   public void configure(Config config) {
     this.config = config;
-    kafkaParams = Maps.newHashMap();
 
-    String brokers = config.getString(BROKERS_CONFIG);
-    kafkaParams.put("bootstrap.servers", brokers);
+    groupID = ConfigUtils.getOrElse(config, GROUP_ID_CONFIG, UUID.randomUUID().toString());
+
+    kafkaParams = Maps.newHashMap();
+    kafkaParams.put("bootstrap.servers", config.getString(BROKERS_CONFIG));
+    kafkaParams.put("group.id", groupID);
+    kafkaParams.put("enable.auto.commit", "false");
+    KafkaCommon.addCustomParams(kafkaParams, config);
 
     topics = Sets.newHashSet(config.getStringList(TOPICS_CONFIG));
 
     if (ConfigUtils.getOrElse(config, WINDOW_ENABLED_CONFIG, false) && doesRecordProgress(config)) {
-      throw new RuntimeException("Kafka input offset management not currently compatible with stream windowing.");
+      throw new RuntimeException("Kafka input offset management not compatible with stream windowing.");
     }
+  }
 
-    encoding = config.getString(ENCODING_CONFIG);
-    if (encoding.equals("string")) {
-      kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-      kafkaParams.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-    } else if (encoding.equals("bytearray")) {
-      kafkaParams.put("key.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-      kafkaParams.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+  @Override
+  public void receiveExpectedSchema(StructType expectedSchema) {
+    this.expectedSchema = expectedSchema;
+
+    List<String> fieldNames = Lists.newArrayList(KEY_FIELD_NAME, Translator.VALUE_FIELD_NAME);
+
+    for (String fieldName : fieldNames) {
+      if (Lists.newArrayList(expectedSchema.fieldNames()).contains(fieldName)) {
+        DataType fieldDataType = expectedSchema.fields()[expectedSchema.fieldIndex(fieldName)].dataType();
+
+        if (fieldDataType.equals(DataTypes.StringType)) {
+          kafkaParams.put(fieldName + ".deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        }
+        else if (fieldDataType.equals(DataTypes.BinaryType)) {
+          kafkaParams.put(fieldName + ".deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        }
+        else {
+          throw new RuntimeException("Translator expects '" + fieldName + "' field to be of type '" + fieldDataType +
+              "' but Kafka input only supports providing '" + fieldName + "' field as either string or   binary.");
+        }
+      }
+      else {
+        // If the translator doesn't expect the field then provide it as binary
+        kafkaParams.put(fieldName + ".deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+      }
     }
-
-    if (config.hasPath(GROUP_ID_CONFIG)) {
-      groupID = config.getString(GROUP_ID_CONFIG);
-    } else {
-      groupID = UUID.randomUUID().toString();
-    }
-    kafkaParams.put("group.id", groupID);
-
-    kafkaParams.put("enable.auto.commit", "false");
-
-    KafkaCommon.addCustomParams(kafkaParams, config);
   }
 
   @Override
   public JavaDStream<?> getDStream() throws Exception {
-    if (dStream == null)
-    {
+    if (dStream == null) {
       JavaStreamingContext jssc = Contexts.getJavaStreamingContext();
       Map<TopicPartition, Long> lastOffsets = null;
       if (doesRecordProgress(config) && !usingKafkaManagedOffsets(config)) {
         lastOffsets = getLastOffsets();
       }
 
-      if (encoding.equals("string")) {
-        if (lastOffsets != null) {
-          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-              ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams, lastOffsets));
-        } else {
-          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-              ConsumerStrategies.<String, String>Subscribe(topics, kafkaParams));
-        }
-      } else if (encoding.equals("bytearray")) {
-        if (lastOffsets != null) {
-          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-              ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams, lastOffsets));
-        } else {
-          dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
-              ConsumerStrategies.<byte[], byte[]>Subscribe(topics, kafkaParams));
-        }
+      if (lastOffsets != null) {
+        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+            ConsumerStrategies.Subscribe(topics, kafkaParams, lastOffsets));
       } else {
-        throw new RuntimeException("Invalid Kafka input encoding type. Valid types are 'string' and 'bytearray'.");
+        dStream = KafkaUtils.createDirectStream(jssc, LocationStrategies.PreferConsistent(),
+            ConsumerStrategies.Subscribe(topics, kafkaParams));
       }
 
       if (ConfigUtils.getOrElse(config, WINDOW_ENABLED_CONFIG, false)) {
@@ -163,13 +159,21 @@ public class KafkaInput
         }
       }
     }
+
     return dStream;
   }
 
+  @Override
+  public Function<?, Row> getMessageEncoderFunction() {
+    DataType keyDataType = getExpectedFieldDataType(KEY_FIELD_NAME);
+    DataType valueDataType = getExpectedFieldDataType(Translator.VALUE_FIELD_NAME);
+
+    return new UnwrapConsumerRecordFunction(keyDataType, valueDataType);
+  }
 
   @Override
-  public PairFunction<?, ?, ?> getPrepareFunction() {
-    return new UnwrapConsumerRecordFunction();
+  public StructType getProvidingSchema() {
+    return ((UnwrapConsumerRecordFunction)getMessageEncoderFunction()).getProvidingSchema();
   }
 
   @Override
@@ -181,12 +185,47 @@ public class KafkaInput
     return doesRecordProgress(config) && !config.hasPath(OFFSETS_OUTPUT_CONFIG);
   }
 
-  @SuppressWarnings({ "serial", "rawtypes" })
-  private static class UnwrapConsumerRecordFunction implements PairFunction {
+  private static class UnwrapConsumerRecordFunction implements Function<ConsumerRecord, Row>,
+      DeclaresProvidingSchema {
+    private DataType keyDataType, valueDataType;
+
+    UnwrapConsumerRecordFunction(DataType keyDataType, DataType valueDataType) {
+      this.keyDataType = keyDataType;
+      this.valueDataType = valueDataType;
+    }
+
     @Override
-    public Tuple2 call(Object recordObject) {
-      ConsumerRecord record = (ConsumerRecord)recordObject;
-      return new Tuple2<>(record.key(), record.value());
+    public Row call(ConsumerRecord record) {
+      return new RowWithSchema(
+          getProvidingSchema(),
+          record.key(),
+          record.value(),
+          record.timestamp(),
+          record.topic(),
+          record.partition(),
+          record.offset());
+    }
+
+    @Override
+    public StructType getProvidingSchema() {
+      return DataTypes.createStructType(Lists.newArrayList(
+          DataTypes.createStructField(KEY_FIELD_NAME, keyDataType, true),
+          DataTypes.createStructField(Translator.VALUE_FIELD_NAME, valueDataType, false),
+          DataTypes.createStructField("timestamp", DataTypes.LongType, true),
+          DataTypes.createStructField("topic", DataTypes.StringType, true),
+          DataTypes.createStructField("partition", DataTypes.IntegerType, true),
+          DataTypes.createStructField("offset", DataTypes.LongType, true)
+      ));
+    }
+  }
+
+  private DataType getExpectedFieldDataType(String fieldName) {
+    if (Lists.newArrayList(expectedSchema.fieldNames()).contains(fieldName)) {
+      return expectedSchema.fields()[expectedSchema.fieldIndex(fieldName)].dataType();
+    }
+    else {
+      // If the translator doesn't expect the field then provide it as binary
+      return DataTypes.BinaryType;
     }
   }
   
@@ -254,7 +293,7 @@ public class KafkaInput
     if (configure) {
       if (offsetsOutput == null) {
         Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
-        Output output = OutputFactory.create(outputConfig, configure);
+        Output output = OutputFactory.create(outputConfig, true);
 
         if (!(output instanceof RandomOutput) ||
             !((RandomOutput) output).getSupportedRandomMutationTypes().contains(MutationType.UPSERT)) {
@@ -268,7 +307,7 @@ public class KafkaInput
     }
     else {
       Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
-      return (RandomOutput)OutputFactory.create(outputConfig, configure);
+      return (RandomOutput)OutputFactory.create(outputConfig, false);
     }
   }
 
@@ -303,8 +342,6 @@ public class KafkaInput
     return Validations.builder()
         .mandatoryPath(BROKERS_CONFIG, ConfigValueType.STRING)
         .mandatoryPath(TOPICS_CONFIG, ConfigValueType.LIST)
-        .mandatoryPath(ENCODING_CONFIG, ConfigValueType.STRING)
-        .allowedValues(ENCODING_CONFIG, "string", "bytearray")
         .optionalPath(GROUP_ID_CONFIG, ConfigValueType.STRING)
         .optionalPath(WINDOW_ENABLED_CONFIG, ConfigValueType.BOOLEAN)
         .ifPathHasValue(WINDOW_ENABLED_CONFIG, true,

@@ -331,12 +331,6 @@ Input `type` = `filesystem`.
 |format-class
 |(input-format) The `org.apache.hadoop.mapreduce.InputFormat` canonical class name.
 
-|key-class
-|(input-format) The canonical class name for the InputFormat's keys.
-
-|value-class
-|(input-format) The canonical class name for the InputFormat's values.
-
 |translator
 |(input-format, text) The Translator class to use to convert the InputFormat's Key/Value pairs into Dataset Rows. See <<Translators>> for details. This is optional for `text`, and if it is omitted then the input will read the whole lines into a single string field named `value`.
 
@@ -393,9 +387,6 @@ Input `type` = `kafka`.
 
 |group.id
 |The Kafka consumer group ID for the input. When offset management is enabled use a unique group ID for each pipeline so that Envelope can track one execution of the pipeline to the next. If not provided Envelope will use a random UUID for each pipeline execution.
-
-|encoding
-|The encoding of the messages in the Kafka topics, either `string` or `bytearray`. This must match the required encoding of the Envelope translator.
 
 |window.enabled
 |If `true` then Envelope will enable Spark Streaming windowing on the input. Ignored if the step does not contain a streaming input. Default `false`.

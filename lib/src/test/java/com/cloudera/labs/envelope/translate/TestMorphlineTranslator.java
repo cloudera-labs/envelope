@@ -13,7 +13,7 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
@@ -40,9 +40,6 @@ import org.kitesdk.morphline.base.Compiler;
 
 import java.io.File;
 
-/**
- *
- */
 @RunWith(JMockit.class)
 public class TestMorphlineTranslator {
 
@@ -50,8 +47,7 @@ public class TestMorphlineTranslator {
 
   private @Mocked Config config;
 
-  private Translator<String, String> stringMorphline;
-  private Translator<byte[], byte[]> byteMorphline;
+  private Translator translator;
 
   private String getResourcePath(String resource) {
     return TestMorphlineTranslator.class.getResource(resource).getPath();
@@ -59,14 +55,11 @@ public class TestMorphlineTranslator {
 
   @Before
   public void setup() {
-    stringMorphline = new MorphlineTranslator<>();
-    byteMorphline = new MorphlineTranslator<>();
+    translator = new MorphlineTranslator();
   }
 
   @After
   public void teardown() {
-    stringMorphline = null;
-    byteMorphline = null;
     config = null;
   }
 
@@ -81,8 +74,8 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string");
     }};
 
-    stringMorphline.configure(config);
-    StructType schema = stringMorphline.getSchema();
+    translator.configure(config);
+    StructType schema = translator.getProvidingSchema();
 
     Assert.assertEquals("Invalid number of SchemaFields", 2, schema.fields().length);
     Assert.assertEquals("Invalid DataType", DataTypes.IntegerType, schema.fields()[0].dataType());
@@ -100,13 +93,13 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "boom");
     }};
 
-    stringMorphline.configure(config);
+    translator.configure(config);
   }
 
   @Test (expected = MorphlineCompilationException.class)
   public void morphlineCompilationError(
       final @Mocked Compiler compiler
-      ) throws Exception {
+  ) throws Exception {
 
     new Expectations() {{
       config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
@@ -116,8 +109,9 @@ public class TestMorphlineTranslator {
       compiler.compile((File) any, anyString, (MorphlineContext) any, (Command) any); result = new Exception("Compilation exception");
     }};
 
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    translator.translate(raw);
   }
 
   @Test (expected = RuntimeException.class)
@@ -131,8 +125,9 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "boolean");
     }};
 
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    translator.translate(raw);
   }
 
   @Test
@@ -146,8 +141,9 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
-    Iterable<Row> result = stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key".getBytes(), DataTypes.BinaryType, "The Message".getBytes(), DataTypes.BinaryType);
+    Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
     Assert.assertNotNull("Row is null", result);
@@ -158,7 +154,7 @@ public class TestMorphlineTranslator {
   }
 
   @Test
-  public void stringMessageValid() throws Exception {
+  public void messageValid() throws Exception {
     new Expectations() {{
       config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
       config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
@@ -168,9 +164,12 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
+    translator.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate("The Key", message);
+    Row raw = TestingMessageFactory.get(
+        "The Key".getBytes("UTF-8"), DataTypes.BinaryType,
+        message.getBytes("UTF-16"), DataTypes.BinaryType);
+    Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
     Assert.assertNotNull("Row is null", result);
@@ -181,7 +180,7 @@ public class TestMorphlineTranslator {
   }
 
   @Test
-  public void stringMessageInvalid() throws Exception {
+  public void messageInvalid() throws Exception {
     new Expectations() {{
       config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
       config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
@@ -191,55 +190,12 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
+    translator.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate("The Key", message);
-    Row row = result.iterator().next();
-
-    Assert.assertNotNull("Row is null", result);
-    Assert.assertEquals("Invalid number of fields", 3, row.length());
-    Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
-    Assert.assertFalse("Invalid encoded field value", message.equals(row.get(1))); // "str"
-    Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-  @Test
-  public void byteMessageValid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    byteMorphline.configure(config);
-    String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
-
-    Assert.assertNotNull("Row is null", result);
-    Assert.assertEquals("Invalid number of fields", 3, row.length());
-    Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
-    Assert.assertEquals("Invalid field value", message, row.get(1)); // "str"
-    Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-  @Test
-  public void byteMessageInvalid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    byteMorphline.configure(config);
-    String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate("The Key".getBytes("UTF-8"), message.getBytes("UTF-16"));
+    Row raw = TestingMessageFactory.get(
+        "The Key".getBytes("UTF-8"), DataTypes.BinaryType,
+        message.getBytes("UTF-16"), DataTypes.BinaryType);
+    Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
     Assert.assertNotNull("Row is null", result);
@@ -261,8 +217,9 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    translator.translate(raw);
   }
 
   // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
@@ -278,8 +235,9 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    translator.translate(raw);
   }
 
   // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
@@ -295,12 +253,13 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
-    stringMorphline.translate("The Key", "The Message");
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    translator.translate(raw);
   }
 
   @Test
-  public void stringMessageOnlyValid() throws Exception {
+  public void messageOnlyValid() throws Exception {
     new Expectations() {{
       config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
       config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
@@ -309,9 +268,10 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
+    translator.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(null, message);
+    Row raw = TestingMessageFactory.get(message.getBytes("UTF-16"), DataTypes.BinaryType);
+    Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
     Assert.assertNotNull("Row is null", result);
@@ -322,7 +282,7 @@ public class TestMorphlineTranslator {
   }
 
   @Test
-  public void stringMessageOnlyInvalid() throws Exception {
+  public void messageOnlyInvalid() throws Exception {
     new Expectations() {{
       config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
       config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
@@ -331,53 +291,10 @@ public class TestMorphlineTranslator {
       config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
     }};
 
-    stringMorphline.configure(config);
+    translator.configure(config);
     String message = "\u16b7";
-    Iterable<Row> result = stringMorphline.translate(null, message);
-    Row row = result.iterator().next();
-
-    Assert.assertNotNull("Row is null", result);
-    Assert.assertEquals("Invalid number of fields", 3, row.length());
-    Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
-    Assert.assertFalse("Invalid encoded field value", message.equals(row.get(1))); // "str"
-    Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-  @Test
-  public void byteMessageOnlyValid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    byteMorphline.configure(config);
-    String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
-    Row row = result.iterator().next();
-
-    Assert.assertNotNull("Row is null", result);
-    Assert.assertEquals("Invalid number of fields", 3, row.length());
-    Assert.assertEquals("Invalid field value", 123, row.get(0)); // "int"
-    Assert.assertEquals("Invalid field value", message, row.get(1)); // "str"
-    Assert.assertEquals("Invalid field value", 234F, row.get(2)); // "float"
-  }
-
-  @Test
-  public void byteMessageOnlyInvalid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
-
-    byteMorphline.configure(config);
-    String message = "\u16b7";
-    Iterable<Row> result = byteMorphline.translate(null, message.getBytes("UTF-16"));
+    Row raw = TestingMessageFactory.get(message.getBytes("UTF-16"), DataTypes.BinaryType);
+    Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
     Assert.assertNotNull("Row is null", result);
@@ -414,9 +331,9 @@ public class TestMorphlineTranslator {
       collector.process((Record) any); result = true;
     }};
 
-    stringMorphline.configure(config);
-    String message = "The Message";
-    Iterable<Row> result = Lists.newArrayList(stringMorphline.translate(null, message));
+    translator.configure(config);
+    Row raw = TestingMessageFactory.get("The Message".getBytes(), DataTypes.BinaryType);
+    Iterable<Row> result = Lists.newArrayList(translator.translate(raw));
 
     Assert.assertThat("Invalid Iterator<Row> contents", result, CoreMatchers.is(expectedRows));
 

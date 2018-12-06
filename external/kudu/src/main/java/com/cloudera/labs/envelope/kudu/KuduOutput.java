@@ -34,6 +34,7 @@ import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
@@ -260,7 +261,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
       fieldTypes.add(fieldType);
     }
 
-    StructType tableSchema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    StructType tableSchema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
 
     return tableSchema;
   }

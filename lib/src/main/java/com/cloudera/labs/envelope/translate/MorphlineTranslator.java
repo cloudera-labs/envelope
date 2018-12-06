@@ -13,18 +13,20 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Fields;
@@ -33,10 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-/**
- * Morphline
- */
-public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlias, ProvidesValidations {
+public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesValidations {
 
   public static final String ENCODING_KEY = "encoding.key";
   public static final String ENCODING_MSG = "encoding.message";
@@ -55,11 +54,10 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
   private String morphlineId;
   private StructType schema;
   private MorphlineUtils.Pipeline pipeline;
-  private boolean doesAppendRaw;
 
   @Override
   public void configure(Config config) {
-    LOG.debug("Configuring Morphline Translator");
+    LOG.debug("Configuring Morphline translator");
 
     // Define the encoding values, if necessary
     this.keyEncoding = config.getString(ENCODING_KEY);
@@ -72,24 +70,26 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
     // Construct the StructType schema for the Rows
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
     List<String> fieldTypes = config.getStringList(FIELD_TYPES);
-    this.doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
-    if (this.doesAppendRaw) {
-      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
-      fieldTypes.add("binary");
-      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
-      fieldTypes.add("binary");
-    }
-    this.schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    this.schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public StructType getSchema() {
-    return this.schema;
+  public StructType getExpectingSchema() {
+    return DataTypes.createStructType(new StructField[] {
+        DataTypes.createStructField("key", DataTypes.BinaryType, true),
+        DataTypes.createStructField(Translator.VALUE_FIELD_NAME, DataTypes.BinaryType, false)
+    });
   }
 
   @Override
-  public Iterable<Row> translate(K key, V value) throws Exception {
-    LOG.debug("Translating {}[{}]", key, value);
+  public StructType getProvidingSchema() {
+    return schema;
+  }
+
+  @Override
+  public Iterable<Row> translate(Row message) throws Exception {
+    Object key = RowUtils.get(message, "key");
+    Object value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
 
     // Get the Morphline Command pipeline
     if (null == this.pipeline) {
@@ -105,11 +105,7 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
     Record inputRecord = new Record();
 
     // Set up the message as _attachment_body (standard Morphline convention)
-    if (value instanceof String) {
-      inputRecord.put(Fields.ATTACHMENT_BODY, ((String) value).getBytes(this.messageEncoding));
-    } else {
-      inputRecord.put(Fields.ATTACHMENT_BODY, value);
-    }
+    inputRecord.put(Fields.ATTACHMENT_BODY, value);
     inputRecord.put(Fields.ATTACHMENT_CHARSET, this.messageEncoding);
 
     // Add the key as a custom Record field
@@ -126,17 +122,7 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
     List<Row> outputRows = Lists.newArrayListWithCapacity(outputRecords.size());
     for (Record output: outputRecords) {
       Row outputRow = MorphlineUtils.convertToRow(this.schema, output);
-      
-      if (this.doesAppendRaw) {
-        outputRow = RowUtils.append(outputRow, key);
-        if (value instanceof String) {
-          outputRow = RowUtils.append(outputRow, ((String) value).getBytes(this.messageEncoding));
-        }
-        else {
-          outputRow = RowUtils.append(outputRow, value);
-        }
-      }
-      
+
       outputRows.add(outputRow);
     }
 
@@ -157,8 +143,7 @@ public class MorphlineTranslator<K, V> implements Translator<K, V>, ProvidesAlia
         .mandatoryPath(MORPHLINE_ID, ConfigValueType.STRING)
         .mandatoryPath(FIELD_NAMES, ConfigValueType.LIST)
         .mandatoryPath(FIELD_TYPES, ConfigValueType.LIST)
-        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
         .build();
   }
-  
+
 }

@@ -15,20 +15,23 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.input.translate.TranslateFunction;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
+import com.cloudera.labs.envelope.schema.SchemaNegotiator;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.translate.TranslateFunction;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
 import java.util.Set;
@@ -38,9 +41,12 @@ import java.util.Set;
  */
 public class StreamingStep extends DataStep implements CanRecordProgress, ProvidesValidations, InstantiatesComponents {
 
-  public static final String TRANSLATOR_PROPERTY = "input.translator";
+  public static final String TRANSLATOR_WITHIN_INPUT_PROPERTY = "translator";
+  public static final String TRANSLATOR_PROPERTY = DataStep.INPUT_TYPE + "." + TRANSLATOR_WITHIN_INPUT_PROPERTY;
   public static final String REPARTITION_NUM_PARTITIONS_PROPERTY = "input.repartition.partitions";
-  
+
+  private TranslateFunction translateFunction;
+
   public StreamingStep(String name) {
     super(name);
   }
@@ -53,32 +59,32 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   @SuppressWarnings("rawtypes")
   public JavaDStream<?> getStream() throws Exception {
     JavaDStream stream = ((StreamInput)getInput(true)).getDStream();
-    
+
     if (doesRepartition()) {
       stream = repartition(stream);
     }
 
     return stream;
   }
-  
-  public StructType getSchema() {
-    return getTranslateFunction(config).getSchema();
-  }
-  
+
   @Override
   public void recordProgress(JavaRDD<?> batch) throws Exception {
     if (getInput(true) instanceof CanRecordProgress) {
       ((CanRecordProgress)getInput(true)).recordProgress(batch);
     }
   }
-  
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  public JavaRDD<Row> translate(JavaRDD raw) {
-    TranslateFunction translateFunction = getTranslateFunction(config);
-    JavaPairRDD<?, ?> prepared = raw.mapToPair(((StreamInput)getInput(true)).getPrepareFunction());
-    JavaRDD<Row> translated = prepared.flatMap(translateFunction);
-    
-    return translated;
+
+  @SuppressWarnings("unchecked")
+  public Dataset<Row> translate(JavaRDD raw) {
+    StreamInput streamInput = (StreamInput)getInput(true);
+    TranslateFunction translateFunction = getTranslateFunction(config, true);
+
+    // Encode the raw messages as rows (i.e. the raw value plus associated metadata fields)
+    Dataset<Row> encoded = Contexts.getSparkSession().createDataFrame(
+        raw.map(streamInput.getMessageEncoderFunction()), streamInput.getProvidingSchema());
+
+    // Translate the raw message rows to structured rows
+    return encoded.flatMap(translateFunction, RowEncoder.apply(translateFunction.getProvidingSchema()));
   }
 
   @Override
@@ -110,6 +116,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     return Validations.builder()
         .mandatoryPath(TRANSLATOR_PROPERTY, ConfigValueType.OBJECT)
         .optionalPath(REPARTITION_NUM_PARTITIONS_PROPERTY, ConfigValueType.NUMBER)
+        .add(new InputTranslatorCompatibilityValidation())
         .handlesOwnValidationPath(TRANSLATOR_PROPERTY)
         .addAll(super.getValidations())
         .build();
@@ -122,15 +129,27 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     components.addAll(super.getComponents(config, configure));
 
     if (config.hasPath(TRANSLATOR_PROPERTY)) {
-      TranslateFunction translateFunction = getTranslateFunction(config);
+      TranslateFunction translateFunction = getTranslateFunction(config, configure);
       components.addAll(translateFunction.getComponents(config.getConfig(TRANSLATOR_PROPERTY), configure));
     }
 
     return components;
   }
 
-  private TranslateFunction getTranslateFunction(Config config) {
-    return new TranslateFunction<>(config.getConfig(TRANSLATOR_PROPERTY));
+  private TranslateFunction getTranslateFunction(Config config, boolean configure) {
+    if (configure) {
+      if (translateFunction == null) {
+        StreamInput streamInput = (StreamInput)getInput(true);
+        translateFunction = new TranslateFunction(config.getConfig(TRANSLATOR_PROPERTY));
+
+        SchemaNegotiator.negotiate(streamInput, translateFunction);
+      }
+
+      return translateFunction;
+    }
+    else {
+      return new TranslateFunction(config.getConfig(TRANSLATOR_PROPERTY));
+    }
   }
 
 }

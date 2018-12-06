@@ -15,8 +15,9 @@
 
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.input.translate.DummyInputFormatTranslator;
-import com.cloudera.labs.envelope.input.translate.KVPTranslator;
+import com.cloudera.labs.envelope.translate.DummyInputFormatTranslator;
+import com.cloudera.labs.envelope.translate.KVPTranslator;
+import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -33,6 +34,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
@@ -40,9 +42,6 @@ import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidat
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/**
- *
- */
 public class TestFileSystemInput {
 
   private static final String CSV_DATA = "/filesystem/sample-fs.csv";
@@ -52,28 +51,28 @@ public class TestFileSystemInput {
   private Config config = ConfigFactory.empty();
 
   @Test
-  public void missingFormat() throws Exception {
+  public void missingFormat() {
     config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": null").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
     assertValidationFailures(fileSystemInput, config);
   }
 
   @Test
-  public void invalidFormat() throws Exception {
+  public void invalidFormat() {
     config = ConfigFactory.parseString(FileSystemInput.FORMAT_CONFIG + ": WILLGOBOOM").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
     assertValidationFailures(fileSystemInput, config);
   }
 
   @Test
-  public void missingPath() throws Exception {
+  public void missingPath() {
     config = ConfigFactory.parseString(FileSystemInput.PATH_CONFIG + ": null").withFallback(config);
     FileSystemInput fileSystemInput = new FileSystemInput();
     assertValidationFailures(fileSystemInput, config);
   }
 
   @Test
-  public void multipleSchema() throws Exception {
+  public void multipleSchema() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -86,7 +85,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void missingFieldNames() throws Exception {
+  public void missingFieldNames() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -98,7 +97,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void missingFieldTypes() throws Exception {
+  public void missingFieldTypes() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -110,7 +109,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void multipleAvroSchemas() throws Exception {
+  public void multipleAvroSchemas() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -123,7 +122,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void missingAvroLiteral() throws Exception {
+  public void missingAvroLiteral() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -135,7 +134,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void missingAvroFile() throws Exception {
+  public void missingAvroFile() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -285,7 +284,7 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void readInputFormatMissingInputFormat() throws Exception {
+  public void readInputFormatMissingInputFormat() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
@@ -296,38 +295,11 @@ public class TestFileSystemInput {
   }
 
   @Test
-  public void readInputFormatMissingKey() throws Exception {
+  public void readInputFormatMissingTranslator() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput formatInput = new FileSystemInput();
-    assertValidationFailures(formatInput, config);
-  }
-
-  @Test
-  public void readInputFormatMissingValue() throws Exception {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput formatInput = new FileSystemInput();
-    assertValidationFailures(formatInput, config);
-  }
-
-  @Test
-  public void readInputFormatMissingTranslator() throws Exception {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
@@ -340,8 +312,6 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, KeyValueTextInputFormat.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, Text.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
     paramMap.put("translator.type", DummyInputFormatTranslator.class.getCanonicalName());
     config = ConfigFactory.parseMap(paramMap);
 
@@ -357,9 +327,8 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_KEY_CONFIG, LongWritable.class.getCanonicalName());
-    paramMap.put(FileSystemInput.INPUT_FORMAT_VALUE_CONFIG, Text.class.getCanonicalName());
-    paramMap.put("translator.type", DummyInputFormatTranslator.class.getCanonicalName());
+    paramMap.put("translator" + "." + TranslatorFactory.TYPE_CONFIG_NAME,
+        DummyInputFormatTranslator.class.getCanonicalName());
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput formatInput = new FileSystemInput();
@@ -384,11 +353,11 @@ public class TestFileSystemInput {
     assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
     
-    Dataset<Row> results = formatInput.read();
+    List<Row> results = formatInput.read().collectAsList();
     
-    assertEquals(2, results.count());
-    assertTrue(results.collectAsList().contains(RowFactory.create("a=1,b=hello,c=true")));
-    assertTrue(results.collectAsList().contains(RowFactory.create("a=2,b=world,c=false")));
+    assertEquals(2, results.size());
+    assertTrue(results.contains(RowFactory.create("a=1,b=hello,c=true")));
+    assertTrue(results.contains(RowFactory.create("a=2,b=world,c=false")));
   }
   
   @Test
@@ -407,11 +376,11 @@ public class TestFileSystemInput {
     assertNoValidationFailures(formatInput, config);
     formatInput.configure(config);
     
-    Dataset<Row> results = formatInput.read();
+    List<Row> results = formatInput.read().collectAsList();
     
-    assertEquals(2, results.count());
-    assertTrue(results.collectAsList().contains(RowFactory.create(1, "hello", true)));
-    assertTrue(results.collectAsList().contains(RowFactory.create(2, "world", false)));
+    assertEquals(2, results.size());
+    assertTrue(results.contains(RowFactory.create(1, "hello", true)));
+    assertTrue(results.contains(RowFactory.create(2, "world", false)));
   }
 
 }

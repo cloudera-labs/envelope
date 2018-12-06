@@ -13,39 +13,38 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
 import java.util.Collections;
 
-public class RawBinaryTranslator implements Translator<byte[], byte[]>, ProvidesAlias {
+public class DummyTranslator implements Translator {
 
   @Override
   public void configure(Config config) { }
 
   @Override
-  public Iterable<Row> translate(byte[] key, byte[] value) throws Exception {
-    return Collections.singleton(RowFactory.create(key, value));
+  public Iterable<Row> translate(Row message) {
+    return Collections.<Row>singleton(new RowWithSchema(getProvidingSchema(), "world"));
   }
 
   @Override
-  public StructType getSchema() {
-    return RowUtils.structTypeFor(
-        Lists.newArrayList("key", "value"),
-        Lists.newArrayList("binary", "binary")
-    );
+  public StructType getExpectingSchema() {
+    return SchemaUtils.stringValueSchema();
   }
 
   @Override
-  public String getAlias() {
-    return "rawbinary";
+  public StructType getProvidingSchema() {
+    return DataTypes.createStructType(
+        Lists.newArrayList(
+            DataTypes.createStructField("hello", DataTypes.StringType, false)));
   }
 
 }

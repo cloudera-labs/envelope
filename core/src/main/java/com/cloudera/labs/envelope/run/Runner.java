@@ -15,9 +15,6 @@
 
 package com.cloudera.labs.envelope.run;
 
-import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
-import static com.cloudera.labs.envelope.spark.Contexts.APPLICATION_SECTION_PREFIX;
-
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.BatchInput;
@@ -47,21 +44,22 @@ import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.VoidFunction;
+import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
-import org.apache.spark.streaming.api.java.JavaDStream;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
+import static com.cloudera.labs.envelope.spark.Contexts.APPLICATION_SECTION_PREFIX;
 
 /**
  * Runner merely submits the pipeline steps to Spark in dependency order.
@@ -100,7 +98,7 @@ public class Runner {
     initializeSecurity(config, steps);
 
     initializeAccumulators(steps);
-    
+
     initializeUDFs(config);
 
     initializeThreadPool(config);
@@ -123,7 +121,7 @@ public class Runner {
 
     LOG.debug("Runner finished");
   }
-  
+
   private static Set<Step> extractSteps(Config config, boolean configure) {
     LOG.debug("Starting getting steps");
 
@@ -199,11 +197,7 @@ public class Runner {
     for (final StreamingStep streamingStep : streamingSteps) {
       LOG.debug("Setting up streaming step: " + streamingStep.getName());
 
-      @SuppressWarnings("rawtypes")
       JavaDStream stream = streamingStep.getStream();
-
-      final StructType streamSchema = streamingStep.getSchema();
-      LOG.debug("Stream schema: " + streamSchema);
 
       stream.foreachRDD(new VoidFunction<JavaRDD<?>>() {
         @Override
@@ -213,10 +207,7 @@ public class Runner {
           // This will run any batch steps (and dependents) that are not submitted
           runBatch(independentNonStreamingSteps);
 
-          JavaRDD<Row> translated = streamingStep.translate(raw);
-          
-          Dataset<Row> batchDF = Contexts.getSparkSession().createDataFrame(translated, streamSchema);
-          streamingStep.setData(batchDF);
+          streamingStep.setData(streamingStep.translate(raw));
           streamingStep.setSubmitted(true);
 
           Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
@@ -226,7 +217,7 @@ public class Runner {
           runBatch(batchSteps);
 
           StepUtils.resetSteps(dependentSteps);
-          
+
           streamingStep.recordProgress(raw);
         }
       });
@@ -502,7 +493,7 @@ public class Runner {
   private static void shutdownSecurity() {
     tokenStoreManager.stop();
   }
-  
+
   private static void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
     

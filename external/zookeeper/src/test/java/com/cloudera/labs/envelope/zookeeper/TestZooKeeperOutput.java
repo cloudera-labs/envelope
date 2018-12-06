@@ -18,7 +18,7 @@ package com.cloudera.labs.envelope.zookeeper;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -49,8 +49,8 @@ public class TestZooKeeperOutput implements Watcher {
   private static List<String> fieldNames = Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6");
   private static List<String> fieldTypes = Lists.newArrayList("string", "int", "long", "boolean", "float", "double");
   private static List<String> keyFieldNames = Lists.newArrayList("field1", "field2", "field3");
-  private static StructType schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
-  private static StructType keySchema = RowUtils.subsetSchema(schema, keyFieldNames);
+  private static StructType schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
+  private static StructType keySchema = SchemaUtils.subsetSchema(schema, keyFieldNames);
   
   @BeforeClass
   public static void setup() throws Exception {
@@ -152,7 +152,7 @@ public class TestZooKeeperOutput implements Watcher {
         PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
-    StructType partialSchema = RowUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"));
+    StructType partialSchema = SchemaUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"));
     Row filter1 = new RowWithSchema(partialSchema, "hello");
     Row filter2 = new RowWithSchema(partialSchema, "world");
     List<Row> filters = Lists.newArrayList(filter1, filter2);
@@ -177,7 +177,7 @@ public class TestZooKeeperOutput implements Watcher {
         PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
-    StructType partialSchema = RowUtils.structTypeFor(Lists.newArrayList("field6"), Lists.newArrayList("double"));
+    StructType partialSchema = SchemaUtils.structTypeFor(Lists.newArrayList("field6"), Lists.newArrayList("double"));
     Row filter = new RowWithSchema(partialSchema, 1.0);
     List<Row> filters = Lists.newArrayList(filter);
     List<Row> rows = Lists.newArrayList(zkOutput.getExistingForFilters(filters));
@@ -227,7 +227,7 @@ public class TestZooKeeperOutput implements Watcher {
     zkOutput.applyRandomMutations(upsertPlan);
     
     StructType partialSchemaWithValues = 
-        RowUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"))
+        SchemaUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"))
         .add(DataTypes.createStructField("field4", DataTypes.BooleanType, false))
         .add(DataTypes.createStructField("field6", DataTypes.DoubleType, false));
     Row filter1 = new RowWithSchema(partialSchemaWithValues, "hello", false, 1.0);

@@ -63,8 +63,6 @@ public class TestKafkaInput {
       {
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo", "bar", "bar"));
-        config.getString(KafkaInput.ENCODING_CONFIG);
-        returns("string");
       }
     };
 
@@ -87,8 +85,6 @@ public class TestKafkaInput {
       {
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo"));
-        config.getString(KafkaInput.ENCODING_CONFIG);
-        returns("string");
         config.hasPath(KafkaInput.GROUP_ID_CONFIG);
         returns(true);
         config.hasPath(KafkaInput.OFFSETS_OUTPUT_CONFIG);
@@ -128,8 +124,6 @@ public class TestKafkaInput {
       {
         config.getStringList(KafkaInput.TOPICS_CONFIG);
         returns(Lists.newArrayList("foo", "bar"));
-        config.getString(KafkaInput.ENCODING_CONFIG);
-        returns("string");
         config.hasPath(KafkaInput.OFFSETS_MANAGE_CONFIG);
         returns(true);
         config.getAnyRef(KafkaInput.OFFSETS_MANAGE_CONFIG);
@@ -138,7 +132,7 @@ public class TestKafkaInput {
         returns(true);
         config.hasPath(KafkaInput.GROUP_ID_CONFIG);
         returns(true);
-        config.getString(KafkaInput.GROUP_ID_CONFIG);
+        config.getAnyRef(KafkaInput.GROUP_ID_CONFIG);
         returns("groupId1");
         config.hasPath(OutputFactory.TYPE_CONFIG_NAME);
         returns(true);

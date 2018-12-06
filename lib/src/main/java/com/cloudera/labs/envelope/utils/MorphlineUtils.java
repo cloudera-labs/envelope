@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import java.io.Closeable;
@@ -242,7 +243,7 @@ public class MorphlineUtils {
       }
     }
 
-    Row result = RowFactory.create(values.toArray());
+    Row result = new RowWithSchema(schema, values.toArray());
     LOG.trace("Converted Record to Row: {}", result);
 
     return result;

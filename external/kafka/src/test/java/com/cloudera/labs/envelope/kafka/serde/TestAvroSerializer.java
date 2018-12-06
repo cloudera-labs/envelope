@@ -16,7 +16,7 @@
 package com.cloudera.labs.envelope.kafka.serde;
 
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
@@ -39,7 +39,7 @@ public class TestAvroSerializer {
 
   @Test
   public void testAvroSerialization() throws IOException {
-    StructType structType = RowUtils.structTypeFor(
+    StructType structType = SchemaUtils.structTypeFor(
         Lists.newArrayList("field1", "field2", "field3"),
         Lists.newArrayList("string", "int", "boolean"));
     Row row = new RowWithSchema(structType, "hello", 1, false);

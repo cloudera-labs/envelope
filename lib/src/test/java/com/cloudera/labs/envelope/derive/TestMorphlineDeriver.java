@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.derive;
 
-import com.cloudera.labs.envelope.input.translate.TestMorphlineTranslator;
+import com.cloudera.labs.envelope.translate.TestMorphlineTranslator;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;

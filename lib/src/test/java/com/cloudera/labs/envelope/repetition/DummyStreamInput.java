@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.typesafe.config.Config;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -70,13 +71,18 @@ public class DummyStreamInput implements StreamInput {
   }
 
   @Override
-  public PairFunction<?, ?, ?> getPrepareFunction() {
-    return new PairFunction<Long, Void, Row>() {
+  public Function<?, Row> getMessageEncoderFunction() {
+    return new Function<Long, Row>() {
       @Override
-      public Tuple2<Void, Row> call(Long aLong) throws Exception {
-        return new Tuple2<>(null, (Row)new RowWithSchema(schema, aLong));
+      public Row call(Long aLong) {
+        return new RowWithSchema(schema, aLong);
       }
     };
   }
-  
+
+  @Override
+  public StructType getProvidingSchema() {
+    return schema;
+  }
+
 }

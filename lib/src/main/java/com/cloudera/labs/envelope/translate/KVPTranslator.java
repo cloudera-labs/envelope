@@ -13,12 +13,13 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
@@ -26,7 +27,6 @@ import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
 import java.sql.Timestamp;
@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
 /**
  * A translator implementation for text key-value pair messages.
  */
-public class KVPTranslator implements Translator<String, String>, ProvidesAlias, ProvidesValidations {
+public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidations {
 
   private String kvpDelimiter;
   private String fieldDelimiter;
@@ -48,7 +48,6 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
   private Map<String, String> kvpMap = Maps.newHashMap();
-  private boolean doesAppendRaw;
 
   public static final String KVP_DELIMITER_CONFIG_NAME = "delimiter.kvp";
   public static final String FIELD_DELIMITER_CONFIG_NAME = "delimiter.field";
@@ -62,14 +61,6 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
     fieldDelimiter = resolveDelimiter(config.getString(FIELD_DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    
-    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
-    if (doesAppendRaw) {
-      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
-      fieldTypes.add("string");
-      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
-      fieldTypes.add("string");
-    }
 
     dateTimeParser = new DateTimeParser();
     if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
@@ -77,11 +68,13 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
           config.getStringList(TIMESTAMP_FORMAT_CONFIG_NAME));
     }
 
-    schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public Iterable<Row> translate(String key, String value) {
+  public Iterable<Row> translate(Row message) {
+    String value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+
     kvpMap.clear();
     values.clear();
 
@@ -93,10 +86,8 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
 
       kvpMap.put(kvpKey, kvpValue);
     }
-    
-    int numNonAppendedFields = fieldNames.size() - (doesAppendRaw ? 2 : 0);
 
-    for (int fieldPos = 0; fieldPos < numNonAppendedFields; fieldPos++) {
+    for (int fieldPos = 0; fieldPos < fieldNames.size(); fieldPos++) {
       String fieldName = fieldNames.get(fieldPos);
       String fieldType = fieldTypes.get(fieldPos);
       
@@ -141,18 +132,18 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
       }
     }
 
-    Row row = RowFactory.create(values.toArray());
-    
-    if (doesAppendRaw) {
-      row = RowUtils.append(row, key);
-      row = RowUtils.append(row, value);
-    }
-    
+    Row row = new RowWithSchema(schema, values.toArray());
+
     return Collections.singleton(row);
   }
 
   @Override
-  public StructType getSchema() {
+  public StructType getExpectingSchema() {
+    return SchemaUtils.stringValueSchema();
+  }
+
+  @Override
+  public StructType getProvidingSchema() {
     return schema;
   }
 
@@ -185,8 +176,7 @@ public class KVPTranslator implements Translator<String, String>, ProvidesAlias,
         .mandatoryPath(FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
         .mandatoryPath(FIELD_TYPES_CONFIG_NAME, ConfigValueType.LIST)
         .optionalPath(TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueType.LIST)
-        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
         .build();
   }
-  
+
 }

@@ -15,32 +15,44 @@
 
 package com.cloudera.labs.envelope.input;
 
-import com.cloudera.labs.envelope.input.translate.TranslateFunction;
-import com.cloudera.labs.envelope.input.translate.Translator;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
+import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
+import com.cloudera.labs.envelope.schema.SchemaNegotiator;
+import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.translate.TranslateFunction;
+import com.cloudera.labs.envelope.translate.Translator;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.AvroSchemaLiteralValidation;
 import com.cloudera.labs.envelope.validate.AvroSchemaPathValidation;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,23 +60,23 @@ import scala.Tuple2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
+public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValidations,
+    InstantiatesComponents, UsesExpectedSchema, DeclaresProvidingSchema {
 
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
 
   public static final String FORMAT_CONFIG = "format";
   public static final String PATH_CONFIG = "path";
 
-  // Schema optional parameters
   public static final String FIELD_NAMES_CONFIG = "field.names";
   public static final String FIELD_TYPES_CONFIG = "field.types";
   public static final String AVRO_LITERAL_CONFIG = "avro-schema.literal";
   public static final String AVRO_FILE_CONFIG = "avro-schema.file";
 
-  // CSV optional parameters
   public static final String CSV_HEADER_CONFIG = "header";
   public static final String CSV_SEPARATOR_CONFIG = "separator";
   public static final String CSV_ENCODING_CONFIG = "encoding";
@@ -85,25 +97,28 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
   public static final String CSV_MAX_MALFORMED_LOG_CONFIG = "max-malformed-logged";
   public static final String CSV_MODE_CONFIG = "mode";
 
-  // InputFormat mandatory parameters
   public static final String INPUT_FORMAT_TYPE_CONFIG = "format-class";
-  public static final String INPUT_FORMAT_KEY_CONFIG = "key-class";
-  public static final String INPUT_FORMAT_VALUE_CONFIG = "value-class";
-
   public static final String CSV_FORMAT = "csv";
   public static final String PARQUET_FORMAT = "parquet";
   public static final String JSON_FORMAT = "json";
   public static final String INPUT_FORMAT_FORMAT = "input-format";
   public static final String TEXT_FORMAT = "text";
 
+  public static final String TRANSLATOR_CONFIG = "translator";
+
   private ConfigUtils.OptionMap options;
   private StructType schema;
   private String format;
   private String path;
   private String inputType;
-  private String keyType;
-  private String valueType;
+  private boolean hasTranslator;
   private Config translatorConfig;
+  private StructType expectedSchema;
+
+  @Override
+  public String getAlias() {
+    return "filesystem";
+  }
 
   @Override
   public void configure(Config config) {
@@ -139,7 +154,7 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
         List<String> names = config.getStringList(FIELD_NAMES_CONFIG);
         List<String> types = config.getStringList(FIELD_TYPES_CONFIG);
 
-        this.schema = RowUtils.structTypeFor(names, types);
+        this.schema = SchemaUtils.structTypeFor(names, types);
       } else if (config.hasPath(AVRO_FILE_CONFIG) || config.hasPath(AVRO_LITERAL_CONFIG)) {
         Schema avroSchema;
 
@@ -162,12 +177,11 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
 
     if (format.equals(INPUT_FORMAT_FORMAT)) {
       inputType = config.getString(INPUT_FORMAT_TYPE_CONFIG);
-      keyType = config.getString(INPUT_FORMAT_KEY_CONFIG);
-      valueType = config.getString(INPUT_FORMAT_VALUE_CONFIG);
     }
 
-    if (config.hasPath("translator")) {
-      translatorConfig = config.getConfig("translator");
+    hasTranslator = config.hasPath(TRANSLATOR_CONFIG);
+    if (hasTranslator) {
+      translatorConfig = config.getConfig(TRANSLATOR_CONFIG);
     }
   }
 
@@ -224,53 +238,169 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     }
   }
 
-  @SuppressWarnings( {"rawtypes", "unchecked"})
-  private Dataset<Row> readInputFormat(String path) throws Exception {
-    LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
-
-    Class<? extends InputFormat> typeClazz = Class.forName(inputType).asSubclass(InputFormat.class);
-    Class<?> keyClazz = Class.forName(keyType);
-    Class<?> valueClazz = Class.forName(valueType);
-
-    @SuppressWarnings("resource")
-    JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
-    JavaPairRDD<?, ?> rdd = context.newAPIHadoopFile(path, typeClazz, keyClazz, valueClazz, new Configuration());
-
-    TranslateFunction translateFunction = new TranslateFunction(translatorConfig);
-
-    return Contexts.getSparkSession().createDataFrame(rdd.flatMap(translateFunction), translateFunction.getSchema());
-  }
-
-  private Dataset<Row> readText(String path) throws Exception {
+  private Dataset<Row> readText(String path) {
     Dataset<Row> lines = Contexts.getSparkSession().read().text(path);
 
-    if (translatorConfig != null) {
-      Dataset<Tuple2<String, String>> keyedLines = lines.map(
-          new PrepareLineForTranslationFunction(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-
-      TranslateFunction<String, String> translateFunction = getTranslateFunction(translatorConfig);
-
-      return keyedLines.flatMap(translateFunction, RowEncoder.apply(translateFunction.getSchema()));
-    } else {
+    if (hasTranslator) {
+      TranslateFunction translateFunction = getTranslateFunction(translatorConfig);
+      return lines.flatMap(translateFunction, RowEncoder.apply(translateFunction.getProvidingSchema()));
+    }
+    else {
       return lines;
     }
   }
 
-  private TranslateFunction getTranslateFunction(Config translatorConfig) {
-    return new TranslateFunction<>(translatorConfig);
+  private Dataset<Row> readInputFormat(String path) throws Exception {
+    LOG.debug("Reading InputFormat[{}]: {}", inputType, path);
+
+    Class<? extends InputFormat> inputFormatClass = Class.forName(inputType).asSubclass(InputFormat.class);
+
+    TranslateFunction translateFunction = getTranslateFunction(translatorConfig);
+
+    Dataset<Row> encoded = getEncodedRowsFromInputFormat(path, inputFormatClass);
+
+    Dataset<Row> translated = encoded.flatMap(translateFunction,
+        RowEncoder.apply(translateFunction.getProvidingSchema()));
+
+    return translated;
   }
 
   @Override
-  public String getAlias() {
-    return "filesystem";
+  public void receiveExpectedSchema(StructType expectedSchema) {
+    this.expectedSchema = expectedSchema;
   }
 
-  @SuppressWarnings("serial")
-  private static class PrepareLineForTranslationFunction implements MapFunction<Row, Tuple2<String, String>> {
-    @Override
-    public Tuple2<String, String> call(Row line) throws Exception {
-      return new Tuple2<String, String>(null, line.getString(0));
+  @Override
+  public StructType getProvidingSchema() {
+    DataType keyDataType = getKeyDataType();
+    DataType valueDataType = getValueDataType();
+
+    List<StructField> fields = Lists.newArrayList();
+
+    if (keyDataType != null) {
+      fields.add(DataTypes.createStructField("key", keyDataType, true));
     }
+    fields.add(DataTypes.createStructField(Translator.VALUE_FIELD_NAME, valueDataType, false));
+
+    return DataTypes.createStructType(fields);
+  }
+
+  private DataType getKeyDataType() {
+    if (Arrays.asList(expectedSchema.fieldNames()).contains("key")) {
+      DataType keyDataType = expectedSchema.fields()[expectedSchema.fieldIndex("key")].dataType();
+
+      if (convertToClass(keyDataType) == null) {
+        throw new RuntimeException("Translator for filesystem input's input format is not compatible"
+            + " because it does not use a supported type for the 'key' field");
+      }
+
+      return keyDataType;
+    }
+    else {
+      // If the translator doesn't want the key field we don't specify a type so as to signal
+      // that we want the key to be discarded. This is important for the 'input-format' format
+      // because it is not known at runtime what the data type of an input format key should be.
+      // We don't do the same for the value field because that is mandatory and so the translator
+      // would typically be specifying which data type to use.
+      return null;
+    }
+  }
+
+  private DataType getValueDataType() {
+    DataType valueDataType;
+
+    if (Arrays.asList(expectedSchema.fieldNames()).contains(Translator.VALUE_FIELD_NAME)) {
+      valueDataType = expectedSchema.fields()[expectedSchema.fieldIndex(Translator.VALUE_FIELD_NAME)].dataType();
+    }
+    else {
+      // In the rare situation that the translator does not expect a specific data type for the
+      // value column then we are in a tricky situation because there is no way to inspect the
+      // input format class to see what data types it will return. Instead, we compromise and assume
+      // it is text, since it seems reasonable that a schemaless translator would probably be used
+      // with the input-format format so that raw lines of text from the file could be retrieved.
+      valueDataType = DataTypes.StringType;
+    }
+
+    if (convertToClass(valueDataType) == null) {
+      throw new RuntimeException("Translator for filesystem input's input format is not compatible"
+          + " because it does not use a supported type for the '" + Translator.VALUE_FIELD_NAME + "' field");
+    }
+
+    return valueDataType;
+  }
+
+  private Dataset<Row> getEncodedRowsFromInputFormat(String path, Class<? extends InputFormat> inputFormatClass) {
+    JavaSparkContext context = new JavaSparkContext(Contexts.getSparkSession().sparkContext());
+    JavaPairRDD rawRDD = context.newAPIHadoopFile(
+        path, inputFormatClass, convertToClass(getKeyDataType()), convertToClass(getValueDataType()),
+        new Configuration());
+
+    boolean useKey = getKeyDataType() != null;
+    JavaRDD<Row> encodedRDD = rawRDD.map(new EncodeRecordAsKeyValueFunction(useKey));
+
+    return Contexts.getSparkSession().createDataFrame(encodedRDD, getProvidingSchema());
+  }
+
+  private static class EncodeRecordAsKeyValueFunction implements Function<Tuple2, Row> {
+    private boolean useKey;
+
+    EncodeRecordAsKeyValueFunction(boolean useKey) {
+      this.useKey = useKey;
+    }
+
+    @Override
+    public Row call(Tuple2 record) {
+      Object value = unwrapWritable(record._2());
+
+      if (useKey) {
+        Object key = unwrapWritable(record._1());
+        return RowFactory.create(key, value);
+      }
+      else {
+        return RowFactory.create(value);
+      }
+    }
+
+    private Object unwrapWritable(Object object) {
+      if (object instanceof Text) {
+        return object.toString();
+      }
+      else if (object instanceof LongWritable) {
+        return ((LongWritable)object).get();
+      }
+      else if (object instanceof BytesWritable) {
+        return ((BytesWritable)object).getBytes();
+      }
+      else {
+        return object;
+      }
+    }
+  }
+
+  private Class<?> convertToClass(DataType dataType) {
+    if (dataType == null) {
+      return Text.class;
+    }
+    else if (dataType.equals(DataTypes.StringType)) {
+      return Text.class;
+    }
+    else if (dataType.equals(DataTypes.LongType)) {
+      return LongWritable.class;
+    }
+    else if (dataType.equals(DataTypes.BinaryType)) {
+      return BytesWritable.class;
+    }
+    else {
+       throw new RuntimeException("Filesystem input is not compatible with translator. " +
+        "Use a translator that expects the value to be a string, long, or byte array.");
+    }
+  }
+
+  private TranslateFunction getTranslateFunction(Config translatorConfig) {
+    TranslateFunction translateFunction = new TranslateFunction(translatorConfig);
+    SchemaNegotiator.negotiate(this, translateFunction);
+
+    return translateFunction;
   }
 
   @Override
@@ -292,14 +422,12 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
             Validations.single().mandatoryPath(FIELD_NAMES_CONFIG, ConfigValueType.LIST))
         .ifPathExists(AVRO_FILE_CONFIG, new AvroSchemaPathValidation(AVRO_FILE_CONFIG))
         .ifPathExists(AVRO_LITERAL_CONFIG, new AvroSchemaLiteralValidation(AVRO_LITERAL_CONFIG))
+        .ifPathHasValue(FORMAT_CONFIG, TEXT_FORMAT,
+            Validations.single().optionalPath(TRANSLATOR_CONFIG, ConfigValueType.OBJECT))
         .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_FORMAT,
             Validations.single().mandatoryPath(INPUT_FORMAT_TYPE_CONFIG, ConfigValueType.STRING))
         .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_FORMAT,
-            Validations.single().mandatoryPath(INPUT_FORMAT_KEY_CONFIG, ConfigValueType.STRING))
-        .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_VALUE_CONFIG,
-            Validations.single().mandatoryPath(INPUT_FORMAT_VALUE_CONFIG, ConfigValueType.STRING))
-        .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_FORMAT,
-            Validations.single().mandatoryPath("translator", ConfigValueType.OBJECT))
+            Validations.single().mandatoryPath(TRANSLATOR_CONFIG, ConfigValueType.OBJECT))
         .optionalPath(CSV_HEADER_CONFIG)
         .optionalPath(CSV_SEPARATOR_CONFIG)
         .optionalPath(CSV_ENCODING_CONFIG)
@@ -319,7 +447,8 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
         .optionalPath(CSV_MAX_CHARS_COLUMN_CONFIG)
         .optionalPath(CSV_MAX_MALFORMED_LOG_CONFIG)
         .optionalPath(CSV_MODE_CONFIG)
-        .handlesOwnValidationPath("translator")
+        .handlesOwnValidationPath(TRANSLATOR_CONFIG)
+        .add(new InputTranslatorCompatibilityValidation())
         .build();
   }
 
@@ -327,12 +456,12 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
   public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
     Set<InstantiatedComponent> components = Sets.newHashSet();
 
-    if (config.hasPath("translator")) {
+    if (config.hasPath(TRANSLATOR_CONFIG)) {
       Translator translator =
-          getTranslateFunction(config.getConfig("translator")).getTranslator(configure);
+          getTranslateFunction(config.getConfig(TRANSLATOR_CONFIG)).getTranslator(configure);
 
       components.add(new InstantiatedComponent(
-          translator, config.getConfig("translator"), "Translator"));
+          translator, config.getConfig(TRANSLATOR_CONFIG), TRANSLATOR_CONFIG));
     }
 
     return components;

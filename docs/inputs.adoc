@@ -33,7 +33,7 @@ This input can read the contents of the path in five different formats (specifie
 - `json` will read the path as JSON files. A schema can be provided, or if no schema is provided then it will be inferred from the data. This format uses Spark's `DataFrameReader#json` functionality.
 - `csv` will read the path as delimited text files. A schema can be provided, or if no schema is provided then it will be inferred from the data. See the <<configurations.adoc#inputs,configurations documentation>> for the many options for this format. This format uses Spark's `DataFrameReader#csv` functionality.
 - `input-format` will read the path using the given Hadoop InputFormat class and the given Envelope translator. This format allows input formats that already exist, or have been custom developed for the pipeline, to be plugged in without making an entirely new input. The InputFormat class is used to define how records will be retrieved from the path. The translator is then used to translate the unstructured records into typed fields so that the data can be represented as a DataFrame. This format uses Spark's `SparkContext#newAPIHadoopFile` functionality.
-- `text` will read the path as text files with a record per line and then translate the lines to typed fields using the given Envelope translator. This format uses Spark's `DataFrameReader#text` functionality.
+- `text` will read the path as text files with a record per line and then, optionally, translate the lines to typed fields using the given Envelope translator. This format uses Spark's `DataFrameReader#text` functionality.
 
 === Hive
 
@@ -87,8 +87,6 @@ The `kafka` input reads one or more Kafka topics as a stream. Envelope will use 
 
 The group ID (`group.id`) is the unique identifier of the input across all executions of the pipeline. It is used to identify multiple runs of the same pipeline even when other pipelines might be reading from the same topic. If no group ID is provided a random UUID will be generated for each pipeline execution, and so the progress across runs will not be maintained.
 
-The `encoding` determines how Envelope should read the messages from the topics. Use `string` to read the messages as strings and `bytearray` to read the messages as raw binary. The encoding must match the given translator.
-
 To enable Spark Streaming's windowing support, which allows each micro-batch to contain a window of its previous micro-batches, set `window.enable` to `true` and set `window.milliseconds` to the duration of the window. `window.slide.milliseconds` allows you to specify a sliding window.
 
 ==== Offset management
@@ -107,7 +105,6 @@ input {
   brokers = "broker1:9092,..."
   topics = [topicname1,topicname2]
   group.id = applicationname
-  encoding = string
   translator {
     type = delimited
     delimiter = ","

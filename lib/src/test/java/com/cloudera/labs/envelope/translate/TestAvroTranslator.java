@@ -13,31 +13,28 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Decoder;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestAvroTranslator {
@@ -54,7 +51,7 @@ public class TestAvroTranslator {
     
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
+    DatumWriter<Record> writer = new GenericDatumWriter<>(schema);
     writer.write(record, encoder);
     encoder.flush();
     byte[] a = out.toByteArray();
@@ -67,7 +64,7 @@ public class TestAvroTranslator {
     assertNoValidationFailures(t, config);
     t.configure(config);
     
-    Row r = t.translate(null, a).iterator().next();
+    Row r = t.translate(TestingMessageFactory.get(a, DataTypes.BinaryType)).iterator().next();
     
     assertEquals(r, RowFactory.create("hello", 100));
   }
@@ -84,7 +81,7 @@ public class TestAvroTranslator {
     
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
+    DatumWriter<Record> writer = new GenericDatumWriter<>(schema);
     writer.write(record, encoder);
     encoder.flush();
     byte[] a = out.toByteArray();
@@ -92,55 +89,16 @@ public class TestAvroTranslator {
 
     Config config = ConfigFactory.empty()
         .withValue(AvroTranslator.AVRO_PATH_CONFIG, 
-            ConfigValueFactory.fromAnyRef(getClass().getResource("/translator/avro-translator-test.avsc").getFile()));
+            ConfigValueFactory.fromAnyRef(getClass()
+                .getResource("/translator/avro-translator-test.avsc").getFile()));
 
     AvroTranslator t = new AvroTranslator();
     assertNoValidationFailures(t, config);
     t.configure(config);
     
-    Row r = t.translate(null, a).iterator().next();
+    Row r = t.translate(TestingMessageFactory.get(a, DataTypes.BinaryType)).iterator().next();
     
     assertEquals(r, RowFactory.create("hello", 100));
-  }
-  
-  @Test
-  public void testAppendRaw() throws Exception {
-    Schema schema = SchemaBuilder.record("test").fields()
-        .optionalString("field1")
-        .optionalInt("field2")
-        .endRecord();
-    Record record = new Record(schema);
-    record.put("field1", "hello");
-    record.put("field2", 100);
-    
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    DatumWriter<Record> writer = new GenericDatumWriter<Record>(schema);
-    writer.write(record, encoder);
-    encoder.flush();
-    out.close();
-    byte[] a = out.toByteArray();
-    
-    Config config = ConfigFactory.empty()
-        .withValue(AvroTranslator.AVRO_LITERAL_CONFIG, ConfigValueFactory.fromAnyRef(schema.toString()))
-        .withValue(TranslatorUtils.APPEND_RAW_ENABLED_CONFIG_NAME, ConfigValueFactory.fromAnyRef(true));
-
-    AvroTranslator t = new AvroTranslator();
-    assertNoValidationFailures(t, config);
-    t.configure(config);
-    
-    Row r = t.translate(null, a).iterator().next();
-    
-    assertEquals(r.length(), 4);
-    assertEquals(r.get(0), "hello");
-    assertEquals(r.get(1), 100);
-    assertEquals(r.get(2), null);
-    
-    assertTrue(r.get(3) instanceof byte[]);
-    byte[] value = (byte[])r.get(3);
-    GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
-    Decoder decoder = DecoderFactory.get().binaryDecoder(value, null);
-    assertEquals(reader.read(null, decoder), record);
   }
   
 }

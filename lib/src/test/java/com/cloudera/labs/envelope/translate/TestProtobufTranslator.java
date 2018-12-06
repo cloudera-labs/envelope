@@ -13,7 +13,7 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.TestProtobufUtils;
@@ -24,6 +24,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.functions;
+import org.apache.spark.sql.types.DataTypes;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -88,7 +89,7 @@ public class TestProtobufTranslator {
     assertNoValidationFailures(translator, config);
     translator.configure(config);
 
-    assertThat(translator.getSchema(), is(TestProtobufUtils.SINGLE_SCHEMA));
+    assertThat(translator.getProvidingSchema(), is(TestProtobufUtils.SINGLE_SCHEMA));
   }
 
   @Test
@@ -209,7 +210,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(SINGLE_UNCOMPRESSED.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
     System.out.println("results = " + results);
 
     Iterator<Row> rowIterator = results.iterator();
@@ -271,7 +273,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(SINGLE_COMPRESSED.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
     System.out.println("results = " + results);
 
     assertThat(results.iterator().hasNext(), is(true));
@@ -296,7 +299,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(SINGLE_REPEATING.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
     System.out.println("results = " + results);
 
     assertThat(results.iterator().hasNext(), is(true));
@@ -322,7 +326,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(SINGLE_ONEOF.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
     System.out.println("results = " + results);
 
     assertThat(results.iterator().hasNext(), is(true));
@@ -347,7 +352,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(MULTIPLE_UNCOMPRESSED.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
 
     assertThat(results.iterator().hasNext(), is(true));
     Row row = results.iterator().next();
@@ -369,7 +375,8 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = new byte[]{};
 
-    translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    translator.translate(raw);
   }
 
   @Test
@@ -387,13 +394,14 @@ public class TestProtobufTranslator {
     byte[] key = "foo".getBytes();
     byte[] payload = Files.readAllBytes(SINGLE_REPEATING.toPath());
 
-    Iterable<Row> results = translator.translate(key, payload);
+    Row raw = TestingMessageFactory.get(key, DataTypes.BinaryType, payload, DataTypes.BinaryType);
+    Iterable<Row> results = translator.translate(raw);
     List<Row> rowList = new ArrayList<>();
     for (Row row : results) {
       rowList.add(row);
     }
 
-    Dataset<Row> test = Contexts.getSparkSession().createDataFrame(rowList, translator.getSchema());
+    Dataset<Row> test = Contexts.getSparkSession().createDataFrame(rowList, translator.getProvidingSchema());
 
     assertThat(test.count(), is(1L));
 

@@ -4,7 +4,7 @@
 // protoc --descriptor_set_out=protobuf_multiple_message.desc --java_out=../../java protobuf_multiple_message.proto
 syntax = "proto3";
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 message OtherExample {
     string other = 1;

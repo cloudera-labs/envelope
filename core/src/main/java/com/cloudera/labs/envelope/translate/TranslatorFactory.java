@@ -13,22 +13,22 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class TranslatorFactory extends LoadableFactory<Translator<?,?>> {
+public class TranslatorFactory extends LoadableFactory<Translator> {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
-  public static Translator<?, ?> create(Config config, boolean configure) {
+  public static Translator create(Config config, boolean configure) {
     if (!config.hasPath(TYPE_CONFIG_NAME)) {
       throw new RuntimeException("Translator type not specified");
     }
 
     String translatorType = config.getString(TYPE_CONFIG_NAME);
-    Translator<?, ?> translator;
+    Translator translator;
     try {
       translator = loadImplementation(Translator.class, translatorType);
     } catch (ClassNotFoundException e) {

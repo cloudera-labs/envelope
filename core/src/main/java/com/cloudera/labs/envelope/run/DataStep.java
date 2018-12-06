@@ -35,6 +35,7 @@ import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
@@ -496,7 +497,7 @@ public abstract class DataStep
       long startTime = System.nanoTime();
 
       if (schema == null) {
-        schema = RowUtils.subsetSchema(arrived.schema(), keyFieldNames);
+        schema = SchemaUtils.subsetSchema(arrived.schema(), keyFieldNames);
       }
 
       Row key = RowUtils.subsetRow(arrived, schema);

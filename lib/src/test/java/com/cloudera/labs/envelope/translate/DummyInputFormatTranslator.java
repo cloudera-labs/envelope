@@ -13,39 +13,38 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
 import java.util.Collections;
 
-public class RawStringTranslator implements Translator<String, String>, ProvidesAlias {
+public class DummyInputFormatTranslator implements Translator {
 
   @Override
-  public void configure(Config config) { }
+  public void configure(Config config) {}
 
   @Override
-  public Iterable<Row> translate(String key, String value) throws Exception {
-    return Collections.singleton(RowFactory.create(key, value));
+  public Iterable<Row> translate(Row message) {
+    return Collections.singletonList(message);
   }
 
   @Override
-  public StructType getSchema() {
-    return RowUtils.structTypeFor(
-        Lists.newArrayList("key", "value"),
-        Lists.newArrayList("string", "string")
-    );
+  public StructType getExpectingSchema() {
+    return DataTypes.createStructType(Lists.newArrayList(
+        DataTypes.createStructField("key", DataTypes.LongType, false),
+        DataTypes.createStructField("value", DataTypes.StringType, false)
+    ));
   }
 
   @Override
-  public String getAlias() {
-    return "rawstring";
+  public StructType getProvidingSchema() {
+    return getExpectingSchema();
   }
 
 }
+

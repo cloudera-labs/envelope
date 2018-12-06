@@ -16,7 +16,7 @@
 package com.cloudera.labs.envelope.kafka.serde;
 
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.kafka.common.serialization.Serializer;
@@ -32,7 +32,7 @@ public class TestDelimitedSerializer {
 
   @Test
   public void testDelimitedSerialization() {
-    StructType structType = RowUtils.structTypeFor(
+    StructType structType = SchemaUtils.structTypeFor(
         Lists.newArrayList("field1", "field2", "field3"),
         Lists.newArrayList("string", "int", "boolean"));
     Row row = new RowWithSchema(structType, "hello", 1, false);
@@ -50,7 +50,7 @@ public class TestDelimitedSerializer {
 
   @Test
   public void testDelimitedWithNullSerialization() {
-    StructType structType = RowUtils.structTypeFor(
+    StructType structType = SchemaUtils.structTypeFor(
         Lists.newArrayList("field1", "field2", "field3"),
         Lists.newArrayList("string", "int", "boolean"));
     Row row = new RowWithSchema(structType, null, 1, false);
@@ -69,7 +69,7 @@ public class TestDelimitedSerializer {
 
   @Test
   public void testDelimitedWithDefaultNullSerialization() {
-    StructType structType = RowUtils.structTypeFor(
+    StructType structType = SchemaUtils.structTypeFor(
         Lists.newArrayList("field1", "field2", "field3"),
         Lists.newArrayList("string", "int", "boolean"));
     Row row = new RowWithSchema(structType, null, 1, false);

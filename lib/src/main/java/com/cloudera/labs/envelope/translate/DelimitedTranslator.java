@@ -13,20 +13,19 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
 import java.sql.Timestamp;
@@ -37,7 +36,7 @@ import java.util.regex.Pattern;
 /**
  * A translator implementation for plain delimited text messages, e.g. CSV.
  */
-public class DelimitedTranslator implements Translator<String, String>, ProvidesAlias, ProvidesValidations {
+public class DelimitedTranslator implements Translator, ProvidesAlias, ProvidesValidations {
 
   private String delimiter;
   private List<String> fieldNames;
@@ -45,7 +44,6 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
   private DateTimeParser dateTimeParser;
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
-  private boolean doesAppendRaw;
   private boolean delimiterRegex;
 
   public static final String DELIMITER_CONFIG_NAME = "delimiter";
@@ -59,14 +57,8 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
     fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
-    delimiterRegex = ConfigUtils.getOrElse(config, DELIMITER_REGEX_CONFIG_NAME, false);
-    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
-    if (doesAppendRaw) {
-      fieldNames.add(TranslatorUtils.getAppendRawKeyFieldName(config));
-      fieldTypes.add("string");
-      fieldNames.add(TranslatorUtils.getAppendRawValueFieldName(config));
-      fieldTypes.add("string");
-    }
+    delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) &&
+                     config.getBoolean(DELIMITER_REGEX_CONFIG_NAME);
 
     dateTimeParser = new DateTimeParser();
     if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
@@ -74,17 +66,18 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
           config.getStringList(TIMESTAMP_FORMAT_CONFIG_NAME));
     }
 
-    schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
-  public Iterable<Row> translate(String key, String value) {
-    int numFields = (doesAppendRaw) ? (fieldNames.size() - 2) : fieldNames.size();
+  public Iterable<Row> translate(Row message) {
+    String value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+
     String[] stringValues = value.split((delimiterRegex) ?
                             delimiter : Pattern.quote(delimiter), fieldNames.size());
     values.clear();
 
-    for (int valuePos = 0; valuePos < numFields; valuePos++) {
+    for (int valuePos = 0; valuePos < fieldNames.size(); valuePos++) {
       if (valuePos < stringValues.length) {
         String fieldValue = stringValues[valuePos];
      
@@ -125,18 +118,18 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
       }
     }
 
-    Row row = RowFactory.create(values.toArray());
-    
-    if (doesAppendRaw) {
-      row = RowUtils.append(row, key);
-      row = RowUtils.append(row, value);
-    }
+    Row row = new RowWithSchema(schema, values.toArray());
 
     return Collections.singleton(row);
   }
 
   @Override
-  public StructType getSchema() {
+  public StructType getExpectingSchema() {
+    return SchemaUtils.stringValueSchema();
+  }
+
+  @Override
+  public StructType getProvidingSchema() {
     return schema;
   }
 
@@ -169,8 +162,7 @@ public class DelimitedTranslator implements Translator<String, String>, Provides
         .mandatoryPath(FIELD_TYPES_CONFIG_NAME, ConfigValueType.LIST)
         .optionalPath(DELIMITER_REGEX_CONFIG_NAME, ConfigValueType.BOOLEAN)
         .optionalPath(TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueType.LIST)
-        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
         .build();
   }
-  
+
 }

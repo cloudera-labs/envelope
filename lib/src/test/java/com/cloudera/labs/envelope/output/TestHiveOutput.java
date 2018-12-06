@@ -17,7 +17,7 @@ package com.cloudera.labs.envelope.output;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -142,7 +142,7 @@ public class TestHiveOutput {
     assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
 
-    StructType targetSchema = RowUtils.structTypeFor(
+    StructType targetSchema = SchemaUtils.structTypeFor(
         Lists.newArrayList("zip_code", "city", "state", "Fname", "lname"), 
         Lists.newArrayList("int", "string", "string", "string", "string"));
     spark.createDataFrame(spark.emptyDataFrame().rdd(), targetSchema)

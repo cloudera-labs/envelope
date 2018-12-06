@@ -16,7 +16,7 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -44,7 +44,7 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", "2"),
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
         Lists.newArrayList("string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
@@ -77,7 +77,7 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", 2),
         RowFactory.create("B", "hello", 3),
         RowFactory.create("C", "world", 4));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
         Lists.newArrayList("string", "string", "int"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
@@ -110,7 +110,7 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", 2.0),
         RowFactory.create("B", "hello", 3.0),
         RowFactory.create("C", "world", 4.0));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
         Lists.newArrayList("string", "string", "double"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
@@ -143,7 +143,7 @@ public class TestPivotDeriver {
         RowFactory.create("A", "AA", "AAA", "world", "2"),
         RowFactory.create("B", "BB", "BBB", "hello", "3"),
         RowFactory.create("C", "CC", "CCC", "world", "4"));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id1", "entity_id2", "entity_id3", "key", "value"),
         Lists.newArrayList("string", "string", "string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
@@ -177,7 +177,7 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", "2"),
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
         Lists.newArrayList("string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
@@ -212,7 +212,7 @@ public class TestPivotDeriver {
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"),
         RowFactory.create("D", "dummy", "5"));
-    StructType schema = RowUtils.structTypeFor(
+    StructType schema = SchemaUtils.structTypeFor(
         Lists.newArrayList("entity_id", "key", "value"),
         Lists.newArrayList("string", "string", "string"));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);

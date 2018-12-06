@@ -19,7 +19,7 @@ import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
@@ -65,7 +65,7 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidat
     // Construct the StructType schema for the Rows
     List<String> fieldNames = config.getStringList(FIELD_NAMES);
     List<String> fieldTypes = config.getStringList(FIELD_TYPES);
-    this.schema = RowUtils.structTypeFor(fieldNames, fieldTypes);
+    this.schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
 
     errorOnEmpty = ConfigUtils.getOrElse(config, ERROR_ON_EMPTY, true);
   }

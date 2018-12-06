@@ -16,7 +16,7 @@
 package com.cloudera.labs.envelope.hbase;
 
 import com.cloudera.labs.envelope.utils.JVMUtils;
-import com.cloudera.labs.envelope.utils.RowUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -184,7 +184,7 @@ public class HBaseUtils {
       fieldTypes.add(columnDef.getValue().type);
     }
 
-    return RowUtils.structTypeFor(fieldNames, fieldTypes);
+    return SchemaUtils.structTypeFor(fieldNames, fieldTypes);
   }
   
   public static Scan mergeRangeScans(List<Scan> rangeScans) {

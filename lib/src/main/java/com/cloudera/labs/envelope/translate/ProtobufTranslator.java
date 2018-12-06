@@ -13,40 +13,37 @@
  * License.
  */
 
-package com.cloudera.labs.envelope.input.translate;
+package com.cloudera.labs.envelope.translate;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ProtobufUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.TranslatorUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.google.common.collect.Lists;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-import com.typesafe.config.ConfigValueType;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Convert proto3 messages into Rows.
  * <p>
  * This supports both compressed (gzip) or uncompressed message payloads.
  */
-public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesAlias, ProvidesValidations {
+public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesValidations {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProtobufTranslator.class);
 
@@ -55,43 +52,11 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
 
   private Descriptors.Descriptor descriptor;
   private StructType schema;
-  private boolean doesAppendRaw;
-
-  public String getAlias() {
-    return "protobuf";
-  }
-
-  public StructType getSchema() {
-    return schema;
-  }
 
   @Override
-  public void configure(Config config) {
-    LOG.debug("Configuring ProtobufTranslator");
+  public Iterable<Row> translate(Row message) throws Exception {
+    byte[] value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
 
-    String descriptorFilePath = config.getString(CONFIG_DESCRIPTOR_FILEPATH);
-
-    if (config.hasPath(CONFIG_DESCRIPTOR_MESSAGE)) {
-      String descriptorMessage = config.getString(CONFIG_DESCRIPTOR_MESSAGE);
-      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath, descriptorMessage);
-    } else {
-      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath);
-    }
-
-    // Build full schema
-    this.schema = ProtobufUtils.buildSchema(descriptor);
-
-    doesAppendRaw = TranslatorUtils.doesAppendRaw(config);
-    if (doesAppendRaw) {
-      List<StructField> rawFields = Lists.newArrayList(
-          DataTypes.createStructField(TranslatorUtils.getAppendRawKeyFieldName(config), DataTypes.BinaryType, false),
-          DataTypes.createStructField(TranslatorUtils.getAppendRawValueFieldName(config), DataTypes.BinaryType, false));
-      schema = RowUtils.appendFields(schema, rawFields);
-    }
-  }
-
-  @Override
-  public Iterable<Row> translate(byte[] key, byte[] value) throws Exception {
     if (value == null || value.length < 1) {
       throw new RuntimeException("Payload value is null or empty");
     }
@@ -116,14 +81,40 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
     // Populate set of row values matching full schema
     // NOTE: very likely this will be sparse
     List<Object> rowValues = ProtobufUtils.buildRowValues(descriptor, msg, schema);
-    Row row = RowFactory.create(rowValues.toArray());
-
-    if (doesAppendRaw) {
-      row = RowUtils.append(row, key);
-      row = RowUtils.append(row, value);
-    }
+    Row row = new RowWithSchema(schema, rowValues.toArray());
 
     return Collections.singletonList(row);
+  }
+
+  public String getAlias() {
+    return "protobuf";
+  }
+
+  @Override
+  public StructType getExpectingSchema() {
+    return SchemaUtils.binaryValueSchema();
+  }
+
+  @Override
+  public StructType getProvidingSchema() {
+    return schema;
+  }
+
+  @Override
+  public void configure(Config config) {
+    LOG.debug("Configuring ProtobufTranslator");
+
+    String descriptorFilePath = config.getString(CONFIG_DESCRIPTOR_FILEPATH);
+
+    if (config.hasPath(CONFIG_DESCRIPTOR_MESSAGE)) {
+      String descriptorMessage = config.getString(CONFIG_DESCRIPTOR_MESSAGE);
+      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath, descriptorMessage);
+    } else {
+      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath);
+    }
+
+    // Build full schema
+    this.schema = ProtobufUtils.buildSchema(descriptor);
   }
 
   @Override
@@ -131,7 +122,6 @@ public class ProtobufTranslator implements Translator<byte[], byte[]>, ProvidesA
     return Validations.builder()
         .mandatoryPath(CONFIG_DESCRIPTOR_FILEPATH, ConfigValueType.STRING)
         .optionalPath(CONFIG_DESCRIPTOR_MESSAGE, ConfigValueType.STRING)
-        .addAll(TranslatorUtils.APPEND_RAW_VALIDATIONS)
         .build();
   }
 }
