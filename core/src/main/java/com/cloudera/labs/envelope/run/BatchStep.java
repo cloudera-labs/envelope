@@ -18,6 +18,7 @@ package com.cloudera.labs.envelope.run;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.BatchInput;
+import com.cloudera.labs.envelope.component.CanReturnErroredData;
 import com.cloudera.labs.envelope.repetition.Repetition;
 import com.cloudera.labs.envelope.repetition.RepetitionFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -31,6 +32,7 @@ import com.cloudera.labs.envelope.validate.Validity;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -65,15 +67,31 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
     Contexts.getSparkSession().sparkContext().setJobDescription("Step: " + getName());
 
     Dataset<Row> data;
+    Dataset<Row> errored = null;
     if (hasInput()) {
       data = ((BatchInput)getInput(true)).read();
+
+      if (getInput(true) instanceof CanReturnErroredData) {
+        errored = ((CanReturnErroredData) getInput(true)).getErroredData();
+      }
     }
     else if (hasDeriver()) {
       Map<String, Dataset<Row>> dependencies = StepUtils.getStepDataFrames(dependencySteps);
       data = getDeriver(true).derive(dependencies);
+      if (getDeriver(true) instanceof CanReturnErroredData) {
+        errored = ((CanReturnErroredData) getDeriver(true)).getErroredData();
+      }
     }
     else {
       throw new RuntimeException("Batch step '" + getName() + "' must contain either an input or a deriver.");
+    }
+
+    if (errored != null) {
+      BatchStep erroredBatchStep = new BatchStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX);
+      erroredBatchStep.configure(ConfigFactory.empty());
+      erroredBatchStep.setData(errored);
+      erroredBatchStep.setSubmitted(true);
+      addNewBatchStep(erroredBatchStep);
     }
     
     if (doesRepartition()) {

@@ -84,11 +84,13 @@ public abstract class DataStep
   public static final String PRINT_SCHEMA_ENABLED_PROPERTY = "print.schema.enabled";
   public static final String PRINT_DATA_ENABLED_PROPERTY = "print.data.enabled";
   public static final String PRINT_DATA_LIMIT_PROPERTY = "print.data.limit";
-  
+
   private static final String ACCUMULATOR_SECONDS_EXTRACTING_KEYS = "Seconds spent extracting keys";
   private static final String ACCUMULATOR_SECONDS_EXISTING = "Seconds spent getting existing";
   private static final String ACCUMULATOR_SECONDS_PLANNING = "Seconds spent random planning";
   private static final String ACCUMULATOR_SECONDS_APPLYING = "Seconds spent applying random mutations";
+  
+  public static final String DEFAULT_ERROR_DATAFRAME_SUFFIX = "_errored";
 
   private Dataset<Row> data;
   private Input input;
@@ -96,6 +98,8 @@ public abstract class DataStep
   private Planner planner;
   private Output output;
   private Accumulators accumulators;
+  private Set<BatchStep> newBatchSteps = Sets.newHashSet();
+  private final Object newBatchStepLock = new Object();
 
   public DataStep(String name) {
     super(name);
@@ -136,6 +140,20 @@ public abstract class DataStep
     if (hasSubmitted()) {
       clearCache();
       setSubmitted(false);
+    }
+  }
+
+  protected void addNewBatchStep(BatchStep newBatchStep) {
+    synchronized (newBatchStepLock) {
+      newBatchSteps.add(newBatchStep);
+    }
+  }
+
+  public Set<BatchStep> loadNewBatchSteps() {
+    synchronized (newBatchStepLock) {
+      Set<BatchStep> returnSteps = newBatchSteps;
+      newBatchSteps = Sets.newHashSet();
+      return returnSteps;
     }
   }
 

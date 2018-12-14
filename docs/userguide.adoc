@@ -10,6 +10,8 @@ The key mapping of Envelope to Spark is that each Envelope data step is a DataFr
 
 Each data step can optionally write to an external output. The way that a step is applied to the output, e.g. to append, or to upsert, or to maintain a Type 2 SCD, is specified with a planner. The way that a step groups keys together (which only occurs when the planner requires existing records) is specified with a partitioner.
 
+Each data step that uses an `input` with a `translator` will add an additional data step that contains the input values that errored on translation, and with the same name as the original data step plus the suffix '_errored'.
+
 Envelope can loop over a sub-graph of the pipeline steps by using a loop step. See the <<looping.adoc#,looping guide>> for more on the loop step type.
 
 When at least one of the external input steps is a stream, e.g. Kafka, then the Envelope pipeline becomes a Spark Streaming job and the graph of steps will be executed every micro-batch.

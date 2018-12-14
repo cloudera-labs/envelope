@@ -45,6 +45,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
 
   public static final String APPEND_RAW_ENABLED_CONFIG = "append.raw.enabled";
   public static final boolean APPEND_RAW_ENABLED_DEFAULT = false;
+  public static final String HAD_ERROR_FIELD_NAME = "_had_error";
 
   private Config config;
   private StructType providedSchema;
@@ -60,8 +61,15 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
   @Override
   public Iterator<Row> call(Row message) throws Exception {
     validateMessageSchema(message);
+    Iterable<Row> translationResults;
 
-    Iterable<Row> translationResults = getTranslator().translate(message);
+    try {
+      translationResults = getTranslator().translate(message);
+    }
+    catch (Exception e) {
+      Row error = appendHadErrorFlag(message, true);
+      return Collections.singleton(error).iterator();
+    }
 
     List<Row> translated = Lists.newArrayList();
     for (Row translationResult : translationResults) {
@@ -70,6 +78,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
       if (doesAppendRaw()) {
         translationResult = appendRawFields(translationResult, message);
       }
+      translationResult = appendHadErrorFlag(translationResult, false);
 
       translated.add(translationResult);
     }
@@ -190,6 +199,10 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
     }
 
     return DataTypes.createStructType(withFields);
+  }
+
+  private Row appendHadErrorFlag(Row row, boolean hadError) {
+    return RowUtils.append(row, HAD_ERROR_FIELD_NAME, DataTypes.BooleanType, hadError);
   }
 
 }

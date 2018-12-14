@@ -51,6 +51,7 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -213,6 +214,7 @@ public class Runner {
           Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
           Set<Step> batchSteps = Sets.newHashSet(dependentSteps);
           batchSteps.add(streamingStep);
+          batchSteps.addAll(streamingStep.loadNewBatchSteps());
           batchSteps.addAll(independentNonStreamingSteps);
           runBatch(batchSteps);
 
@@ -238,7 +240,7 @@ public class Runner {
    */
   private static void runBatch(Set<Step> steps) throws Exception {
     LOG.debug("Started batch for steps: {}", StepUtils.stepNamesAsString(steps));
-    
+
     Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
     Set<Step> refactoredSteps = null;
 
@@ -246,7 +248,8 @@ public class Runner {
     // Steps will not be submitted until all of their dependency steps have been submitted first.
     while (!StepUtils.allStepsSubmitted(steps)) {
       LOG.debug("Not all steps have been submitted");
-      
+
+      Set<Step> newSteps = new HashSet<>();
       for (final Step step : steps) {
         LOG.debug("Looking into step: " + step.getName());
 
@@ -277,20 +280,24 @@ public class Runner {
           else {
             LOG.debug("Step has been submitted");
           }
-        }
+
+          // If the step has created new batch data steps to load into the running batch,
+          // retrieve those and add them in.
+          newSteps.addAll(batchStep.loadNewBatchSteps());
+        } 
         else if (step instanceof StreamingStep) {
           LOG.debug("Step is streaming");
         }
         else if (step instanceof RefactorStep) {
           LOG.debug("Step is a refactor step");
-          
+
           RefactorStep refactorStep = (RefactorStep)step;
-          
+
           if (!refactorStep.hasSubmitted()) {
             LOG.debug("Step has not been submitted");
-          
+
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
-  
+
             if (StepUtils.allStepsSubmitted(dependencies)) {
               LOG.debug("Step dependencies have submitted, refactoring steps");
               refactoredSteps = refactorStep.refactor(steps);
@@ -307,14 +314,14 @@ public class Runner {
         }
         else if (step instanceof TaskStep) {
           LOG.debug("Step is a task");
-          
+
           TaskStep taskStep = (TaskStep)step;
-          
+
           if (!taskStep.hasSubmitted()) {
             LOG.debug("Step has not been submitted");
-          
+
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
-            
+
             if (StepUtils.allStepsSubmitted(dependencies)) {
               LOG.debug("Step dependencies have finished, running task");
               taskStep.run(StepUtils.getStepDataFrames(dependencies));
@@ -326,7 +333,7 @@ public class Runner {
           }
           else {
             LOG.debug("Step has been submitted");
-          }  
+          }
         }
         else {
           throw new RuntimeException("Unknown step class type: " + step.getClass().getName());
@@ -335,9 +342,12 @@ public class Runner {
         LOG.debug("Finished looking into step: " + step.getName());
       }
 
+      // Add all steps created while looping through previous set of steps. 
+      steps.addAll(newSteps);
+
       awaitAllOffMainThreadsFinished(offMainThreadSteps);
       offMainThreadSteps.clear();
-      
+
       if (refactoredSteps != null) {
         steps = refactoredSteps;
         refactoredSteps = null;
@@ -496,43 +506,43 @@ public class Runner {
 
   private static void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
-    
+
     for (DataStep dataStep : StepUtils.getDataSteps(steps)) {
       requests.addAll(dataStep.getAccumulatorRequests());
     }
-    
+
     Accumulators accumulators = new Accumulators(requests);
-    
+
     for (DataStep dataStep : StepUtils.getDataSteps(steps)) {
       dataStep.receiveAccumulators(accumulators);
     }
   }
-  
+
   static void initializeUDFs(Config config) {
     if (!config.hasPath(UDFS_SECTION_CONFIG)) return;
-    
+
     ConfigList udfList = config.getList(UDFS_SECTION_CONFIG);
-    
+
     for (ConfigValue udfValue : udfList) {
       ConfigValueType udfValueType = udfValue.valueType();
       if (!udfValueType.equals(ConfigValueType.OBJECT)) {
         throw new RuntimeException("UDF list must contain UDF objects");
       }
-      
+
       Config udfConfig = ((ConfigObject)udfValue).toConfig();
-      
+
       for (String path : Lists.newArrayList(UDFS_NAME, UDFS_CLASS)) {
         if (!udfConfig.hasPath(path)) {
           throw new RuntimeException("UDF entries must provide '" + path + "'");
         }
       }
-      
+
       String name = udfConfig.getString(UDFS_NAME);
       String className = udfConfig.getString(UDFS_CLASS);
-      
+
       // null third argument means that registerJava will infer the return type
       Contexts.getSparkSession().udf().registerJava(name, className, null);
-      
+
       LOG.info("Registered Spark SQL UDF: " + name);
     }
   }

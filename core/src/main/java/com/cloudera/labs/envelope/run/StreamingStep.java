@@ -23,10 +23,12 @@ import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.translate.TranslateFunction;
+import com.cloudera.labs.envelope.translate.TranslationResults;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
@@ -74,6 +76,14 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     }
   }
 
+  public BatchStep createErrorStep(String stepName, Dataset<Row> data){
+    BatchStep errorStep = new BatchStep(stepName);
+    errorStep.configure(ConfigFactory.empty());
+    errorStep.setData(data);
+    errorStep.setSubmitted(true);
+    return errorStep;
+  }
+
   @SuppressWarnings("unchecked")
   public Dataset<Row> translate(JavaRDD raw) {
     StreamInput streamInput = (StreamInput)getInput(true);
@@ -83,21 +93,30 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     Dataset<Row> encoded = Contexts.getSparkSession().createDataFrame(
         raw.map(streamInput.getMessageEncoderFunction()), streamInput.getProvidingSchema());
 
-    // Translate the raw message rows to structured rows
-    return encoded.flatMap(translateFunction, RowEncoder.apply(translateFunction.getProvidingSchema()));
+    // Translate raw message rows to structured rows
+    TranslationResults translationResults = new TranslationResults(
+        encoded.flatMap(translateFunction, RowEncoder.apply(translateFunction.getExpectingSchema())),
+        translateFunction.getProvidingSchema(),streamInput.getProvidingSchema());
+
+    BatchStep errors = createErrorStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX,
+        translationResults.getErrors());
+    addNewBatchStep(errors);
+
+    // Provide translated rows and errors
+    return translationResults.getTranslated();
   }
 
   @Override
   public Step copy() {
     StreamingStep copy = new StreamingStep(name);
     copy.configure(config);
-    
+
     copy.setSubmitted(hasSubmitted());
-    
+
     if (hasSubmitted()) {
       copy.setData(getData());
     }
-    
+
     return copy;
   }
 

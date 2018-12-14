@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.component.CanReturnErroredData;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
@@ -24,6 +25,7 @@ import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.translate.TranslateFunction;
+import com.cloudera.labs.envelope.translate.TranslationResults;
 import com.cloudera.labs.envelope.translate.Translator;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -65,7 +67,7 @@ import java.util.List;
 import java.util.Set;
 
 public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValidations,
-    InstantiatesComponents, UsesExpectedSchema, DeclaresProvidingSchema {
+    InstantiatesComponents, UsesExpectedSchema, DeclaresProvidingSchema, CanReturnErroredData {
 
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemInput.class);
 
@@ -119,7 +121,9 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
   public String getAlias() {
     return "filesystem";
   }
-
+  
+  private Dataset<Row> errors;
+  
   @Override
   public void configure(Config config) {
     format = config.getString(FORMAT_CONFIG);
@@ -243,7 +247,12 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
 
     if (hasTranslator) {
       TranslateFunction translateFunction = getTranslateFunction(translatorConfig);
-      return lines.flatMap(translateFunction, RowEncoder.apply(translateFunction.getProvidingSchema()));
+      Dataset<Row> translated = lines.flatMap(translateFunction,
+          RowEncoder.apply(translateFunction.getExpectingSchema()));
+      TranslationResults results = new TranslationResults(translated, translateFunction.getProvidingSchema(),
+          getProvidingSchema());
+      errors = results.getErrors();
+      return results.getTranslated();
     }
     else {
       return lines;
@@ -260,8 +269,10 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     Dataset<Row> encoded = getEncodedRowsFromInputFormat(path, inputFormatClass);
 
     Dataset<Row> translated = encoded.flatMap(translateFunction,
-        RowEncoder.apply(translateFunction.getProvidingSchema()));
-
+        RowEncoder.apply(translateFunction.getExpectingSchema()));
+    TranslationResults results = new TranslationResults(translated, translateFunction.getProvidingSchema(),
+        getProvidingSchema());
+    errors = results.getErrors();
     return translated;
   }
 
@@ -465,6 +476,15 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     }
 
     return components;
+  }
+  
+  @Override
+  public Dataset<Row> getErroredData() {
+    if (errors == null) {
+      return Contexts.getSparkSession().emptyDataFrame();
+    }
+
+    return errors;
   }
 
 }
