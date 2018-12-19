@@ -2,11 +2,30 @@
 :toc: left
 :toclevels: 5
 
-Tasks are a type of step that allows an Envelope pipeline to make side effects that are outside of the flow of data through the pipeline. Examples of tasks could include sending emails, or raising alerts, or updating external operational metadata.
+Tasks are a type of step that allow an Envelope pipeline to make side effects that are outside of the flow of data through the pipeline. Examples of tasks could include sending emails, or raising alerts, or updating external operational metadata.
 
 Tasks can read in the data from the dependencies of the task step they are defined in, but they can not provide data to subsequent steps.
 
-Envelope does not provide any task implementations. All usages of a task step must reference a custom developed task.
+Envelope provides the `exception` task implementation. All other usages of a task step must reference a custom developed task.
+
+== Exception
+
+The `exception` task will immediately throw a Java runtime exception. This can be used in testing pipelines to exit the pipeline with a non-zero return code in order to indicate to the test harness that the test produced a failure result. The mandatory `message` configuration provides the exception message.
+
+=== Exception task example
+
+----
+...
+steps {
+  ...
+  fail_test {
+    type = task
+    class = exception
+    message = "Test for XYC did not match expected results"
+  }
+  ...
+}
+----
 
 == Custom tasks
 
@@ -25,7 +44,7 @@ To develop a custom task:
 
   spark2-submit --jars yourtask.jar envelope-*.jar yourpipeline.conf
 
-=== Example
+=== Custom task example
 
 ----
 application {
