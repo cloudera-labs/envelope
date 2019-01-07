@@ -44,10 +44,10 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
 
   private String name;
   private List<String> fields;
-  private Comparable lower;
-  private Comparable upper;
+  private Comparable<?> lower;
+  private Comparable<?> upper;
   private boolean ignoreNulls;
-  private Class<? extends Comparable> fieldType = DEFAULT_FIELD_TYPE;
+  private Class<? extends Comparable<?>> fieldType = DEFAULT_FIELD_TYPE;
 
   @Override
   public void configure(String name, Config config) {
@@ -56,29 +56,21 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
     if (config.hasPath(FIELD_TYPE_CONFIG)) {
       fieldType = getFieldType(config.getString(FIELD_TYPE_CONFIG));
     }
-    List range = getValueList(fieldType, config.getAnyRefList(RANGE_CONFIG));
-    lower = (Comparable) range.get(0);
-    upper = (Comparable) range.get(1);
+    List<Number> range = getValueList(fieldType, config.getNumberList(RANGE_CONFIG));
+    lower = (Comparable<?>) range.get(0);
+    upper = (Comparable<?>) range.get(1);
     ignoreNulls = ConfigUtils.getOrElse(config, IGNORE_NULLS_CONFIG, false);
   }
 
   @Override
   public boolean check(Row row) {
     for (String field : fields) {
-      Comparable value;
-      Object o = RowUtils.get(row, field);
-      if (o != null) {
-        if (o instanceof Number) {
-          if (o instanceof Float) {
-            value = ((Float)o).doubleValue();
-          } else {
-            value = (Comparable)o;
-          }
-        } else {
-          throw new RuntimeException("Range checkInternal on non-numeric type");
+      Object value = RowUtils.get(row, field);
+      if (value != null) {
+        if (!(value instanceof Comparable)) {
+          throw new RuntimeException("Range checkInternal on non-comparable type");
         }
-  
-        if (!checkInternal(value, lower, upper)) {
+        if (!checkInternal((Comparable<?>)value, lower, upper)) {
           return false;
         }
       }
@@ -93,8 +85,8 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
     return (value.compareTo(lower) >= 0 && value.compareTo(upper) <= 0);
   }
 
-  private static Class<? extends Comparable> getFieldType(String fieldType) {
-    Class<? extends Comparable> clazz;
+  private static Class<? extends Comparable<?>> getFieldType(String fieldType) {
+    Class<? extends Comparable<?>> clazz;
     switch (fieldType) {
       case "int":
         clazz = Integer.class;
@@ -103,9 +95,10 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
         clazz = Long.class;
         break;
       case "double":
-      case "float":
-        // Typesafe config does not parse floats
         clazz = Double.class;
+        break;
+      case "float":
+        clazz = Float.class;
         break;
       case "decimal":
         clazz = BigDecimal.class;
@@ -117,14 +110,26 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
     return clazz;
   }
 
-  private static <T> List<T> getValueList(Class<T> clazz, List values) {
-    List<T> valueList = new ArrayList<>();
-    for (Object o : values) {
-      if (clazz == BigDecimal.class) {
-        o = new BigDecimal((String)o);
+  private static List<Number> getValueList(Class<?> clazz, List<Number> values) {
+    List<Number> valueList = new ArrayList<>();
+    for (Number o : values) {
+      if (clazz == Integer.class) {
+        valueList.add(new Integer(o.intValue()));
       }
-      if (!valueList.add(clazz.cast(o))) {
-        throw new RuntimeException("Could not cast object to type [" + clazz + "]");
+      else if (clazz == Long.class) {
+        valueList.add(new Long(o.longValue()));
+      }
+      else if (clazz == Float.class) {
+        valueList.add(new Float(o.floatValue()));
+      }
+      else if (clazz == Double.class) {
+        valueList.add(new Double(o.doubleValue()));
+      }
+      else if (clazz == BigDecimal.class) {
+        valueList.add(new BigDecimal(o.toString()));
+      }
+      else {
+        throw new RuntimeException("Could not cast range values " + values + " to type [" + clazz + "]");
       }
     }
     return valueList;
