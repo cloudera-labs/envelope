@@ -383,4 +383,28 @@ public class TestFileSystemInput {
     assertTrue(results.contains(RowFactory.create(2, "world", false)));
   }
 
+  @Test
+  public void readTextWithTranslatorWithAppendRaw() throws Exception {
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(FileSystemInput.FORMAT_CONFIG, FileSystemInput.TEXT_FORMAT);
+    configMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(TEXT_DATA).getPath());
+    configMap.put("translator.type", KVPTranslator.class.getName());
+    configMap.put("translator.delimiter.kvp", ",");
+    configMap.put("translator.delimiter.field", "=");
+    configMap.put("translator.field.names", Lists.newArrayList("a", "b", "c"));
+    configMap.put("translator.field.types", Lists.newArrayList("int", "string", "boolean"));
+    configMap.put("translator.append.raw.enabled", true);
+    config = ConfigFactory.parseMap(configMap);
+
+    FileSystemInput formatInput = new FileSystemInput();
+    assertNoValidationFailures(formatInput, config);
+    formatInput.configure(config);
+
+    List<Row> results = formatInput.read().collectAsList();
+
+    assertEquals(2, results.size());
+    assertTrue(results.contains(RowFactory.create(1, "hello", true, "a=1,b=hello,c=true")));
+    assertTrue(results.contains(RowFactory.create(2, "world", false, "a=2,b=world,c=false")));
+  }
+
 }

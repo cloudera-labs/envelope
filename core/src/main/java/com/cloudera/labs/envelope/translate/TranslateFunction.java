@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -115,7 +115,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
   @Override
   public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
     return Collections.singleton(new InstantiatedComponent(
-        getTranslator(configure), config, "Translator"
+        getTranslator(configure), getTranslatorConfig(config), "Translator"
     ));
   }
 
@@ -126,17 +126,20 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
   public synchronized Translator getTranslator(boolean configure) {
     if (configure) {
       if (translator == null) {
-        // Don't pass the append raw configuration to the translator itself as it doesn't use it
-        Config translatorConfig = config.withoutPath(APPEND_RAW_ENABLED_CONFIG);
-        translator = TranslatorFactory.create(translatorConfig, true);
+        translator = TranslatorFactory.create(getTranslatorConfig(config), true);
         LOG.debug("Translator created: " + translator.getClass().getName());
       }
 
       return translator;
     }
     else {
-      return TranslatorFactory.create(config, false);
+      return TranslatorFactory.create(getTranslatorConfig(config), false);
     }
+  }
+
+  private Config getTranslatorConfig(Config config) {
+    // Don't pass the append raw configuration to the translator itself as it doesn't use it
+    return config.withoutPath(APPEND_RAW_ENABLED_CONFIG);
   }
 
   private void validateMessageSchema(Row message) {

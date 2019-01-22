@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -468,11 +468,8 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     Set<InstantiatedComponent> components = Sets.newHashSet();
 
     if (config.hasPath(TRANSLATOR_CONFIG)) {
-      Translator translator =
-          getTranslateFunction(config.getConfig(TRANSLATOR_CONFIG)).getTranslator(configure);
-
-      components.add(new InstantiatedComponent(
-          translator, config.getConfig(TRANSLATOR_CONFIG), TRANSLATOR_CONFIG));
+      TranslateFunction translateFunction = getTranslateFunction(config.getConfig(TRANSLATOR_CONFIG));
+      components.addAll(translateFunction.getComponents(config.getConfig(TRANSLATOR_CONFIG), configure));
     }
 
     return components;
