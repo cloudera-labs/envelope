@@ -1469,7 +1469,7 @@ Task configurations are provided at the task step level (i.e. alongside `type` a
 
 ==== Exception
 
-Task `type` = `exception`.
+Task `class` = `exception`.
 
 [cols="2,8", options="header"]
 |===
@@ -1477,6 +1477,82 @@ Task `type` = `exception`.
 
 |message
 |The message that will be included on the exception. Mandatory.
+
+|===
+
+==== Impala DDL
+
+Task `class` = `impala_ddl`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|host
+|(Required.) The Impala daemon or load balancer fully qualified hostname to which to connect.
+
+|port
+|(Optional.) Port on which to connect to the Impala daemon. Defaults to 21050.
+
+|auth
+|(Optional.) Authentication method to use. Allowed values are `none`, `kerberos`, or `ldap`. Whichever method is specified here will be used, but Envelope will default to either `none` or `kerberos` depending on whether it detects that the cluster is secured or not.
+
+|debug
+|(Optional.) Display debug information about authentication.
+
+|krb-keytab
+|(Required if using `auth=kerberos` and no `--keytab` supplied.) The location of the keytab file relative to the driver process.
+
+|krb-user-principal
+|(Required if using `auth=kerberos` and no `--principal` supplied.) The Kerberos principal to authenticate with from the keytab.
+
+|krb-realm
+|(Optional.) If using a non-default realm, specify it in this parameter. Otherwise the default realm is extracted from `/etc/krb5.conf`.
+
+|krb-ticket-renew-interval
+|(Optional.) Time in seconds in which to re-obtain a Kerberos TGT. If not specified it is derived from the default ticket lifetime of TGTs from `/etc/krb5.conf`.
+
+|ssl
+|(Optional.) Whether TLS is enabled on the JDBC connection to Impala. Defaults to `false`.
+
+|ssl-truststore
+|(Optional.) JKS truststore to use when validating the Impala TLS server certificate. Defaults to the in-built JRE truststore.
+
+|ssl-truststore-password
+|(Optional.) If the supplied truststore requires a password to read certificates, supply it here. Defaults to empty.
+
+|username
+|(Required if using `auth=ldap`.) Username to authenticate with.
+
+|password
+|(Required if using `auth=ldap`.) Password to authenticate with.
+
+|query.type
+|(Required.) The DDL operation to perform. Currently supported: `refresh`, `invalidate`, `add_partition`, `drop_partition`.
+
+|query.table
+|(Required.) The table name for the DDL operation.
+
+|query.partition.spec
+|(Required if operation is `add_partition` and range not supplied.) The partition specification for an HDFS-backed table, e.g. "ymd = 20190101, country = 'US'".
+
+|query.partition.location
+|(Optional.) A location of a partition on HDFS to be specified in the DDL operation.
+
+|query.partition.range
+|(Required if operation is `add_partition` and partition spec is not supplied.) A config subsection with the following possible parameters.
+
+|query.partition.range.value
+|(Required if using range and boundaries not supplied.) An absolute numeric value for the lower bound of a Kudu range partition.
+
+|query.partition.range.start
+|(Required if using range and value not supplied.) An absolute numeric value for the lower bound of a Kudu range partition. Defaults to inclusive.
+
+|query.partition.range.end
+|(Required if using range and value not supplied.) An absolute numeric value for the upper bound of a Kudu range partition. Defaults to exclusive.
+
+|query.partition.range.inclusivity
+|(Optional.) A string indicating the range operator of the lower and upper bound, "i" for inclusive and "e" for exclusive. Allowed values are "ie", "ii", "ei", "ee".
 
 |===
 

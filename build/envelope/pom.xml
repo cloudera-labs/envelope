@@ -44,5 +44,10 @@
       <artifactId>envelope-zookeeper</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.cloudera.labs.envelope</groupId>
+      <artifactId>envelope-impala</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

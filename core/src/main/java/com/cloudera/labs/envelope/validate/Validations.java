@@ -279,6 +279,14 @@ public class Validations extends HashSet<Validation> {
     }
 
     /**
+     * Match the value against the supplied regular expression
+     */
+    public ValidationsBuilder regexValue(String path, String regexPattern) {
+      v.add(new RegexValueValidation(path, regexPattern));
+      return this;
+    }
+
+    /**
      * Mark this configuration as a component that handles its own validation. This is important for
      * when a component instantiates other components.
      */

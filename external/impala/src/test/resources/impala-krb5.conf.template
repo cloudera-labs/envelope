@@ -1,0 +1,5 @@
+krb-keytab = %KEYTAB%
+krb-user-principal = "testuser@ENVELOPE.LOCAL"
+host = localhost
+query = "refresh foobar"
+auth = kerberos

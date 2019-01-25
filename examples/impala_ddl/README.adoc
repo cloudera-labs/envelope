@@ -1,0 +1,124 @@
+# Impala DDL example
+
+This example has some simple demonstrations of the Impala DDL task showing how it can be used to notify Impala of important data and metadata changes and to generally run a subset of DDL operations commonly used in data ingestion pipelines.
+
+There are three example scenarios provided:
+
+1. Populating a simple un-partitioned table on HDFS
+2. Loading data into new partitions in  HDFS
+3. Loading data into new range partitions in Kudu
+
+# Setting up the test environment
+
+To prepare the environment for running the tests we first need to populate the `env.conf` file with the relevant parameters for the cluster on which we want to run the tests. All instances of `REPLACEME` should be substituted with the appropriate values. In addition, you will need to provide a keytab called `user.kt` with a user who can create tables and write data to HDFS.
+
+Once the environement is configured, we can setup the test pre-requisites by running the following commands:
+
+```
+kinit -kt user.kt <user>
+bash setup-tests.sh <impala_host>
+```
+
+# Running the tests
+
+The first set of tests are run in client mode and assume a pre-existing Kerberos TGT is available.
+
+## Client mode
+
+Run the tests as follows:
+
+```
+bash run-tests.sh <path_to_envelope_jar> <impala_host>
+```
+
+The tests run through each of the three scenarios listed above, using Impala to run before-and-after queries to demonstrate data loading. You should see Impala output similar to the following snippets:
+
+```
+Query: select * from example_output
+...
+Fetched 0 row(s) in 2.97s
+...
+
+Query: select * from example_output
++------+------------------------+--------------------------------------+----------+
+| id   | foo                    | blah                                 | ymd      |
++------+------------------------+--------------------------------------+----------+
+| 8901 | My dog                 | has a tail                           | 20190102 |
+| 2356 | Mary had a little lamb | whose fleece was white as beige snow | 20190102 |
+| 1234 | My dog                 | has fleas                            | 20190101 |
+| 4567 | Mary had a little lamb | whose fleece was white as snow       | 20190101 |
++------+------------------------+--------------------------------------+----------+
+Fetched 4 row(s) in 4.67s
+...
+
+Query: select * from example_output_part
+...
+Fetched 0 row(s) in 3.64s
+...
+
+Query: show partitions example_output_part
++----------+-------+--------+--------+--------------+-------------------+---------+-------------------+----------------------------------------------------------+
+| ymd      | #Rows | #Files | Size   | Bytes Cached | Cache Replication | Format  | Incremental stats | Location                                                 |
++----------+-------+--------+--------+--------------+-------------------+---------+-------------------+----------------------------------------------------------+
+| 20190101 | -1    | 1      | 1.05KB | NOT CACHED   | NOT CACHED        | PARQUET | false             | hdfs://devns/tmp/example-output-partitioned/ymd=20190101 |
+| 20190102 | -1    | 1      | 1.07KB | NOT CACHED   | NOT CACHED        | PARQUET | false             | hdfs://devns/tmp/example-output-partitioned/ymd=20190102 |
+| Total    | -1    | 2      | 2.12KB | 0B           |                   |         |                   |                                                          |
++----------+-------+--------+--------+--------------+-------------------+---------+-------------------+----------------------------------------------------------+
+Fetched 3 row(s) in 0.01s
+...
+
+Query: select * from example_output_part
+...
++------+------------------------+--------------------------------------+----------+
+| id   | foo                    | blah                                 | ymd      |
++------+------------------------+--------------------------------------+----------+
+| 1234 | My dog                 | has fleas                            | 20190101 |
+| 4567 | Mary had a little lamb | whose fleece was white as snow       | 20190101 |
+| 8901 | My dog                 | has a tail                           | 20190102 |
+| 2356 | Mary had a little lamb | whose fleece was white as beige snow | 20190102 |
++------+------------------------+--------------------------------------+----------+
+Fetched 4 row(s) in 0.13s
+
+...
+Query: show partitions example_output_kudu
++--------+------------------+------------------+------------------------------------+------------+
+| # Rows | Start Key        | Stop Key         | Leader Replica                     | # Replicas |
++--------+------------------+------------------+------------------------------------+------------+
+| -1     | 8000000001341395 | 8000000001341396 | ip-172-31-54-179.ec2.internal:7050 | 3          |
++--------+------------------+------------------+------------------------------------+------------+
+Fetched 1 row(s) in 3.56s
+...
+
+Query: select * from example_output_kudu
+...
+Fetched 0 row(s) in 0.14s
+...
+
+Query: show partitions example_output_kudu
++--------+------------------+------------------+------------------------------------+------------+
+| # Rows | Start Key        | Stop Key         | Leader Replica                     | # Replicas |
++--------+------------------+------------------+------------------------------------+------------+
+| -1     | 8000000001341395 | 8000000001341396 | ip-172-31-54-179.ec2.internal:7050 | 3          |
+| -1     | 8000000001341396 | 8000000001341397 | ip-172-31-54-180.ec2.internal:7050 | 3          |
++--------+------------------+------------------+------------------------------------+------------+
+...
+
+Query: select * from example_output_kudu
+...
++----------+------+------------------------+--------------------------------------+
+| ymd      | id   | foo                    | blah                                 |
++----------+------+------------------------+--------------------------------------+
+| 20190101 | 1234 | My dog                 | has fleas                            |
+| 20190101 | 4567 | Mary had a little lamb | whose fleece was white as snow       |
+| 20190102 | 2356 | Mary had a little lamb | whose fleece was white as beige snow |
+| 20190102 | 8901 | My dog                 | has a tail                           |
++----------+------+------------------------+--------------------------------------+
+```
+
+## Cluster mode
+
+Run the tests in cluster mode as follows:
+
+```
+bash run-tests-clustermode.sh <path_to_envelope_jar> <impala_host>
+```

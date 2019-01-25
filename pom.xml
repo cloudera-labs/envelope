@@ -25,6 +25,7 @@
     <module>core</module>
     <module>lib</module>
     <module>external/hbase</module>
+    <module>external/impala</module>
     <module>external/kafka</module>
     <module>external/kudu</module>
     <module>external/zookeeper</module>
