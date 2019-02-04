@@ -206,7 +206,7 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
 
   private void renewIfExpired() throws KrbException {
     if (isKerberos(config)) {
-      if ((System.currentTimeMillis() - lastLoginTime) > getRenewInterval()) {
+      if ((System.currentTimeMillis() - lastLoginTime) > getRenewInterval() * 1000) {
         LOG.debug("Kerberos ticket is due for renewal, authenticating again");
         login();
       }
