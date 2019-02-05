@@ -280,7 +280,7 @@
         <version>${asciidoctor.maven.version}</version>
         <configuration>
           <sourceDirectory>docs</sourceDirectory>
-          <outputDirectory>build/docs/html</outputDirectory>
+          <outputDirectory>build/envelope/target/docs/html</outputDirectory>
           <backend>html</backend>
           <doctype>book</doctype>
         </configuration>
