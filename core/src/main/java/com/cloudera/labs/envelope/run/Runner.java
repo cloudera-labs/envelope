@@ -17,12 +17,20 @@ package com.cloudera.labs.envelope.run;
 
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.event.CoreEventMetadataKeys;
+import com.cloudera.labs.envelope.event.CoreEventTypes;
+import com.cloudera.labs.envelope.event.EventHandler;
+import com.cloudera.labs.envelope.event.EventHandlerFactory;
+import com.cloudera.labs.envelope.event.EventManager;
+import com.cloudera.labs.envelope.event.Event;
+import com.cloudera.labs.envelope.event.impl.LogEventHandler;
 import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.security.SecurityUtils;
 import com.cloudera.labs.envelope.security.TokenProvider;
+import com.cloudera.labs.envelope.security.TokenStoreListener;
 import com.cloudera.labs.envelope.security.TokenStoreManager;
 import com.cloudera.labs.envelope.security.UsesDelegationTokens;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
@@ -37,12 +45,15 @@ import com.cloudera.labs.envelope.validate.ValidationUtils;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.cloudera.labs.envelope.validate.Validator;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.VoidFunction;
@@ -51,8 +62,8 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -77,6 +88,7 @@ public class Runner {
   public static final String UDFS_SECTION_CONFIG = "udfs";
   public static final String UDFS_NAME = "name";
   public static final String UDFS_CLASS = "class";
+  public static final String EVENT_HANDLERS_CONFIG = "event-handlers";
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
 
   private static ExecutorService threadPool;
@@ -90,13 +102,15 @@ public class Runner {
   public static void run(Config config) throws Exception {
     validateConfigurations(config);
 
-    Set<Step> steps = extractSteps(config, true);
-    LOG.info("Steps instantiated");
+    Set<Step> steps = extractSteps(config, true, true);
 
-    ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
+    ExecutionMode mode = getExecutionMode(steps);
+
     Contexts.initialize(config, mode);
 
     initializeSecurity(config, steps);
+
+    initializeEventHandlers(config);
 
     initializeAccumulators(steps);
 
@@ -104,27 +118,31 @@ public class Runner {
 
     initializeThreadPool(config);
 
-    try {
-      if (StepUtils.hasStreamingStep(steps)) {
-        LOG.debug("Streaming step(s) identified");
+    notifyPipelineStarted();
 
+    try {
+      if (mode == ExecutionMode.STREAMING) {
         runStreaming(steps);
       } else {
-        LOG.debug("No streaming steps identified");
-
         runBatch(steps);
       }
+    }
+    catch (Exception e) {
+      notifyPipelineException(e);
+      throw e;
     }
     finally {
       shutdownThreadPool();
       shutdownSecurity();
     }
 
-    LOG.debug("Runner finished");
+    notifyPipelineFinished();
   }
 
-  private static Set<Step> extractSteps(Config config, boolean configure) {
+  private static Set<Step> extractSteps(Config config, boolean configure, boolean notify) {
     LOG.debug("Starting getting steps");
+
+    long startTime = System.nanoTime();
 
     Set<Step> steps = Sets.newHashSet();
 
@@ -180,9 +198,18 @@ public class Runner {
       steps.add(step);
     }
 
-    LOG.debug("Finished getting steps");
+    if (notify) {
+      notifyStepsExtracted(config, steps, System.nanoTime() - startTime);
+    }
 
     return steps;
+  }
+
+  private static ExecutionMode getExecutionMode(Set<Step> steps) {
+    ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
+    notifyExecutionMode(mode);
+
+    return mode;
   }
 
   /**
@@ -249,7 +276,7 @@ public class Runner {
     while (!StepUtils.allStepsSubmitted(steps)) {
       LOG.debug("Not all steps have been submitted");
 
-      Set<Step> newSteps = new HashSet<>();
+      Set<Step> newSteps = Sets.newHashSet();
       for (final Step step : steps) {
         LOG.debug("Looking into step: " + step.getName());
 
@@ -284,7 +311,7 @@ public class Runner {
           // If the step has created new batch data steps to load into the running batch,
           // retrieve those and add them in.
           newSteps.addAll(batchStep.loadNewBatchSteps());
-        } 
+        }
         else if (step instanceof StreamingStep) {
           LOG.debug("Step is streaming");
         }
@@ -342,7 +369,7 @@ public class Runner {
         LOG.debug("Finished looking into step: " + step.getName());
       }
 
-      // Add all steps created while looping through previous set of steps. 
+      // Add all steps created while looping through previous set of steps.
       steps.addAll(newSteps);
 
       awaitAllOffMainThreadsFinished(offMainThreadSteps);
@@ -386,6 +413,91 @@ public class Runner {
     threadPool.shutdown();
   }
 
+  private static void initializeEventHandlers(Config config) {
+    EventManager.register(getEventHandlers(config, true).values());
+  }
+
+  private static Map<Config, EventHandler> getEventHandlers(Config config, boolean configure) {
+    Map<Config, EventHandler> handlers = Maps.newHashMap();
+    Set<String> nonConfiguredDefaultHandlerAliases = Sets.newHashSet(
+        new LogEventHandler().getAlias()
+    );
+
+    if (config.hasPath(Contexts.APPLICATION_SECTION_PREFIX + "." + EVENT_HANDLERS_CONFIG)) {
+      List<? extends ConfigObject> handlerConfigObjects;
+      try {
+        handlerConfigObjects = config.getObjectList(
+            Contexts.APPLICATION_SECTION_PREFIX + "." + EVENT_HANDLERS_CONFIG);
+      }
+      catch (ConfigException.WrongType e) {
+        throw new RuntimeException("Event handler configuration must be a list of event handler objects");
+      }
+
+      for (ConfigObject handlerConfigObject : handlerConfigObjects) {
+        Config handlerConfig = handlerConfigObject.toConfig();
+        EventHandler handler = EventHandlerFactory.create(handlerConfig, configure);
+        handlers.put(handlerConfig, handler);
+
+        // If this handler is a default handler then because it was configured we remove it from the
+        // non-configured set. If this handler is not a default handler then this will be a no-op.
+        nonConfiguredDefaultHandlerAliases.remove(handlerConfig.getString(EventHandlerFactory.TYPE_CONFIG_NAME));
+      }
+    }
+
+    // Create the default handlers that were not already created above. These are created with
+    // no configurations, so default handlers must only use optional configurations.
+    for (String defaultHandlerAlias : nonConfiguredDefaultHandlerAliases) {
+      Config defaultHandlerConfig = ConfigFactory.empty().withValue(
+          EventHandlerFactory.TYPE_CONFIG_NAME, ConfigValueFactory.fromAnyRef(defaultHandlerAlias));
+      EventHandler defaultHandler = EventHandlerFactory.create(defaultHandlerConfig, configure);
+      handlers.put(defaultHandlerConfig, defaultHandler);
+    }
+
+    return handlers;
+  }
+
+  private static void notifyPipelineStarted() {
+    EventManager.notify(new Event(CoreEventTypes.PIPELINE_STARTED, "Pipeline started"));
+  }
+
+  private static void notifyPipelineFinished() {
+    EventManager.notify(new Event(CoreEventTypes.PIPELINE_FINISHED, "Pipeline finished"));
+  }
+
+  private static void notifyPipelineException(Exception e) {
+    Map<String, Object> metadata = Maps.newHashMap();
+    metadata.put(CoreEventMetadataKeys.PIPELINE_EXCEPTION_OCCURRED_EXCEPTION, e);
+    Event event = new Event(
+        CoreEventTypes.PIPELINE_EXCEPTION_OCCURRED,
+        "Pipeline exception occurred: " + e.getMessage(),
+        metadata);
+    EventManager.notify(event);
+  }
+
+  private static void notifyStepsExtracted(Config config, Set<Step> steps, long timeTakenNs) {
+    Map<String, Object> metadata = Maps.newHashMap();
+    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_CONFIG, config);
+    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_STEPS, steps);
+    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_TIME_TAKEN_NS, timeTakenNs);
+
+    Event event = new Event(
+        CoreEventTypes.STEPS_EXTRACTED,
+        "Steps extracted: " + StepUtils.stepNamesAsString(steps),
+        metadata);
+
+    EventManager.notify(event);
+  }
+
+  private static void notifyExecutionMode(ExecutionMode mode) {
+    Map<String, Object> metadata = Maps.newHashMap();
+    metadata.put(CoreEventMetadataKeys.EXECUTION_MODE_DETERMINED_MODE, mode);
+
+    EventManager.notify(new Event(
+        CoreEventTypes.EXECUTION_MODE_DETERMINED,
+        "Pipeline execution mode determined: " + mode,
+        metadata));
+  }
+
   private static void validateConfigurations(Config config) {
     if (ConfigUtils.getOrElse(config, Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY,
         !Validator.CONFIGURATION_VALIDATION_ENABLED_DEFAULT))
@@ -401,7 +513,7 @@ public class Runner {
     // Validate steps
     Set<Step> steps;
     try {
-      steps = extractSteps(config, false);
+      steps = extractSteps(config, false, false);
     }
     catch (Exception e) {
       if (e.getCause() instanceof ClassNotFoundException) {
@@ -431,6 +543,7 @@ public class Runner {
             .optionalPath(Contexts.NUM_EXECUTOR_CORES_PROPERTY, ConfigValueType.NUMBER)
             .optionalPath(Contexts.EXECUTOR_MEMORY_PROPERTY, ConfigValueType.STRING)
             .optionalPath(Contexts.BATCH_MILLISECONDS_PROPERTY, ConfigValueType.NUMBER)
+            .optionalPath(EVENT_HANDLERS_CONFIG, ConfigValueType.LIST)
             .optionalPath(PIPELINE_THREADS_PROPERTY, ConfigValueType.NUMBER)
             .optionalPath(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, ConfigValueType.BOOLEAN)
             .handlesOwnValidationPath(Contexts.SPARK_CONF_PROPERTY_PREFIX)
@@ -439,6 +552,18 @@ public class Runner {
     }, applicationConfig);
     ValidationUtils.prefixValidationResultMessages(applicationResults, "Application");
     results.addAll(applicationResults);
+
+    // Validate event handlers
+    for (Map.Entry<Config, EventHandler> handlerWithConfig : getEventHandlers(config, false).entrySet()) {
+      Config handlerConfig = handlerWithConfig.getKey();
+      EventHandler handler = handlerWithConfig.getValue();
+      if (handler instanceof ProvidesValidations) {
+        List<ValidationResult> handlerResults = Validator.validate((ProvidesValidations)handler, handlerConfig);
+        ValidationUtils.prefixValidationResultMessages(
+            handlerResults, "Event Handler '" + handler.getClass().getSimpleName() + "'");
+        results.addAll(handlerResults);
+      }
+    }
 
     // Validate UDFs are provided as a list
     // TODO: inspect UDF objects to see if they are each valid
@@ -475,12 +600,24 @@ public class Runner {
 
     Set<InstantiatedComponent> secureComponents = Sets.newHashSet();
 
-    // Get all security providers
+    // Get step security providers
     for (Step step : steps) {
       if (step instanceof InstantiatesComponents) {
         InstantiatesComponents thisStep = (InstantiatesComponents) step;
         // Check for secure components - components have already been configured at this stage
         Set<InstantiatedComponent> components = thisStep.getComponents(step.getConfig(), true);
+
+        for (InstantiatedComponent instantiatedComponent : components) {
+          secureComponents.addAll(SecurityUtils.getAllSecureComponents(instantiatedComponent));
+        }
+      }
+    }
+
+    // Get event handler security providers
+    for (EventHandler handler : getEventHandlers(config, true).values()) {
+      if (handler instanceof InstantiatesComponents) {
+        Set<InstantiatedComponent> components =
+            ((InstantiatesComponents)handler).getComponents(config, true);
 
         for (InstantiatedComponent instantiatedComponent : components) {
           secureComponents.addAll(SecurityUtils.getAllSecureComponents(instantiatedComponent));
@@ -502,6 +639,7 @@ public class Runner {
 
   private static void shutdownSecurity() {
     tokenStoreManager.stop();
+    TokenStoreListener.stop();
   }
 
   private static void initializeAccumulators(Set<Step> steps) {

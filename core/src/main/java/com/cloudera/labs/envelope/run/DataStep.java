@@ -15,8 +15,15 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.derive.DeriverFactory;
+import com.cloudera.labs.envelope.event.CoreEventMetadataKeys;
+import com.cloudera.labs.envelope.event.CoreEventTypes;
+import com.cloudera.labs.envelope.event.Event;
+import com.cloudera.labs.envelope.event.EventManager;
+import com.cloudera.labs.envelope.event.EventUtils;
 import com.cloudera.labs.envelope.input.Input;
 import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.output.BulkOutput;
@@ -34,10 +41,8 @@ import com.cloudera.labs.envelope.spark.Accumulators;
 import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -89,7 +94,7 @@ public abstract class DataStep
   private static final String ACCUMULATOR_SECONDS_EXISTING = "Seconds spent getting existing";
   private static final String ACCUMULATOR_SECONDS_PLANNING = "Seconds spent random planning";
   private static final String ACCUMULATOR_SECONDS_APPLYING = "Seconds spent applying random mutations";
-  
+
   public static final String DEFAULT_ERROR_DATAFRAME_SUFFIX = "_errored";
 
   private Dataset<Row> data;
@@ -123,13 +128,17 @@ public abstract class DataStep
     if (doesPrintSchema()) {
       printSchema();
     }
-    
+
+    registerStep();
+
+    notifyDataStepDataGenerated();
+  }
+
+  public void writeData() {
     if (doesPrintData()) {
       printData();
     }
 
-    registerStep();
-    
     if (hasOutput()) {
       writeOutput();
     }
@@ -241,7 +250,7 @@ public abstract class DataStep
     return ConfigUtils.getOrElse(config, CACHE_ENABLED_PROPERTY, false);
   }
   
-  private void cache() {
+  protected void cache() {
     String cacheLevel = "MEMORY_ONLY";
     if (config.hasPath(CACHE_STORAGE_LEVEL_PROPERTY)) { 
       cacheLevel = config.getString(CACHE_STORAGE_LEVEL_PROPERTY);
@@ -288,6 +297,14 @@ public abstract class DataStep
 
   public void clearCache() {
     data = data.unpersist(false);
+  }
+
+  public boolean isCached() {
+    if (data == null) {
+      return false;
+    }
+
+    return data.storageLevel() != StorageLevel.NONE();
   }
 
   private boolean usesSmallHint() {
@@ -416,7 +433,32 @@ public abstract class DataStep
         .build();
   }
 
+  private void notifyDataStepDataGenerated() {
+    if (EventManager.isHandled(CoreEventTypes.DATA_STEP_DATA_GENERATED)) {
+      long startTime = System.nanoTime();
+
+      if (!isCached()) {
+        cache();
+      }
+
+      long count = data.count();
+      long timeTakenNs = System.nanoTime() - startTime;
+      String prettyTimeTaken = EventUtils.prettifyNs(timeTakenNs);
+
+      Map<String, Object> metadata = Maps.newHashMap();
+      metadata.put(CoreEventMetadataKeys.DATA_STEP_DATA_GENERATED_STEP_NAME, getName());
+      metadata.put(CoreEventMetadataKeys.DATA_STEP_DATA_GENERATED_ROW_COUNT, count);
+      metadata.put(CoreEventMetadataKeys.DATA_STEP_DATA_GENERATED_TIME_TAKEN_NS, timeTakenNs);
+
+      String message = "Data step " + getName() + " generated " + count + " rows in " + prettyTimeTaken;
+
+      EventManager.notify(new Event(CoreEventTypes.DATA_STEP_DATA_GENERATED, message, metadata));
+    }
+  }
+
   private void writeOutput() {
+    long startTime = System.nanoTime();
+
     Config plannerConfig = config.getConfig(PLANNER_TYPE);
     Planner planner = getPlanner(true);
     validatePlannerOutputCompatibility(planner, getOutput(false));
@@ -440,6 +482,18 @@ public abstract class DataStep
     else {
       throw new RuntimeException("Unexpected planner class: " + planner.getClass().getName());
     }
+
+    notifyWrittenToOutput(getName(), System.nanoTime() - startTime);
+  }
+
+  private void notifyWrittenToOutput(String stepName, long timeTakenNs) {
+    Map<String, Object> metadata = Maps.newHashMap();
+    metadata.put(CoreEventMetadataKeys.DATA_STEP_WRITTEN_TO_OUTPUT_STEP_NAME, stepName);
+    metadata.put(CoreEventMetadataKeys.DATA_STEP_WRITTEN_TO_OUTPUT_TIME_TAKEN_NS, timeTakenNs);
+
+    String message = "Data step " + stepName + " wrote to output in " + EventUtils.prettifyNs(timeTakenNs);
+
+    EventManager.notify(new Event(CoreEventTypes.DATA_STEP_WRITTEN_TO_OUTPUT, message, metadata));
   }
 
   private void validatePlannerOutputCompatibility(Planner planner, Output output) {

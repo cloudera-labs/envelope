@@ -74,7 +74,7 @@ public class TestScheduledRepetition {
   @After
   public void after() throws IOException {
     Repetitions.get(true);
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
   }
 
 //  @AfterClass

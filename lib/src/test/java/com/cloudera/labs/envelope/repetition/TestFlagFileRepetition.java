@@ -139,7 +139,7 @@ public class TestFlagFileRepetition {
       fs.delete(flagFile, true);
     }
     Repetitions.get(true);
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
   }
 
 }

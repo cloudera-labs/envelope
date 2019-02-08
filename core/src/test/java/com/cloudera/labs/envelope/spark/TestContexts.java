@@ -38,7 +38,7 @@ public class TestContexts {
 
   @Before
   public void setup() {
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
   }
 
   @Test
@@ -167,9 +167,9 @@ public class TestContexts {
         Contexts.SPARK_DEPLOY_MODE_CLIENT);
     props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." + Contexts.DRIVER_MEMORY_PROPERTY, "2G");
     Config config = ConfigFactory.parseProperties(props);
-    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("Driver memory can not be set");
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     Contexts.getSparkSession().sparkContext().getConf();
   }
 
@@ -182,9 +182,9 @@ public class TestContexts {
     props.setProperty(Contexts.APPLICATION_SECTION_PREFIX + "." +
         Contexts.SPARK_CONF_PROPERTY_PREFIX + "." + Contexts.SPARK_DRIVER_MEMORY_PROPERTY, "2G");
     Config config = ConfigFactory.parseProperties(props);
-    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("Driver memory can not be set");
+    Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     Contexts.getSparkSession().sparkContext().getConf();
   }
 

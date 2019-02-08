@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Used as a singleton for any driver code in Envelope to retrieve the various Spark contexts, and have them
@@ -61,53 +62,63 @@ public enum Contexts {
 
   public static final boolean SPARK_SESSION_ENABLE_HIVE_SUPPORT_DEFAULT = true;
 
+  private static final String PIPELINE_ID = UUID.randomUUID().toString();
+
   private Config config = ConfigFactory.empty();
   private ExecutionMode mode = ExecutionMode.UNIT_TEST;
 
   private SparkSession ss;
   private JavaStreamingContext jsc;
 
+  public static String getPipelineID() {
+    return PIPELINE_ID;
+  }
+
+  public static String getApplicationID() {
+    if (hasSparkSession()) {
+      return getSparkSession().sparkContext().applicationId();
+    }
+
+    return null;
+  }
+
   public static synchronized SparkSession getSparkSession() {
     if (INSTANCE.ss == null) {
-      initializeBatchJob();
+      startSparkSession();
     }
 
     return INSTANCE.ss;
   }
 
+  public static boolean hasSparkSession() {
+    return INSTANCE.ss != null;
+  }
+
   public static synchronized JavaStreamingContext getJavaStreamingContext() {
     if (INSTANCE.jsc == null) {
-      initializeStreamingJob();
+      startStreamingContext();
     }
 
     return INSTANCE.jsc;
   }
 
   public static synchronized void closeSparkSession() {
-    closeSparkSession(false);
-  }
-
-  public static synchronized void closeSparkSession(boolean cleanupHiveMetastore) {
     if (INSTANCE.ss != null) {
       INSTANCE.ss.close();
       INSTANCE.ss = null;
+      INSTANCE.mode = ExecutionMode.UNIT_TEST;
     }
-    if (cleanupHiveMetastore) {
-      FileUtils.deleteQuietly(new File("metastore_db"));
-      FileUtils.deleteQuietly(new File("derby.log"));
-      FileUtils.deleteQuietly(new File("spark-warehouse"));
-    }
+
+    FileUtils.deleteQuietly(new File("metastore_db"));
+    FileUtils.deleteQuietly(new File("derby.log"));
+    FileUtils.deleteQuietly(new File("spark-warehouse"));
   }
 
   public static synchronized void closeJavaStreamingContext() {
-    closeJavaStreamingContext(false);
-  }
-
-  public static synchronized void closeJavaStreamingContext(boolean cleanupHiveMetastore) {
     if (INSTANCE.jsc != null) {
       INSTANCE.jsc.close();
       INSTANCE.jsc = null;
-      closeSparkSession(cleanupHiveMetastore);
+      closeSparkSession();
     }
   }
 
@@ -115,19 +126,18 @@ public enum Contexts {
     INSTANCE.config = config.hasPath(APPLICATION_SECTION_PREFIX) ?
         config.getConfig(APPLICATION_SECTION_PREFIX) : ConfigFactory.empty();
     INSTANCE.mode = mode;
+    getSparkSession();
   }
 
-  private static void initializeStreamingJob() {
+  private static void startStreamingContext() {
     int batchMilliseconds = INSTANCE.config.getInt(BATCH_MILLISECONDS_PROPERTY);
     final Duration batchDuration = Durations.milliseconds(batchMilliseconds);
 
-    JavaStreamingContext jsc = new JavaStreamingContext(new JavaSparkContext(getSparkSession().sparkContext()),
-        batchDuration);
-
-    INSTANCE.jsc = jsc;
+    INSTANCE.jsc = new JavaStreamingContext(
+        new JavaSparkContext(getSparkSession().sparkContext()), batchDuration);
   }
 
-  private static void initializeBatchJob() {
+  private static void startSparkSession() {
     SparkConf sparkConf = getSparkConfiguration(INSTANCE.config, INSTANCE.mode);
 
     if (!sparkConf.contains("spark.master")) {

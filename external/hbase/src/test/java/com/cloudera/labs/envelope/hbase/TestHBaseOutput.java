@@ -158,7 +158,7 @@ public class TestHBaseOutput {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
     utility.shutdownMiniHBaseCluster();
     utility.shutdownMiniZKCluster();
   }

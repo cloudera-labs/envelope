@@ -99,10 +99,11 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
     }
 
     setData(data);
+    writeData();
 
     setSubmitted(true);
   }
-  
+
   private boolean doesRepartition() {
     return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY) ||
            config.hasPath(REPARTITION_COLUMNS_PROPERTY) ||

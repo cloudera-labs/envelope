@@ -19,6 +19,7 @@ import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
 import static com.cloudera.labs.envelope.security.SecurityUtils.TOKENS_CHECK_INTERVAL;
 import static com.cloudera.labs.envelope.spark.Contexts.ENVELOPE_CONFIGURATION_SPARK;
 
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -55,6 +56,7 @@ public class TokenStoreListener {
   private static TokenStoreListener INSTANCE;
 
   private static Config config;
+  private static ScheduledExecutorService executorService;
   private static Path latestTokenStorePath;
   private static TokenStore tokenStore;
   private static ConcurrentHashMap<String, TokenWrapper> tokenWrapperMap = new ConcurrentHashMap<>();
@@ -68,7 +70,7 @@ public class TokenStoreListener {
     }
 
     checkForUpdatedTokenStore();
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+    executorService = Executors.newScheduledThreadPool(1);
     executorService.scheduleAtFixedRate(new TokenRenewer(), listenerCheckIntervalMillis,
         listenerCheckIntervalMillis, TimeUnit.MILLISECONDS);
   }
@@ -203,6 +205,12 @@ public class TokenStoreListener {
       INSTANCE = new TokenStoreListener(ConfigUtils.getOrElse(config, SECURITY_PREFIX, ConfigFactory.empty()));
     }
     return INSTANCE;
+  }
+
+  public static void stop() {
+    if (executorService != null) {
+      executorService.shutdown();
+    }
   }
 
 }

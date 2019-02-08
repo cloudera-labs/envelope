@@ -54,7 +54,7 @@ public class TestTokenStoreListener {
         APPLICATION_SECTION_PREFIX + "." + SECURITY_PREFIX, ConfigFactory.empty());
     List<Path> files = SecurityUtils.getExistingTokenStoreFiles(securityConfig, hadoopConf, true);
     SecurityUtils.deleteTokenStoreFiles(files, 0, hadoopConf);
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
     Contexts.initialize(config, Contexts.ExecutionMode.UNIT_TEST);
     Contexts.getSparkSession();
   }
@@ -63,7 +63,7 @@ public class TestTokenStoreListener {
   public static void after() throws IOException {
     List<Path> files = SecurityUtils.getExistingTokenStoreFiles(securityConfig, hadoopConf, true);
     SecurityUtils.deleteTokenStoreFiles(files, 0, hadoopConf);
-    Contexts.closeSparkSession(true);
+    Contexts.closeSparkSession();
   }
 
   @Test

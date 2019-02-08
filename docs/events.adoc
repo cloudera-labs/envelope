@@ -1,0 +1,158 @@
+= Events Guide
+
+Envelope includes a framework for acting on events that occur during the lifecycle of an Envelope application.
+This framework can be used for operational purposes such as logging and alerting, and to provide hooks into lifecycle events that require custom code to be executed.
+
+NOTE: It is generally not necessary to use this framework to build an Envelope data pipeline.
+
+Each instance of an event corresponds to an event type, and also includes a message description of the event, and zero or more metadata items that are defined either for all events or per event type.
+
+An Envelope application can register event handlers to be notified and act on events as they occur.
+Envelope provides one default event handler and one non-default handler. Custom event handlers can also be provided.
+
+NOTE: The event framework currently only notifies on a minimal set of possible event types.
+More event types will be added in future releases as they are required.
+
+== Registering event handlers
+
+Event handlers can be registered by including them in the optional `application.event-handlers` configuration list.
+
+For example,
+
+----
+application {
+  name = "Example pipeline"
+  ...
+  event-handlers = [
+    {
+      type = com.example.envelope.CustomEventHandler
+      config1 = hello
+    },
+    {
+      type = com.example.envelope.AnotherCustomEventHandler
+      config2 = world
+    }
+  ]
+}
+
+steps {
+ ...
+----
+
+== Provided event handlers
+
+=== Log
+
+The `log` event handler is used to log events to stderr.
+This event handler is registered by Envelope by default.
+It can be included in the `event-handlers` configuration list but it does not currently use any additional configurations.
+
+=== Output
+
+The `output` event handler is used to write out events to an external system as defined by an Envelope output, such as Kudu.
+The Envelope output must be a random output that supports INSERTs.
+
+The output must support records with the fields:
+
+- event_id (string)
+- timestamp_utc (timestamp)
+- event_type (string)
+- message (string)
+- pipeline_id (string)
+- application_id (string)
+
+For example,
+
+----
+application {
+  name = "Example pipeline with output event handler"
+  ...
+  event-handlers = [
+    {
+      type = output
+      output {
+        type = kudu
+        connection = "kudumasterhostname:7051"
+        table.name = "impala::default.envelope_events"
+      }
+    }
+  ]
+}
+
+steps {
+ ...
+----
+
+== Custom event handlers
+
+Event handlers can be created by implementing the Envelope `EventHandler` interface.
+
+Each event handler must declare which event types it will handle.
+The event types created by Envelope core are provided in the `CoreEventTypes` class.
+
+== Event types
+
+The following table specifies the list of event types that Envelope will notify on, and the list of metadata items that are specific for each event type.
+
+Note that class names have been simplified for brevity.
+Event types map to constants within `CoreEventTypes`.
+Metadata item keys map to constants within `CoreEventMetadataKeys`.
+
+[cols="<.<*", %header]
+|===
+|Event type|Description|Metadata item key|Metadata item description|Metadata item class
+
+|PIPELINE_STARTED
+|The pipeline has started
+3+^|_none_
+
+|PIPELINE_FINISHED
+|The pipeline has finished without any exception
+3+^|_none_
+
+.1+|PIPELINE_EXCEPTION_OCCURRED
+.1+|The pipeline has failed because of a propagated exception
+|PIPELINE_EXCEPTION_OCCURRED_EXCEPTION
+|The exception that occurred
+|Exception
+
+.3+|STEPS_EXTRACTED
+.3+|The steps have been instantiated from the pipeline configuration
+|STEPS_EXTRACTED_CONFIG
+|The configuration that the steps were extracted from
+|Config
+|STEPS_EXTRACTED_STEPS
+|The set of steps that were extracted
+|Set<Step>
+|STEPS_EXTRACTED_TIME_TAKEN_NS
+|The number of nanoseconds taken to extract the steps
+|long
+
+.1+|EXECUTION_MODE_DETERMINED
+.1+|The execution mode for the pipeline (e.g. batch, streaming) has been determined
+|EXECUTION_MODE_DETERMINED_MODE
+|The execution mode
+|ExecutionMode
+
+.2+|DATA_STEP_WRITTEN_TO_OUTPUT
+.2+|The data step has written its data to its output
+|DATA_STEP_WRITTEN_TO_OUTPUT_STEP_NAME
+|The name of the step that wrote to its output
+|String
+|DATA_STEP_WRITTEN_TO_OUTPUT_TIME_TAKEN_NS
+|The number of nanoseconds taken to write to the output
+|long
+
+.3+|DATA_STEP_DATA_GENERATED
+.3+|The data step has generated its data from its input or its deriver. Note that when handling this event Spark is forced to execute steps one at a time, which can lead to slower performance because Spark can not merge steps together. Good citizen event handlers should allow users to optionally ignore this event for best performance.
+|DATA_STEP_DATA_GENERATED_STEP_NAME
+|The name of the step that generated its data
+|String
+|DATA_STEP_DATA_GENERATED_ROW_COUNT
+|The number of rows of data generated
+|long
+|DATA_STEP_DATA_GENERATED_TIME_TAKEN_NS
+|The number of nanoseconds taken to generate the data
+|long
+
+|===

@@ -66,3 +66,4 @@ If you are ready for more, dive in:
 * [Tasks Guide](docs/tasks.adoc) - how to apply side-effects in an Envelope pipeline that are separate from the data flow
 * [Security Guide](docs/security.adoc) - how to run Envelope in secure cluster configurations
 * [Repetitions Guide](docs/repetitions.adoc) - how to re-run cached steps in a streaming job based on provided criteria
+* [Events Guide](docs/events.adoc) - how to handle Envelope application lifecycle events
