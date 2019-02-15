@@ -91,7 +91,7 @@ public class ConfigUtils {
         if (valueList.size() > 0) {
           if (valueList.get(0) instanceof String) {
             for (int i = 0; i < valueList.size(); i++) {
-              String found = (String)valueList.get(0);
+              String found = (String)valueList.get(i);
               String replaced = found.replaceAll(findRegex, replace.toString());
               valueList.set(i, replaced);
             }

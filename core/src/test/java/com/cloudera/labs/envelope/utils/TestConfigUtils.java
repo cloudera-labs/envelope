@@ -98,16 +98,22 @@ public class TestConfigUtils {
   
   @Test
   public void testFindReplaceStringValues() {
-    Config baseConfig = ConfigFactory.parseString("a: ${replaceme}, b: \"${replaceme}\", c: [${replaceme}, ${replaceme}], d: [\"${replaceme}\", \"${replaceme}\"], e: { f: \"${replaceme}\", g: [\"${replaceme}\"] }" );
-    Config resolvedConfig = baseConfig.resolveWith(ConfigFactory.empty().withValue("replaceme", ConfigValueFactory.fromAnyRef("REPLACED")));
-    Config replacedConfig = ConfigUtils.findReplaceStringValues(resolvedConfig, "\\$\\{replaceme\\}", "REPLACED");
+    Config baseConfig = ConfigFactory.parseString("a: ${replaceme}, b: \"${replaceme}\", " +
+        "c: [${replaceme}, \"hello\", ${replaceme}], d: [\"${replaceme}\", \"world\", " +
+        "\"${replaceme}\"], e: { f: \"${replaceme}\", g: [\"${replaceme}\"] }");
+    Config resolvedConfig = baseConfig.resolveWith(
+        ConfigFactory.empty().withValue("replaceme", ConfigValueFactory.fromAnyRef("REPLACED")));
+    Config replacedConfig = ConfigUtils.findReplaceStringValues(
+        resolvedConfig, "\\$\\{replaceme\\}", "REPLACED");
   
     assertEquals(replacedConfig.getString("a"), "REPLACED");
     assertEquals(replacedConfig.getString("b"), "REPLACED");
     assertEquals(replacedConfig.getStringList("c").get(0), "REPLACED");
-    assertEquals(replacedConfig.getStringList("c").get(1), "REPLACED");
+    assertEquals(replacedConfig.getStringList("c").get(1), "hello");
+    assertEquals(replacedConfig.getStringList("c").get(2), "REPLACED");
     assertEquals(replacedConfig.getStringList("d").get(0), "REPLACED");
-    assertEquals(replacedConfig.getStringList("d").get(1), "REPLACED");
+    assertEquals(replacedConfig.getStringList("d").get(1), "world");
+    assertEquals(replacedConfig.getStringList("d").get(2), "REPLACED");
     assertEquals(replacedConfig.getConfig("e").getString("f"), "REPLACED");
     assertEquals(replacedConfig.getConfig("e").getStringList("g").get(0), "REPLACED");
   }
