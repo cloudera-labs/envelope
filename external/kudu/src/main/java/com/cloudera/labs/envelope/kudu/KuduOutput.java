@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -34,7 +34,6 @@ import com.cloudera.labs.envelope.spark.UsesAccumulators;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
@@ -60,6 +59,8 @@ import org.apache.kudu.spark.kudu.KuduContext;
 import org.apache.kudu.spark.kudu.KuduRelation;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
@@ -215,53 +216,50 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
   }
 
   private StructType schemaFor(KuduTable table) {
-    List<String> fieldNames = Lists.newArrayList();
-    List<String> fieldTypes = Lists.newArrayList();
+    List<StructField> fields = Lists.newArrayList();
 
     for (ColumnSchema columnSchema : table.getSchema().getColumns()) {
       String fieldName = columnSchema.getName();
-      String fieldType;
+      DataType fieldType;
 
       switch (columnSchema.getType()) {
         case DOUBLE:
-          fieldType = "double";
+          fieldType = DataTypes.DoubleType;
           break;
         case FLOAT:
-          fieldType = "float";
+          fieldType = DataTypes.FloatType;
           break;
         case INT8:
-          fieldType = "byte";
+          fieldType = DataTypes.ByteType;
           break;
         case INT16:
-          fieldType = "short";
+          fieldType = DataTypes.ShortType;
           break;
         case INT32:
-          fieldType = "int";
+          fieldType = DataTypes.IntegerType;
           break;
         case INT64:
-          fieldType = "long";
+          fieldType = DataTypes.LongType;
           break;
         case STRING:
-          fieldType = "string";
+          fieldType = DataTypes.StringType;
           break;
         case BOOL:
-          fieldType = "boolean";
+          fieldType = DataTypes.BooleanType;
           break;
         case BINARY:
-          fieldType = "binary";
+          fieldType = DataTypes.BinaryType;
           break;
         case UNIXTIME_MICROS:
-          fieldType = "timestamp";
+          fieldType = DataTypes.TimestampType;
           break;
         default:
           throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
       }
-
-      fieldNames.add(fieldName);
-      fieldTypes.add(fieldType);
+      fields.add(DataTypes.createStructField(columnSchema.getName(), fieldType, true));
     }
 
-    StructType tableSchema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
+    StructType tableSchema = DataTypes.createStructType(fields);
 
     return tableSchema;
   }

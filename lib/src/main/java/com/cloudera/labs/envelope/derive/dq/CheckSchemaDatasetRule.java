@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,25 +15,23 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
+import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.validate.Validation;
-import com.cloudera.labs.envelope.validate.ValidationResult;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.cloudera.labs.envelope.validate.Validity;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -42,16 +40,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations {
+public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations,  InstantiatesComponents {
 
-  public static final String FIELDS_CONFIG = "fields";
-  public static final String FIELD_NAME_CONFIG = "name";
-  public static final String FIELD_TYPE_CONFIG = "type";
-  public static final String DECIMAL_SCALE_CONFIG = "scale";
-  public static final String DECIMAL_PRECISION_CONFIG = "precision";
-  public static final String EXACT_MATCH_CONFIG = "exactmatch";
-
+  public static final String SCHEMA_CONFIG = "schema";
   private static final boolean DEFAULT_EXACT_MATCH = false;
+  public static final String EXACT_MATCH_CONFIG = "exactmatch";
 
   private String name;
   private StructType requiredSchema;
@@ -60,8 +53,7 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, Provi
   @Override
   public void configure(String name, Config config) {
     this.name = name;
-    List<? extends ConfigObject> fields = config.getObjectList(FIELDS_CONFIG);
-    requiredSchema = parseSchema(fields);
+    requiredSchema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
     exactMatch = ConfigUtils.getOrElse(config, EXACT_MATCH_CONFIG, DEFAULT_EXACT_MATCH);
   }
 
@@ -70,58 +62,6 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, Provi
     boolean schemasMatch = schemasMatch(requiredSchema, dataset.schema(), exactMatch);
     List<Row> datasetRows = Lists.newArrayList((Row)new RowWithSchema(SCHEMA, name, schemasMatch));
     return Contexts.getSparkSession().createDataFrame(datasetRows, SCHEMA);
-  }
-
-  private static StructType parseSchema(List<? extends ConfigObject> fieldsConfig) {
-    StructField[] fields = new StructField[fieldsConfig.size()];
-    for (int i = 0; i < fieldsConfig.size(); i++) {
-      fields[i] = parseField(fieldsConfig.get(i).toConfig());
-    }
-    return new StructType(fields);
-  }
-
-  private static StructField parseField(Config fieldsConfig) {
-    String name = fieldsConfig.getString(FIELD_NAME_CONFIG);
-    DataType type = parseDataType(fieldsConfig);
-    return new StructField(name, type, true, Metadata.empty());
-  }
-
-  private static DataType parseDataType(Config fieldsConfig) {
-    String type = fieldsConfig.getString(FIELD_TYPE_CONFIG);
-    switch (type) {
-      case "string":
-        return DataTypes.StringType;
-      case "byte":
-        return DataTypes.ByteType;
-      case "short":
-        return DataTypes.ShortType;
-      case "int":
-        return DataTypes.IntegerType;
-      case "long":
-        return DataTypes.LongType;
-      case "float":
-        return DataTypes.FloatType;
-      case "double":
-        return DataTypes.DoubleType;
-      case "decimal":
-        return DataTypes.createDecimalType(
-                fieldsConfig.getInt(DECIMAL_SCALE_CONFIG),
-                fieldsConfig.getInt(DECIMAL_PRECISION_CONFIG));
-      case "boolean":
-        return DataTypes.BooleanType;
-      case "binary":
-        return DataTypes.BinaryType;
-      case "date":
-        return DataTypes.DateType;
-      case "timestamp":
-        return DataTypes.TimestampType;
-      case "array":
-      case "map":
-      case "struct":
-        throw new RuntimeException("Schema check does not currently support complex types");
-      default:
-        throw new RuntimeException("Unknown type: " + type);
-    }
   }
 
   private static boolean schemasMatch(StructType requiredSchema, StructType actualSchema, boolean exactMatch) {
@@ -165,29 +105,15 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, Provi
   @Override
   public Validations getValidations() {
     return Validations.builder()
-        .mandatoryPath(FIELDS_CONFIG, ConfigValueType.LIST)
-        .add(new SchemaFieldsValidation())
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
         .optionalPath(EXACT_MATCH_CONFIG, ConfigValueType.BOOLEAN)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
   }
 
-  private static class SchemaFieldsValidation implements Validation {
-    @Override
-    public ValidationResult validate(Config config) {
-      try {
-        parseSchema(config.getObjectList(FIELDS_CONFIG));
-      }
-      catch (Exception e) {
-        return new ValidationResult(this, Validity.INVALID, "Schema configuration is invalid");
-      }
-
-      return new ValidationResult(this, Validity.VALID, "Schema configuration is valid");
-    }
-
-    @Override
-    public Set<String> getKnownPaths() {
-      return Sets.newHashSet(FIELDS_CONFIG);
-    }
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
   }
-  
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,19 +15,19 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.AvroUtils;
-import com.cloudera.labs.envelope.utils.FilesystemUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
-import com.cloudera.labs.envelope.validate.AvroSchemaLiteralValidation;
-import com.cloudera.labs.envelope.validate.AvroSchemaPathValidation;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
-import org.apache.avro.Schema;
+import com.typesafe.config.ConfigValueType;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericDatumReader;
@@ -39,39 +39,23 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A translator implementation for binary Apache Avro generic record messages.
  */
-public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValidations {
+public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValidations, 
+    InstantiatesComponents  {
 
   private StructType schema;
   private GenericDatumReader<GenericRecord> reader;
 
-  public static final String AVRO_LITERAL_CONFIG = "schema.literal";
-  public static final String AVRO_PATH_CONFIG = "schema.path";
+  public static final String SCHEMA_CONFIG = "schema";
 
   @Override
   public void configure(Config config) {
-    String avroSchemaLiteral;
-    if (config.hasPath(AVRO_LITERAL_CONFIG)) {
-      avroSchemaLiteral = config.getString(AVRO_LITERAL_CONFIG);
-    }
-    else {
-      String avroSchemaPath = config.getString(AVRO_PATH_CONFIG);
-      try {
-        avroSchemaLiteral = FilesystemUtils.filesystemPathContents(avroSchemaPath);
-      }
-      catch (Exception e) {
-        // At this point we have already validated the filesystem call,
-        // but we need to throw something "just in case" this time breaks
-        throw new RuntimeException(e);
-      }
-    }
-    Schema avroSchema = new Schema.Parser().parse(avroSchemaLiteral);
-    schema = AvroUtils.structTypeFor(avroSchema);
-    
-    reader = new GenericDatumReader<>(avroSchema);
+    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    reader = new GenericDatumReader<>(AvroUtils.schemaFor(schema));
   }
 
   @Override
@@ -124,10 +108,14 @@ public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValida
   @Override
   public Validations getValidations() {
     return Validations.builder()
-        .exactlyOnePathExists(AVRO_LITERAL_CONFIG, AVRO_PATH_CONFIG)
-        .ifPathExists(AVRO_PATH_CONFIG, new AvroSchemaPathValidation(AVRO_PATH_CONFIG))
-        .ifPathExists(AVRO_LITERAL_CONFIG, new AvroSchemaLiteralValidation(AVRO_LITERAL_CONFIG))
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
   }
 
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
+  }
+  
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,8 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.schema.FlatSchema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.translate.TestMorphlineTranslator;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
@@ -61,8 +63,11 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("foo", "bar"));
-    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int", "string"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("foo", "bar"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     MorphlineDeriver deriver = new MorphlineDeriver();
@@ -75,19 +80,21 @@ public class TestMorphlineDeriver {
     assertEquals("Invalid DataType", DataTypes.StringType, schema.fields()[1].dataType());
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void getSchemaInvalidDataType() throws Exception {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
-    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("boom"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("boom"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     MorphlineDeriver deriver = new MorphlineDeriver();
-    assertNoValidationFailures(deriver, config);
-    deriver.configure(config);
+    assertValidationFailures(deriver, config);
   }
 
   @Test
@@ -138,8 +145,11 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "nope");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
-    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -160,8 +170,11 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, "morphline");
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("bar"));
-    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("int"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     new Expectations() {{
@@ -171,7 +184,8 @@ public class TestMorphlineDeriver {
 
     Dataset<Row> dataFrame = Contexts.getSparkSession().createDataFrame(
         Lists.newArrayList(RowFactory.create(1)),
-        DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField("baz", DataTypes.IntegerType, false)))
+        DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField(
+            "baz", DataTypes.IntegerType, false)))
     );
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -190,8 +204,11 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "deriver");
-    paramMap.put(MorphlineDeriver.FIELD_NAMES, Lists.newArrayList("foo", "bar", "baz"));
-    paramMap.put(MorphlineDeriver.FIELD_TYPES, Lists.newArrayList("string", "int", "int"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("foo", "bar", "baz"));
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("string", "integer", "integer"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     Dataset<Row> dataFrame = Contexts.getSparkSession().createDataFrame(

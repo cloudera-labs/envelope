@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,9 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.schema.FlatSchema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -36,15 +39,24 @@ public class TestDelimitedTranslator {
   public void testTranslation() throws Exception {
     String delimited = "hello%$-100.1%$1000.5%$99%$888%$%$false%$2018-03-03T20:23:33.897+04:00";
     Config config = ConfigFactory.empty()
-        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
-        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("string", "float", "double", "int", "long", "int", "boolean", "timestamp")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+            ConfigValueFactory.fromAnyRef("flat"))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG, 
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("field1", "field2", "field3", "field4", 
+                                   "field5", "field6", "field7", "field8")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("string", "float", "double", "integer", 
+                                   "long", "integer", "boolean", "timestamp")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"));
 
     Translator t = new DelimitedTranslator();
+    assertNoValidationFailures((DelimitedTranslator)t, config);
     t.configure(config);
     Row raw = TestingMessageFactory.get(delimited, DataTypes.StringType);
+    Iterable<Row> ir = t.translate(raw);
+    
     Row r = t.translate(raw).iterator().next();
     assertEquals(r.length(), 8);
     assertEquals(r.get(0), "hello");
@@ -62,13 +74,18 @@ public class TestDelimitedTranslator {
     String delimited1 = "000001|2017-11-01 23:21:21.924||TYPE|DATA";
     String delimited2 = "000002|2017-11-01 23:21:21.924|101|TYPE|";
 
-    List<String> fieldNames = Lists.newArrayList("event_id", "event_time", "event_state", "event_type", "event_data");
+    List<String> fieldNames = Lists.newArrayList(
+        "event_id", "event_time", "event_state", "event_type", "event_data");
     List<String> fieldTypes = Lists.newArrayList("long", "string", "long", "string", "string");
 
     Config config = ConfigFactory.empty()
-            .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(fieldNames))
-            .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(fieldTypes))
-            .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("|"));
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+            ConfigValueFactory.fromAnyRef("flat"))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+            ConfigValueFactory.fromIterable(fieldNames))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+            ConfigValueFactory.fromIterable(fieldTypes))
+        .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("|"));
 
     DelimitedTranslator t = new DelimitedTranslator();
     assertNoValidationFailures(t, config);
@@ -98,10 +115,14 @@ public class TestDelimitedTranslator {
     String delimited = "val1 2 34";
     
     Config config = ConfigFactory.empty()
-        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4", "field5")))
-        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("string", "int", "long", "int", "boolean")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+            ConfigValueFactory.fromAnyRef("flat"))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("field1", "field2", "field3", "field4", "field5")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("string", "integer", "long", "integer", "boolean")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef(" "));
 
     DelimitedTranslator t = new DelimitedTranslator();
@@ -122,10 +143,14 @@ public class TestDelimitedTranslator {
     String delimited = "val1 \"val2 ...\" val3 \"val4 val5\"";
     
     Config config = ConfigFactory.empty()
-        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4")))
-        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("string", "string", "string", "string")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+            ConfigValueFactory.fromAnyRef("flat"))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("field1", "field2", "field3", "field4")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("string", "string", "string", "string")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, 
             ConfigValueFactory.fromAnyRef(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
         .withValue(DelimitedTranslator.DELIMITER_REGEX_CONFIG_NAME,
@@ -148,10 +173,14 @@ public class TestDelimitedTranslator {
     String delimited = "2018-09-19 23:49:29.92284%$2018-09-09 23:49:29.00000%$1000.5%$99%$888%$%$false%$2018-09-19 00:00:00";
 
     Config config = ConfigFactory.empty()
-        .withValue(DelimitedTranslator.FIELD_NAMES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
-        .withValue(DelimitedTranslator.FIELD_TYPES_CONFIG_NAME, ConfigValueFactory.fromIterable(
-            Lists.newArrayList("timestamp", "timestamp", "double", "int", "long", "int", "boolean", "timestamp")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, 
+            ConfigValueFactory.fromAnyRef("flat"))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG, 
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
+        .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+            ConfigValueFactory.fromIterable(
+                Lists.newArrayList("timestamp", "timestamp", "double", "integer", "long", "integer", "boolean", "timestamp")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"))
         .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
             Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));

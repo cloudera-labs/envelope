@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -25,6 +24,7 @@ import com.typesafe.config.ConfigValueFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
@@ -44,9 +44,11 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", "2"),
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "string"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.StringType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -77,9 +79,11 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", 2),
         RowFactory.create("B", "hello", 3),
         RowFactory.create("C", "world", 4));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "int"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.IntegerType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -110,9 +114,11 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", 2.0),
         RowFactory.create("B", "hello", 3.0),
         RowFactory.create("C", "world", 4.0));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "double"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.DoubleType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -143,9 +149,13 @@ public class TestPivotDeriver {
         RowFactory.create("A", "AA", "AAA", "world", "2"),
         RowFactory.create("B", "BB", "BBB", "hello", "3"),
         RowFactory.create("C", "CC", "CCC", "world", "4"));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id1", "entity_id2", "entity_id3", "key", "value"),
-        Lists.newArrayList("string", "string", "string", "string", "string"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id1", DataTypes.StringType, true),
+      DataTypes.createStructField("entity_id2", DataTypes.StringType, true),
+      DataTypes.createStructField("entity_id3", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.StringType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -177,9 +187,11 @@ public class TestPivotDeriver {
         RowFactory.create("A", "world", "2"),
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "string"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.StringType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -212,9 +224,11 @@ public class TestPivotDeriver {
         RowFactory.create("B", "hello", "3"),
         RowFactory.create("C", "world", "4"),
         RowFactory.create("D", "dummy", "5"));
-    StructType schema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("entity_id", "key", "value"),
-        Lists.newArrayList("string", "string", "string"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("entity_id", DataTypes.StringType, true),
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.StringType, true)
+    ));
     Dataset<Row> source = Contexts.getSparkSession().createDataFrame(sourceList, schema);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();

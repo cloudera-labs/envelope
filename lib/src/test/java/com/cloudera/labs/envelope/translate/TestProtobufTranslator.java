@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,8 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.schema.ProtobufSchema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.TestProtobufUtils;
 import com.google.protobuf.ByteString;
@@ -79,116 +81,14 @@ public class TestProtobufTranslator {
   }
 
   @Test
-  public void getSchema() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH,
-        TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath());
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertNoValidationFailures(translator, config);
-    translator.configure(config);
-
-    assertThat(translator.getProvidingSchema(), is(TestProtobufUtils.SINGLE_SCHEMA));
-  }
-
-  @Test
-  public void configure() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH,
-        TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath());
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertNoValidationFailures(translator, config);
-    translator.configure(config);
-  }
-
-  @Test
-  public void configureMissingFilepath() {
-    Config config = ConfigFactory.empty();
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertValidationFailures(translator, config);
-  }
-
-  @Test
-  public void configureWrongTypeFilepath() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, new HashMap<>());
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertValidationFailures(translator, config);
-  }
-
-  @Test(expected = RuntimeException.class)
-  public void configureIllegalFilepath() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, "not found");
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertNoValidationFailures(translator, config);
-    translator.configure(config);
-  }
-
-  @Test
-  public void configureBlankFilepath() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, "");
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertValidationFailures(translator, config);
-  }
-
-  @Test (expected = RuntimeException.class)
-  public void configMultipleNoDesignation() {
-    String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
-
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertNoValidationFailures(translator, config);
-    translator.configure(config);
-  }
-
-  @Test
-  public void configMultipleWrongTypeDesignation() {
-    String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
-
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_MESSAGE, new HashMap<>());
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertValidationFailures(translator, config);
-  }
-
-  @Test
-  public void configMultipleBlankDesignation() {
-    String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
-
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_MESSAGE, "");
-    Config config = ConfigFactory.parseMap(configMap);
-
-    ProtobufTranslator translator = new ProtobufTranslator();
-    assertValidationFailures(translator, config);
-  }
-
-  @Test
   public void loader() {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(TranslatorFactory.TYPE_CONFIG_NAME, ALIAS);
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     Translator translator = TranslatorFactory.create(config, true);
@@ -200,7 +100,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -263,7 +165,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -289,7 +193,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -316,7 +222,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -341,8 +249,11 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_MESSAGE, "OtherExample");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." +
+        ProtobufSchema.DESCRIPTOR_MESSAGE_CONFIG, "OtherExample");
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -365,7 +276,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();
@@ -384,7 +297,9 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.CONFIG_DESCRIPTOR_FILEPATH, descPath);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
+        ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
     ProtobufTranslator translator = new ProtobufTranslator();

@@ -22,10 +22,7 @@ There is one provided streaming input: `kafka`.
 
 The `filesystem` input can read in data from Hadoop-compatible file systems, such as HDFS and S3A, at the path given by the `path` configuration, and interpret them as one of five formats.
 
-For some of the supported file formats a schema must or can be given. There are two ways to specify a schema in the input configuration:
-
-- Provide the lists of field names and field types (in the same field order) to `field.names` and `field.types`.
-- Provide an Avro schema (note this does not imply the data needs to be Avro formatted) either directly to `avro-schema.literal` or indirectly by giving the path to an Avro schema file to `avro-schema.file`.
+For some of the supported file formats a schema must or can be given. There are multiple ways to specify a schema in the input configuration.  Please refer to the link:configurations.adoc#schema[schema documentation] for details.
 
 This input can read the contents of the path in five different formats (specified by the `format` configuration):
 
@@ -108,8 +105,11 @@ input {
   translator {
     type = delimited
     delimiter = ","
-    field.names = [name,score,time]
-    field.types = [string,int,long]
+    schema {
+      type = flat
+      field.names = [name,score,time]
+      field.types = [string,integer,long]
+    }
   }
   offsets {
     manage = true
@@ -190,8 +190,9 @@ steps {
       encoding = bytearray
       translator {
         type = protobuf
-        descriptor {
-          filepath = the-protobuf-schema.desc
+        schema {
+          type = protobuf
+          descriptor.filepath = the-protobuf-schema.desc
         }
       }
     }

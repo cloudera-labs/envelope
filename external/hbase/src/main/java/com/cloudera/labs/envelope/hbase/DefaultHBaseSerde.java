@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.hbase;
 
+import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -244,17 +245,17 @@ public class DefaultHBaseSerde implements HBaseSerde {
 
   private static Object getColumnValue(byte[] source, int offset, int length, String type) {
     switch (type) {
-      case "int":
+      case ConfigurationDataTypes.INTEGER:
         return Bytes.toInt(source, offset, length);
-      case "long":
+      case ConfigurationDataTypes.LONG:
         return Bytes.toLong(source, offset, length);
-      case "boolean":
+      case ConfigurationDataTypes.BOOLEAN:
         return Bytes.toBoolean(source);
-      case "float":
+      case ConfigurationDataTypes.FLOAT:
         return Bytes.toFloat(source);
-      case "double":
+      case ConfigurationDataTypes.DOUBLE:
         return Bytes.toDouble(source);
-      case "string":
+      case ConfigurationDataTypes.STRING:
         return Bytes.toString(source, offset, length);
       default:
         LOG.error("Unsupported column type: {}", type);
@@ -265,22 +266,22 @@ public class DefaultHBaseSerde implements HBaseSerde {
   private static int addColumnValue(byte[] source, int offset, int endIndex,
                                     Object[] values, String type, int valueIndex, byte[] keySeparator, boolean last) {
     switch (type) {
-      case "int":
+      case ConfigurationDataTypes.INTEGER:
         values[valueIndex] = Bytes.toInt(source, offset, 4);
         return 4;
-      case "long":
+      case ConfigurationDataTypes.LONG:
         values[valueIndex] = Bytes.toLong(source, offset, 8);
         return 8;
-      case "boolean":
+      case ConfigurationDataTypes.BOOLEAN:
         values[valueIndex] = Bytes.toInt(source, offset, 1);
         return 1;
-      case "float":
+      case ConfigurationDataTypes.FLOAT:
         values[valueIndex] = Bytes.toFloat(source, offset);
         return 4;
-      case "double":
+      case ConfigurationDataTypes.DOUBLE:
         values[valueIndex] = Bytes.toDouble(source, offset);
         return 8;
-      case "string":
+      case ConfigurationDataTypes.STRING:
         if (last) {
           // if the last field just grab it all
           values[valueIndex] = Bytes.toString(source, offset, endIndex - offset);
@@ -330,17 +331,17 @@ public class DefaultHBaseSerde implements HBaseSerde {
         return null;
       }
       switch (type) {
-        case "string":
+        case ConfigurationDataTypes.STRING:
           return Bytes.toBytes((String) RowUtils.get(row, name));
-        case "int":
+        case ConfigurationDataTypes.INTEGER:
           return Bytes.toBytes((int) RowUtils.get(row, name));
-        case "long":
+        case ConfigurationDataTypes.LONG:
           return Bytes.toBytes((long) RowUtils.get(row, name));
-        case "float":
+        case ConfigurationDataTypes.FLOAT:
           return Bytes.toBytes((float) RowUtils.get(row, name));
-        case "double":
+        case ConfigurationDataTypes.DOUBLE:
           return Bytes.toBytes((double) RowUtils.get(row, name));
-        case "boolean":
+        case ConfigurationDataTypes.BOOLEAN:
           return Bytes.toBytes((boolean) RowUtils.get(row, name));
         default:
           LOG.error("Unsupported column type: {}", type);

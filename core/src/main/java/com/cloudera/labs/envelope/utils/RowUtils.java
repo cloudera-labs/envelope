@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,6 +16,7 @@
 package com.cloudera.labs.envelope.utils;
 
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
 import org.apache.spark.sql.Column;
@@ -35,12 +36,22 @@ import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 public class RowUtils {
+
+  public enum RowValueMetadata {
+    TIMESTAMP_FORMATS 
+  }
+
+  private static final Map emptyMetadata = Collections.unmodifiableMap(new HashMap<RowUtils.RowValueMetadata, Object>());
+  private static Map dateTimeParsers = new HashMap<Set<String>, DateTimeParser>();
 
   /**
    * <p>Converts a Java object (simple or compound, e.g. Maps and Arrays) or Row object (for Arrays, Maps, and
@@ -102,6 +113,7 @@ public class RowUtils {
    *      <li>String value of milliseconds since epoch</li>
    *      <li>{@link java.util.Date} value</li>
    *      <li>{@link org.joda.time.DateTime} value</li>
+   *      <li>String value with additional metadata Map<RowUtils.RowValueMetadata, Object> parameter of {TIMESTAMP_FORMATS : List<String> formats }<br/>
    *      <li>or the following String value:<br/>
    *      <pre>
    datetime          = time | date-opt-time
@@ -219,10 +231,11 @@ public class RowUtils {
    * </dl>
    * @param item The value for conversion
    * @param type The DataType of the field
+   * @param metadata Additional conversion properties for the field
    * @return A Row-compatible value
    * @see <a href="https://spark.apache.org/docs/latest/sql-programming-guide.html#data-types">Spark SQL Data Types</a>
    */
-  public static Object toRowValue(Object item, DataType type) {
+  public static Object toRowValue(Object item, DataType type, Map<RowUtils.RowValueMetadata, Object> metadata) {
 
     String typeName = type.typeName();
     // Binary, Boolean, Byte, Date, Null, Decimal, Double, Float, Integer, Long, Short, String, Timestamp
@@ -269,7 +282,7 @@ public class RowUtils {
         if (item instanceof Long) {
           return new Timestamp((Long) item);
         } else if (item instanceof String) {
-          return new Timestamp(DateTime.parse((String) item).getMillis());
+          return new Timestamp(getDateTimeParser(metadata).parse((String) item).getMillis());
         } else if (item instanceof Date) {
           return new Timestamp(((Date) item).getTime());
         } else if (item instanceof DateTime) {
@@ -601,6 +614,31 @@ public class RowUtils {
               type));
         }
     }
+  }
+
+  public static Object toRowValue(Object item, DataType type) {
+    return toRowValue(item, type, emptyMetadata);
+  }
+
+  private static DateTimeParser getDateTimeParser(Map<RowUtils.RowValueMetadata, Object> metadata) {
+    Set<String> dateTimeFormatSet = new HashSet<String>();
+
+    if ((metadata != null) && metadata.containsKey(RowValueMetadata.TIMESTAMP_FORMATS)) {
+      Set<String> metadataDateTimeFormatSet = (Set<String>) metadata.get(RowValueMetadata.TIMESTAMP_FORMATS);      
+
+      if (metadataDateTimeFormatSet != null) {
+        dateTimeFormatSet = metadataDateTimeFormatSet;
+      }
+    }
+    
+    if (dateTimeParsers.keySet().contains(dateTimeFormatSet)) {
+      return (DateTimeParser)dateTimeParsers.get(dateTimeFormatSet);
+    }
+
+    DateTimeParser newParser = new DateTimeParser();
+    newParser.configureFormat(Lists.newArrayList(dateTimeFormatSet));
+    dateTimeParsers.put(dateTimeFormatSet, newParser);
+    return newParser;
   }
 
   public static Row subsetRow(Row row, StructType subsetSchema) {

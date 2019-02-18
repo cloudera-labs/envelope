@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,9 +15,13 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.schema.FlatSchema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
@@ -26,9 +30,9 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kitesdk.morphline.api.Command;
@@ -39,13 +43,12 @@ import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Compiler;
 
 import java.io.File;
+import java.util.Map;
 
 @RunWith(JMockit.class)
 public class TestMorphlineTranslator {
 
   private static final String MORPHLINE_FILE = "/morphline.conf";
-
-  private @Mocked Config config;
 
   private Translator translator;
 
@@ -58,21 +61,20 @@ public class TestMorphlineTranslator {
     translator = new MorphlineTranslator();
   }
 
-  @After
-  public void teardown() {
-    config = null;
-  }
-
   @Test
   public void getSchema() throws Exception {
 
-    // Relies on RowUtils.structTypeFor()
-
-    new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar", "foo");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar", "foo"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     StructType schema = translator.getProvidingSchema();
@@ -87,28 +89,44 @@ public class TestMorphlineTranslator {
 
     // Relies on RowUtils.structTypeFor()
 
-    new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar", "foo");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "boom");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar", "foo"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "boom"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
   }
 
+  //@Ignore
   @Test (expected = MorphlineCompilationException.class)
   public void morphlineCompilationError(
       final @Mocked Compiler compiler
   ) throws Exception {
-
     new Expectations() {{
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("bar");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int");
-
-      compiler.compile((File) any, anyString, (MorphlineContext) any, (Command) any); result = new Exception("Compilation exception");
+      compiler.compile((File) any, anyString, (MorphlineContext) any, (Command) any); 
+      result = new Exception("Compilation exception");
     }};
 
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "compiler-exception");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("bar"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer"));
+    Config config = ConfigFactory.parseMap(configMap);
+
+    translator = new MorphlineTranslator();
     translator.configure(config);
     Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
     translator.translate(raw);
@@ -116,14 +134,17 @@ public class TestMorphlineTranslator {
 
   @Test (expected = RuntimeException.class)
   public void conversionError() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "default";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "boolean");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "boolean"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
@@ -132,17 +153,21 @@ public class TestMorphlineTranslator {
 
   @Test
   public void conversionSuccess() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "default";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
-    Row raw = TestingMessageFactory.get("The Key".getBytes(), DataTypes.BinaryType, "The Message".getBytes(), DataTypes.BinaryType);
+    Row raw = TestingMessageFactory.get("The Key".getBytes(), DataTypes.BinaryType, 
+        "The Message".getBytes(), DataTypes.BinaryType);
     Iterable<Row> result = translator.translate(raw);
     Row row = result.iterator().next();
 
@@ -155,14 +180,17 @@ public class TestMorphlineTranslator {
 
   @Test
   public void messageValid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-16");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     String message = "\u16b7";
@@ -181,14 +209,17 @@ public class TestMorphlineTranslator {
 
   @Test
   public void messageInvalid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "US-ASCII");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     String message = "\u16b7";
@@ -208,17 +239,21 @@ public class TestMorphlineTranslator {
   // TODO : Consider part of MorphlineUtils.executePipeline? (And produce via mocks?)
   @Test (expected = MorphlineRuntimeException.class)
   public void noRecordReturned() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "no-return";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "no-return");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
-    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, 
+        "The Message", DataTypes.StringType);
     translator.translate(raw);
   }
 
@@ -226,17 +261,21 @@ public class TestMorphlineTranslator {
   // Invalid command
   @Test (expected = MorphlineCompilationException.class)
   public void invalidCommand() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "invalid-command";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "invalid-command");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
-    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType,
+        "The Message", DataTypes.StringType);
     translator.translate(raw);
   }
 
@@ -244,29 +283,37 @@ public class TestMorphlineTranslator {
   // Failed process
   @Test (expected = MorphlineRuntimeException.class)
   public void failedProcess() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_KEY); result = "UTF-8";
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "failed-process";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "failed-process");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
-    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, "The Message", DataTypes.StringType);
+    Row raw = TestingMessageFactory.get("The Key", DataTypes.StringType, 
+        "The Message", DataTypes.StringType);
     translator.translate(raw);
   }
 
   @Test
   public void messageOnlyValid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-16";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-16");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     String message = "\u16b7";
@@ -283,13 +330,17 @@ public class TestMorphlineTranslator {
 
   @Test
   public void messageOnlyInvalid() throws Exception {
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "US-ASCII";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "encoding-message";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("int", "str", "float");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int", "string", "float");
-    }};
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "US-ASCII");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("int", "str", "float"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer", "string", "float"));
+    Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
     String message = "\u16b7";
@@ -320,13 +371,19 @@ public class TestMorphlineTranslator {
         RowFactory.create(234)
     );
 
-    new Expectations() {{
-      config.getString(MorphlineTranslator.ENCODING_MSG); result = "UTF-8";
-      config.getString(MorphlineTranslator.MORPHLINE); result = getResourcePath(MORPHLINE_FILE);
-      config.getString(MorphlineTranslator.MORPHLINE_ID); result = "multi-record";
-      config.getStringList(MorphlineTranslator.FIELD_NAMES); result = Lists.newArrayList("foo");
-      config.getStringList(MorphlineTranslator.FIELD_TYPES); result = Lists.newArrayList("int");
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(MorphlineTranslator.ENCODING_KEY, "UTF-8");
+    configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
+    configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
+    configMap.put(MorphlineTranslator.MORPHLINE_ID, "multi-record");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+        Lists.newArrayList("foo"));
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+        Lists.newArrayList("integer"));
+    Config config = ConfigFactory.parseMap(configMap);
 
+    new Expectations() {{
       collector.getRecords(); result = Lists.newArrayList(record1, record2);
       collector.process((Record) any); result = true;
     }};

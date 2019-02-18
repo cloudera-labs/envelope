@@ -62,7 +62,7 @@ The Morphline transformation is provided to the Envelope pipeline by a local fil
 
 The ID of the specific transformation within the Morphline file is specified with the `morphline.id` configuration.
 
-The deriver requires the output schema of the Morphline transformation to be provided using the `field.names` and `field.types` configurations.
+The deriver requires the output schema of the Morphline transformation to be provided.  The schema can be provided in a number of ways, as detailed in the link:inputs.adoc#filesystem[Inputs Guide].
 
 Each input row must correlate to a single output row, unless `error.on.empty` is set to `false`, in which case an empty output is permissible. Any fields that are not nullable must be specified in the output record.
 
@@ -335,11 +335,11 @@ steps {
         }
         r2 {
           type = checkschema
-          fields = [
-            { name = "name", type = "string" },
-            { name = "address", type = "string },
-            { name = "age", type = "age" }
-          ]
+          schema {
+            type = flat
+            field.names = ["name", "address", "age"]
+            field.types = ["string", "string", "integer"]
+          }
         }
         r3 {
           // row-level rule being run in dataset scope
@@ -377,7 +377,7 @@ steps {
         r3 {
           type = range
           fields = ["age"]
-          fieldtype = "int"
+          fieldtype = "integer"
           range = [0,150]
           ignore-nulls = true
         }

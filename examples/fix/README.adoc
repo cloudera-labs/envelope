@@ -316,8 +316,11 @@ fix {
       type = kvp
       delimiter.kvp = "\u0001"
       delimiter.field = "="
-      field.names = [6,10,11,14,17,20,21,35,37,38,39,40,54,55,60,150,151]
-      field.types = [double,string,string,int,string,int,int,string,string,int,int,int,int,string,long,int,int]
+      schema {
+        type = flat
+        field.names = [6,10,11,14,17,20,21,35,37,38,39,40,54,55,60,150,151]
+        field.types = [double,string,string,integer,string,integer,integer,string,string,integer,integer,integer,integer,string,long,integer,integer]
+      }
     }
   }
 }

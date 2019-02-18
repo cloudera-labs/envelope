@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,6 +16,7 @@
 package com.cloudera.labs.envelope.zookeeper;
 
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
@@ -47,10 +48,10 @@ public class TestZooKeeperOutput implements Watcher {
   private static TestingServer zk;
   private static Config config;
   private static List<String> fieldNames = Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6");
-  private static List<String> fieldTypes = Lists.newArrayList("string", "int", "long", "boolean", "float", "double");
+  private static List<String> fieldTypes = Lists.newArrayList("string", "integer", "long", "boolean", "float", "double");
   private static List<String> keyFieldNames = Lists.newArrayList("field1", "field2", "field3");
-  private static StructType schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
-  private static StructType keySchema = SchemaUtils.subsetSchema(schema, keyFieldNames);
+  private static StructType schema;
+  private static StructType keySchema;
   
   @BeforeClass
   public static void setup() throws Exception {
@@ -58,10 +59,20 @@ public class TestZooKeeperOutput implements Watcher {
     Map<String, Object> configMap = Maps.newHashMap();
 
     configMap.put(ZooKeeperConnection.CONNECTION_CONFIG, "127.0.0.1:" + zk.getPort());
-    configMap.put(ZooKeeperOutput.FIELD_NAMES_CONFIG, fieldNames);
-    configMap.put(ZooKeeperOutput.FIELD_TYPES_CONFIG, fieldTypes);
+    configMap.put(ZooKeeperOutput.SCHEMA_CONFIG + ".type", "com.cloudera.labs.envelope.zookeeper.DummyFlatSchema");
+    configMap.put(ZooKeeperOutput.SCHEMA_CONFIG + ".field.names", fieldNames);
+    configMap.put(ZooKeeperOutput.SCHEMA_CONFIG + ".field.types", fieldTypes);
     configMap.put(ZooKeeperOutput.KEY_FIELD_NAMES_CONFIG, keyFieldNames);
     config = ConfigFactory.parseMap(configMap);
+
+    List<StructField> fields = Lists.newArrayList();
+    for (int fieldNum = 0; fieldNum < fieldNames.size(); fieldNum++) {
+      fields.add(DataTypes.createStructField(fieldNames.get(fieldNum),
+                 ConfigurationDataTypes.getSparkDataType(fieldTypes.get(fieldNum)),
+                 true));
+    }
+    schema = DataTypes.createStructType(fields);
+    keySchema = SchemaUtils.subsetSchema(schema, keyFieldNames);
   }
   
   @Test
@@ -152,7 +163,9 @@ public class TestZooKeeperOutput implements Watcher {
         PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
-    StructType partialSchema = SchemaUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"));
+    StructType partialSchema = DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField("field1",
+        DataTypes.StringType, true)));
+    
     Row filter1 = new RowWithSchema(partialSchema, "hello");
     Row filter2 = new RowWithSchema(partialSchema, "world");
     List<Row> filters = Lists.newArrayList(filter1, filter2);
@@ -177,7 +190,9 @@ public class TestZooKeeperOutput implements Watcher {
         PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
-    StructType partialSchema = SchemaUtils.structTypeFor(Lists.newArrayList("field6"), Lists.newArrayList("double"));
+    StructType partialSchema = DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField("field6",
+        DataTypes.DoubleType, true)));
+   
     Row filter = new RowWithSchema(partialSchema, 1.0);
     List<Row> filters = Lists.newArrayList(filter);
     List<Row> rows = Lists.newArrayList(zkOutput.getExistingForFilters(filters));
@@ -226,10 +241,12 @@ public class TestZooKeeperOutput implements Watcher {
         PlannerUtils.setMutationType(row1, MutationType.UPSERT), PlannerUtils.setMutationType(row2, MutationType.UPSERT));
     zkOutput.applyRandomMutations(upsertPlan);
     
-    StructType partialSchemaWithValues = 
-        SchemaUtils.structTypeFor(Lists.newArrayList("field1"), Lists.newArrayList("string"))
-        .add(DataTypes.createStructField("field4", DataTypes.BooleanType, false))
-        .add(DataTypes.createStructField("field6", DataTypes.DoubleType, false));
+    StructType partialSchemaWithValues = DataTypes.createStructType(Lists.newArrayList(
+        DataTypes.createStructField("field1", DataTypes.StringType, true),
+        DataTypes.createStructField("field4", DataTypes.BooleanType, false),
+        DataTypes.createStructField("field6", DataTypes.DoubleType, false)
+    ));
+
     Row filter1 = new RowWithSchema(partialSchemaWithValues, "hello", false, 1.0);
     Row filter2 = new RowWithSchema(partialSchemaWithValues, "world", false, 1.0);
     List<Row> filters = Lists.newArrayList(filter1, filter2);

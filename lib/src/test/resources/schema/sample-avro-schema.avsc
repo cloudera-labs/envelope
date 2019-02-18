@@ -1,0 +1,10 @@
+{
+  "type" : "record",
+  "name" : "example",
+  "fields" : [
+    { "name" : "A_Long", "type" : "long" },
+    { "name" : "An_Int", "type" : "int" },
+    { "name" : "A_String", "type" : "string" },
+    { "name" : "Another_String", "type" : "string" }
+  ]
+}

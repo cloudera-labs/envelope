@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,6 +16,7 @@
 package com.cloudera.labs.envelope.derive.dq;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -76,19 +77,19 @@ public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations 
   private static Class getFieldType(String fieldType) {
     Class clazz;
     switch (fieldType) {
-      case "int":
+      case ConfigurationDataTypes.INTEGER:
         clazz = Integer.class;
         break;
-      case "long":
+      case ConfigurationDataTypes.LONG:
         clazz = Long.class;
         break;
-      case "boolean":
+      case ConfigurationDataTypes.BOOLEAN:
         clazz = Boolean.class;
         break;
-      case "double":
-      case "float":
+      case ConfigurationDataTypes.DOUBLE:
+      case ConfigurationDataTypes.FLOAT:
         throw new RuntimeException("Cannot specify inexact floating point types in EnumRowRule");
-      case "decimal":
+      case ConfigurationDataTypes.DECIMAL:
         clazz = BigDecimal.class;
         break;
       default:

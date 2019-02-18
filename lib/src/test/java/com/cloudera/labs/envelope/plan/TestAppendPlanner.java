@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,13 +17,13 @@ package com.cloudera.labs.envelope.plan;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -43,7 +43,10 @@ public class TestAppendPlanner {
 
   @BeforeClass
   public static void beforeClass() {
-    StructType schema = SchemaUtils.structTypeFor(Lists.newArrayList("key", "value"), Lists.newArrayList("string", "int"));
+    StructType schema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("key", DataTypes.StringType, true),
+      DataTypes.createStructField("value", DataTypes.IntegerType, true)
+    ));
     Row row = new RowWithSchema(schema, null, 1);
     dataFrame = Contexts.getSparkSession().createDataFrame(Lists.newArrayList(row), schema);
   }

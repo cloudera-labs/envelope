@@ -15,6 +15,10 @@
 
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.schema.AvroSchema;
+import com.cloudera.labs.envelope.schema.FlatSchema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.schema.TestAvroSchema;
 import com.cloudera.labs.envelope.translate.DummyInputFormatTranslator;
 import com.cloudera.labs.envelope.translate.KVPTranslator;
 import com.cloudera.labs.envelope.translate.TranslatorFactory;
@@ -73,74 +77,16 @@ public class TestFileSystemInput {
 
   @Test
   public void multipleSchema() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.AVRO_FILE_CONFIG, "foo");
-    paramMap.put(FileSystemInput.FIELD_NAMES_CONFIG, "foo");
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput fileSystemInput = new FileSystemInput();
-    assertValidationFailures(fileSystemInput, config);
-  }
-
-  @Test
-  public void missingFieldNames() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.FIELD_TYPES_CONFIG, "");
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput fileSystemInput = new FileSystemInput();
-    assertValidationFailures(fileSystemInput, config);
-  }
-
-  @Test
-  public void missingFieldTypes() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.FIELD_NAMES_CONFIG, "");
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput fileSystemInput = new FileSystemInput();
-    assertValidationFailures(fileSystemInput, config);
-  }
-
-  @Test
-  public void multipleAvroSchemas() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.AVRO_FILE_CONFIG, "foo");
-    paramMap.put(FileSystemInput.AVRO_LITERAL_CONFIG, "foo");
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput fileSystemInput = new FileSystemInput();
-    assertValidationFailures(fileSystemInput, config);
-  }
-
-  @Test
-  public void missingAvroLiteral() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.AVRO_LITERAL_CONFIG, "");
-    config = ConfigFactory.parseMap(paramMap);
-
-    FileSystemInput fileSystemInput = new FileSystemInput();
-    assertValidationFailures(fileSystemInput, config);
-  }
-
-  @Test
-  public void missingAvroFile() {
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
-    paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
-    paramMap.put(FileSystemInput.AVRO_FILE_CONFIG, "");
-    config = ConfigFactory.parseMap(paramMap);
-
+    config = ConfigFactory.parseString(
+        "schema {\n" +
+        "  type = flat\n" +
+        "  field.names = [A Long, An Integer]\n" +
+        "  field.types = [long, integer]\n" +
+        "}\n" +
+        "schema {\n" +
+        "  type = avro\n" +
+        "  filepath = schemafilepath.avsc\n" +
+        "}");
     FileSystemInput fileSystemInput = new FileSystemInput();
     assertValidationFailures(fileSystemInput, config);
   }
@@ -188,9 +134,11 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.CSV_HEADER_CONFIG, "true");
-    paramMap.put(FileSystemInput.FIELD_NAMES_CONFIG, Lists.newArrayList("A Long", "An Int", "A String",
-        "Another String"));
-    paramMap.put(FileSystemInput.FIELD_TYPES_CONFIG, Lists.newArrayList("long", "int", "string", "string"));
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+                 Lists.newArrayList("A Long", "An Int", "A String", "Another String"));
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+                 Lists.newArrayList("long", "integer", "string", "string"));
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
@@ -209,19 +157,13 @@ public class TestFileSystemInput {
 
   @Test
   public void readCsvWithAvroSchema() throws Exception {
-    StringBuilder avroLiteral = new StringBuilder()
-      .append("{ \"type\" : \"record\", \"name\" : \"example\", \"fields\" : [")
-      .append("{ \"name\" : \"A_Long\", \"type\" : \"long\" },")
-      .append("{ \"name\" : \"An_Int\", \"type\" : \"int\" },")
-      .append("{ \"name\" : \"A_String\", \"type\" : \"string\" },")
-      .append("{ \"name\" : \"Another_String\", \"type\" : \"string\" }")
-      .append("] }");
-
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.CSV_HEADER_CONFIG, "true");
-    paramMap.put(FileSystemInput.AVRO_LITERAL_CONFIG, avroLiteral.toString());
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + AvroSchema.AVRO_FILE_CONFIG,
+                 FileSystemInput.class.getResource(TestAvroSchema.AVRO_SCHEMA_DATA).getPath());
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
@@ -263,8 +205,11 @@ public class TestFileSystemInput {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "json");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(JSON_DATA).getPath());
-    paramMap.put(FileSystemInput.FIELD_NAMES_CONFIG, Lists.newArrayList("field1", "field2", "field3", "field4"));
-    paramMap.put(FileSystemInput.FIELD_TYPES_CONFIG, Lists.newArrayList("int", "string", "boolean", "string"));
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
+                 Lists.newArrayList("field1", "field2", "field3", "field4"));
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
+                 Lists.newArrayList("integer", "string", "boolean", "string"));
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
@@ -368,8 +313,9 @@ public class TestFileSystemInput {
     configMap.put("translator.type", KVPTranslator.class.getName());
     configMap.put("translator.delimiter.kvp", ",");
     configMap.put("translator.delimiter.field", "=");
-    configMap.put("translator.field.names", Lists.newArrayList("a", "b", "c"));
-    configMap.put("translator.field.types", Lists.newArrayList("int", "string", "boolean"));
+    configMap.put("translator.schema.type", "flat");
+    configMap.put("translator.schema.field.names", Lists.newArrayList("a", "b", "c"));
+    configMap.put("translator.schema.field.types", Lists.newArrayList("integer", "string", "boolean"));
     config = ConfigFactory.parseMap(configMap);
     
     FileSystemInput formatInput = new FileSystemInput();
@@ -391,8 +337,9 @@ public class TestFileSystemInput {
     configMap.put("translator.type", KVPTranslator.class.getName());
     configMap.put("translator.delimiter.kvp", ",");
     configMap.put("translator.delimiter.field", "=");
-    configMap.put("translator.field.names", Lists.newArrayList("a", "b", "c"));
-    configMap.put("translator.field.types", Lists.newArrayList("int", "string", "boolean"));
+    configMap.put("translator.schema.type", "flat");
+    configMap.put("translator.schema.field.names", Lists.newArrayList("a", "b", "c"));
+    configMap.put("translator.schema.field.types", Lists.newArrayList("integer", "string", "boolean"));
     configMap.put("translator.append.raw.enabled", true);
     config = ConfigFactory.parseMap(configMap);
 

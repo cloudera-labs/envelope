@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -127,15 +127,15 @@ public class TestHBaseUtils {
     def = columnDefs.get("orderqty");
     assertEquals("cf1", def.cf);
     assertEquals("orderqty", def.name);
-    assertEquals("int", def.type);
+    assertEquals("integer", def.type);
     def = columnDefs.get("leavesqty");
     assertEquals("cf1", def.cf);
     assertEquals("leavesqty", def.name);
-    assertEquals("int", def.type);
+    assertEquals("integer", def.type);
     def = columnDefs.get("cumqty");
     assertEquals("cf1", def.cf);
     assertEquals("cumqty", def.name);
-    assertEquals("int", def.type);
+    assertEquals("integer", def.type);
   }
 
   @Test

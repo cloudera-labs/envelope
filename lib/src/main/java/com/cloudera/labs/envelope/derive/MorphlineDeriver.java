@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,10 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
@@ -33,16 +36,17 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
+public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidations,
+    InstantiatesComponents {
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineDeriver.class);
 
   public static final String STEP_NAME_CONFIG = "step.name";
   public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
-  public static final String FIELD_NAMES = "field.names";
-  public static final String FIELD_TYPES = "field.types";
+  public static final String SCHEMA_CONFIG = "schema";
   public static final String ERROR_ON_EMPTY = "error.on.empty";
 
   private String stepName;
@@ -63,9 +67,7 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidat
     this.morphlineId = config.getString(MORPHLINE_ID);
 
     // Construct the StructType schema for the Rows
-    List<String> fieldNames = config.getStringList(FIELD_NAMES);
-    List<String> fieldTypes = config.getStringList(FIELD_TYPES);
-    this.schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
+    this.schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
     errorOnEmpty = ConfigUtils.getOrElse(config, ERROR_ON_EMPTY, true);
   }
@@ -105,10 +107,15 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidat
         .mandatoryPath(STEP_NAME_CONFIG, ConfigValueType.STRING)
         .mandatoryPath(MORPHLINE, ConfigValueType.STRING)
         .mandatoryPath(MORPHLINE_ID, ConfigValueType.STRING)
-        .mandatoryPath(FIELD_NAMES, ConfigValueType.LIST)
-        .mandatoryPath(FIELD_TYPES, ConfigValueType.LIST)
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
         .optionalPath(ERROR_ON_EMPTY, ConfigValueType.BOOLEAN)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
   }
   
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
+  }
+
 }

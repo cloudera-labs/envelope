@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -18,6 +18,7 @@ package com.cloudera.labs.envelope.utils;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
@@ -42,6 +43,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -274,6 +276,21 @@ public class TestRowUtils {
     assertEquals("Invalid String", sqlTimestamp, RowUtils.toRowValue("2017-001", field)); // ISO Date format
     assertEquals("Invalid Date", sqlTimestamp, RowUtils.toRowValue(dateObj.toDate(), field));
     assertEquals("Invalid DateTime", sqlTimestamp, RowUtils.toRowValue(dateObj, field));
+
+    // Test custom timestamp format parsing
+    Map<RowUtils.RowValueMetadata, Object> metadataNull = Maps.newHashMap();
+    Map<RowUtils.RowValueMetadata, Object> metadataEmpty = Maps.newHashMap();
+    Map<RowUtils.RowValueMetadata, Object> metadataFormat = Maps.newHashMap();
+    Set<String> empty = Sets.newHashSet();
+    Set<String> formats = Sets.newHashSet();
+    formats.add("yyyy-MM-dd HH:mm:ss.SSSSS");
+    metadataNull.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS, null);
+    metadataEmpty.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS, empty);
+    metadataFormat.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS, formats);
+    assertEquals("Invalid null metadata", sqlTimestamp, RowUtils.toRowValue("2017-01-01T00:00:00", field, null));
+    assertEquals("Invalid null format set in metadata", sqlTimestamp, RowUtils.toRowValue("2017-01-01T00:00:00", field, metadataNull));
+    assertEquals("Invalid format set", sqlTimestamp, RowUtils.toRowValue("2017-01-01 00:00:00.00000", field, metadataFormat));
+    assertEquals("Invalid empty format set", sqlTimestamp, RowUtils.toRowValue("2017-01-01T00:00:00", field, metadataEmpty));
 
     thrown.expect(RuntimeException.class);
     thrown.expectMessage(JUnitMatchers.containsString("Invalid or unrecognized input format"));

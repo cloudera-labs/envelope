@@ -16,6 +16,7 @@
 package com.cloudera.labs.envelope.derive.dq;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -88,19 +89,19 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
   private static Class<? extends Comparable<?>> getFieldType(String fieldType) {
     Class<? extends Comparable<?>> clazz;
     switch (fieldType) {
-      case "int":
+      case ConfigurationDataTypes.INTEGER:
         clazz = Integer.class;
         break;
-      case "long":
+      case ConfigurationDataTypes.LONG:
         clazz = Long.class;
         break;
-      case "double":
+      case ConfigurationDataTypes.DOUBLE:
         clazz = Double.class;
         break;
-      case "float":
+      case ConfigurationDataTypes.FLOAT:
         clazz = Float.class;
         break;
-      case "decimal":
+      case ConfigurationDataTypes.DECIMAL:
         clazz = BigDecimal.class;
         break;
       default:

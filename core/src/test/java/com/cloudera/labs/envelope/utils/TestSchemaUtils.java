@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -20,8 +20,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
-
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -126,24 +124,5 @@ public class TestSchemaUtils {
     assertEquals(appendSchema.fields()[3], field4);
     assertEquals(appendSchema.fields()[4], field5);
   }
-
-  @Test
-  public void testStructTypeFor() {
-    List<String> fieldNames = Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6");
-    List<String> fieldTypes = Lists.newArrayList("string", "float", "double", "int", "long", "boolean");
-
-    StructType structFromRowUtils = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
-
-    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
-    StructField field2 = DataTypes.createStructField("field2", DataTypes.FloatType, true);
-    StructField field3 = DataTypes.createStructField("field3", DataTypes.DoubleType, true);
-    StructField field4 = DataTypes.createStructField("field4", DataTypes.IntegerType, true);
-    StructField field5 = DataTypes.createStructField("field5", DataTypes.LongType, true);
-    StructField field6 = DataTypes.createStructField("field6", DataTypes.BooleanType, true);
-    StructType structFromAPI = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3, field4, field5, field6));
-
-    assertEquals(structFromRowUtils, structFromAPI);
-  }
-
 
 }

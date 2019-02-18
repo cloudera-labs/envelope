@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,7 +17,6 @@ package com.cloudera.labs.envelope.output;
 
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -26,6 +25,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -142,9 +142,13 @@ public class TestHiveOutput {
     assertNoValidationFailures(hiveOutput, config);
     hiveOutput.configure(config);
 
-    StructType targetSchema = SchemaUtils.structTypeFor(
-        Lists.newArrayList("zip_code", "city", "state", "Fname", "lname"), 
-        Lists.newArrayList("int", "string", "string", "string", "string"));
+    StructType targetSchema = DataTypes.createStructType(Lists.newArrayList(
+      DataTypes.createStructField("zip_code", DataTypes.IntegerType, true),
+      DataTypes.createStructField("city", DataTypes.StringType, true),
+      DataTypes.createStructField("state", DataTypes.StringType, true),
+      DataTypes.createStructField("Fname", DataTypes.StringType, true),
+      DataTypes.createStructField("lname", DataTypes.StringType, true)
+    )); 
     spark.createDataFrame(spark.emptyDataFrame().rdd(), targetSchema)
          .createOrReplaceTempView(targetTable);
 

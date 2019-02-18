@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,60 +15,62 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.DateTimeUtils.DateTimeParser;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.SupportedFieldTypesValidation;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructType;
 
-import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
  * A translator implementation for text key-value pair messages.
  */
-public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidations {
+public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidations,
+    InstantiatesComponents {
 
   private String kvpDelimiter;
   private String fieldDelimiter;
-  private List<String> fieldNames;
-  private List<String> fieldTypes;
-  private DateTimeParser dateTimeParser;
   private StructType schema;
   private List<Object> values = Lists.newArrayList();
-  private Map<String, String> kvpMap = Maps.newHashMap();
+  private Map<String, String> kvpMap = new HashMap<>();
+  private Map<RowUtils.RowValueMetadata,Object> rowValueMetadata = new HashMap<>(); 
 
   public static final String KVP_DELIMITER_CONFIG_NAME = "delimiter.kvp";
   public static final String FIELD_DELIMITER_CONFIG_NAME = "delimiter.field";
-  public static final String FIELD_NAMES_CONFIG_NAME = "field.names";
-  public static final String FIELD_TYPES_CONFIG_NAME = "field.types";
   public static final String TIMESTAMP_FORMAT_CONFIG_NAME = "timestamp.formats";
+  public static final String SCHEMA_CONFIG = "schema"; 
 
   @Override
   public void configure(Config config) {
     kvpDelimiter = resolveDelimiter(config.getString(KVP_DELIMITER_CONFIG_NAME));
     fieldDelimiter = resolveDelimiter(config.getString(FIELD_DELIMITER_CONFIG_NAME));
-    fieldNames = config.getStringList(FIELD_NAMES_CONFIG_NAME);
-    fieldTypes = config.getStringList(FIELD_TYPES_CONFIG_NAME);
+    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
-    dateTimeParser = new DateTimeParser();
     if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
-      dateTimeParser.configureFormat(
-          config.getStringList(TIMESTAMP_FORMAT_CONFIG_NAME));
+      rowValueMetadata.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS,
+                           new HashSet<String>(config.getStringList(TIMESTAMP_FORMAT_CONFIG_NAME)));
     }
-
-    schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
   }
 
   @Override
@@ -87,49 +89,18 @@ public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidat
       kvpMap.put(kvpKey, kvpValue);
     }
 
-    for (int fieldPos = 0; fieldPos < fieldNames.size(); fieldPos++) {
-      String fieldName = fieldNames.get(fieldPos);
-      String fieldType = fieldTypes.get(fieldPos);
-      
+    for (int fieldPos = 0; fieldPos < schema.length(); fieldPos++) {
+      String fieldName = schema.fieldNames()[fieldPos];
+      DataType fieldType = schema.fields()[fieldPos].dataType();
+
+      Object rowVal = null;
       if (kvpMap.containsKey(fieldName)) {
         String kvpValue = kvpMap.get(fieldName);
-        
-        if (kvpValue == null) {
-          values.add(null);
-        }
-        else {
-          switch (fieldType) {
-            case "string":
-              values.add(kvpValue);
-              break;
-            case "float":
-              values.add(Float.parseFloat(kvpValue));
-              break;
-            case "double":
-              values.add(Double.parseDouble(kvpValue));
-              break;
-            case "int":
-              values.add(Integer.parseInt(kvpValue));
-              break;
-            case "long":
-              values.add(Long.parseLong(kvpValue));
-              break;
-            case "boolean":
-              values.add(Boolean.parseBoolean(kvpValue));
-              break;
-            case "timestamp":
-              values.add(new Timestamp(
-                  dateTimeParser.parse(kvpValue).getMillis()));
-              break;
-            default:
-              throw new RuntimeException("Unsupported KVP field type: "
-                  + fieldType);
-          }
+        if (kvpValue != null) {
+          rowVal = RowUtils.toRowValue(kvpValue, fieldType, rowValueMetadata);
         }
       }
-      else {
-        values.add(null);
-      }
+      values.add(rowVal);
     }
 
     Row row = new RowWithSchema(schema, values.toArray());
@@ -173,10 +144,22 @@ public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidat
     return Validations.builder()
         .mandatoryPath(KVP_DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
         .mandatoryPath(FIELD_DELIMITER_CONFIG_NAME, ConfigValueType.STRING)
-        .mandatoryPath(FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
-        .mandatoryPath(FIELD_TYPES_CONFIG_NAME, ConfigValueType.LIST)
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
+        .add(new SupportedFieldTypesValidation(SCHEMA_CONFIG, 
+            new HashSet<DataType>(Arrays.asList(new DecimalType(),    DataTypes.StringType,
+                                                DataTypes.FloatType,  DataTypes.DoubleType,
+                                                DataTypes.ShortType,  DataTypes.IntegerType,
+                                                DataTypes.LongType,   DataTypes.BooleanType,
+                                                DataTypes.BinaryType, DataTypes.DateType,
+                                                DataTypes.TimestampType))))
         .optionalPath(TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueType.LIST)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
   }
 
 }

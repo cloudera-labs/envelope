@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,13 +15,22 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.ProtobufSchema;
+import com.cloudera.labs.envelope.schema.Schema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ProtobufUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.validate.Validation;
 import com.cloudera.labs.envelope.validate.Validations;
+import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.Validity;
+import com.google.common.collect.Sets;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -36,6 +45,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -43,15 +53,15 @@ import java.util.zip.GZIPInputStream;
  * <p>
  * This supports both compressed (gzip) or uncompressed message payloads.
  */
-public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesValidations {
+public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesValidations,
+    InstantiatesComponents {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProtobufTranslator.class);
 
-  public static final String CONFIG_DESCRIPTOR_FILEPATH = "descriptor.filepath";
-  public static final String CONFIG_DESCRIPTOR_MESSAGE = "descriptor.message";
-
   private Descriptors.Descriptor descriptor;
   private StructType schema;
+
+  public static final String SCHEMA_CONFIG = "schema";
 
   @Override
   public Iterable<Row> translate(Row message) throws Exception {
@@ -104,24 +114,48 @@ public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesVa
   public void configure(Config config) {
     LOG.debug("Configuring ProtobufTranslator");
 
-    String descriptorFilePath = config.getString(CONFIG_DESCRIPTOR_FILEPATH);
-
-    if (config.hasPath(CONFIG_DESCRIPTOR_MESSAGE)) {
-      String descriptorMessage = config.getString(CONFIG_DESCRIPTOR_MESSAGE);
-      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath, descriptorMessage);
-    } else {
-      this.descriptor = ProtobufUtils.buildDescriptor(descriptorFilePath);
-    }
-
-    // Build full schema
-    this.schema = ProtobufUtils.buildSchema(descriptor);
+    // Validations ensure schema is of type protobuf
+    ProtobufSchema protobufSchema = (ProtobufSchema)SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true);
+    this.descriptor = protobufSchema.getDescriptor();
+    this.schema = protobufSchema.getSchema();
   }
 
   @Override
   public Validations getValidations() {
     return Validations.builder()
-        .mandatoryPath(CONFIG_DESCRIPTOR_FILEPATH, ConfigValueType.STRING)
-        .optionalPath(CONFIG_DESCRIPTOR_MESSAGE, ConfigValueType.STRING)
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
+        .ifPathExists(SCHEMA_CONFIG, new ProtobufTranslatorSchemaTypeValidation(SCHEMA_CONFIG))
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
   }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
+  }
+
+  private static class ProtobufTranslatorSchemaTypeValidation implements Validation {
+    private String path;
+
+    public ProtobufTranslatorSchemaTypeValidation(String path) {
+      this.path = path;
+    }
+ 
+    @Override
+    public ValidationResult validate(Config config) {
+      Schema schema = SchemaFactory.create(config, true);
+      if (!(schema instanceof ProtobufSchema)) { 
+        return new ValidationResult(this, Validity.INVALID,
+            "Protobuf translator schema can only be of type 'protobuf'.  " +
+                "See stack trace below for more information.");
+      }
+      return new ValidationResult(this, Validity.VALID, "Protobuf translator schema is of type 'protobuf.'");
+    }
+
+    @Override
+    public Set<String> getKnownPaths() {
+      return Sets.newHashSet(path);
+    }
+  }
+
 }

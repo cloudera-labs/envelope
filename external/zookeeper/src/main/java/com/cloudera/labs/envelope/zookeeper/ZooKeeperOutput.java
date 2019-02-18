@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,10 @@
 
 package com.cloudera.labs.envelope.zookeeper;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
@@ -30,6 +33,8 @@ import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.zookeeper.CreateMode;
@@ -38,25 +43,31 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesValidations {
+public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesValidations,
+        InstantiatesComponents {
 
-  public static final String FIELD_NAMES_CONFIG = "field.names";
-  public static final String FIELD_TYPES_CONFIG = "field.types";
   public static final String KEY_FIELD_NAMES_CONFIG = "key.field.names";
   public static final String ZNODE_PREFIX_CONFIG = "znode.prefix";
   public static final String SESSION_TIMEOUT_MS_CONFIG = "session.timeout.millis";
   public static final String CONNECTION_TIMEOUT_MS_CONFIG = "connection.timeout.millis";
-  
+  public static final String SCHEMA_CONFIG = "schema"; 
+ 
   private static final String DEFAULT_ZNODE_PREFIX = "/envelope";
+
+  private static final List<DataType> supportedTypes = Arrays.asList(
+      DataTypes.StringType, DataTypes.FloatType, DataTypes.DoubleType, DataTypes.IntegerType,
+      DataTypes.LongType, DataTypes.BooleanType);
 
   private List<String> fieldNames;
   private List<String> fieldTypes;
   private List<String> keyFieldNames;
   private String znodePrefix;
+  private StructType schema;
 
   private ZooKeeperConnection connection;
   
@@ -64,8 +75,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   public void configure(Config config) {
     String connectionString = config.getString(ZooKeeperConnection.CONNECTION_CONFIG);
     keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG);
-    fieldNames = config.getStringList(FIELD_NAMES_CONFIG);
-    fieldTypes = config.getStringList(FIELD_TYPES_CONFIG);
+    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
     
     if (config.hasPath(ZNODE_PREFIX_CONFIG)) {
       znodePrefix = config.getString(ZNODE_PREFIX_CONFIG);
@@ -229,8 +239,6 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   }
   
   private Row toFullRow(String znode, byte[] serialized) throws ClassNotFoundException, IOException {
-    StructType schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
-    
     String values = new String(serialized, Charsets.UTF_8);
     String fullPath = znode + values;
     String[] levels = fullPath.replace(znodePrefix,  "").split(Pattern.quote("/"));
@@ -241,33 +249,15 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
         String[] znodeLevelParts = level.split(Pattern.quote("="));
         String fieldName = znodeLevelParts[0];
         String fieldValueString = znodeLevelParts[1];
-        String fieldType = fieldTypes.get(fieldNames.indexOf(fieldName));
-        Object value;
-        
-        switch (fieldType) {
-          case "string":
-            value = fieldValueString;
-            break;
-          case "float":
-            value = Float.parseFloat(fieldValueString);
-            break;
-          case "double":
-            value = Double.parseDouble(fieldValueString);
-            break;
-          case "int":
-            value = Integer.parseInt(fieldValueString);
-            break;
-          case "long":
-            value = Long.parseLong(fieldValueString);
-            break;
-          case "boolean":
-            value = Boolean.parseBoolean(fieldValueString);
-            break;
-          default:
-            throw new RuntimeException("ZooKeeper output does not support data type: " + fieldType);
+        DataType fieldType = schema.apply(fieldName).dataType();
+
+        if (supportedTypes.contains(fieldType)) {
+          objects.add(RowUtils.toRowValue(fieldValueString, fieldType));
         }
-        
-        objects.add(value);
+        else {
+          throw new RuntimeException("ZooKeeper output does not support data type: " 
+            + fieldType.simpleString());
+        }
       }
     }
     
@@ -298,13 +288,18 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   public Validations getValidations() {
     return Validations.builder()
         .mandatoryPath(ZooKeeperConnection.CONNECTION_CONFIG, ConfigValueType.STRING)
-        .mandatoryPath(FIELD_NAMES_CONFIG, ConfigValueType.LIST)
-        .mandatoryPath(FIELD_TYPES_CONFIG, ConfigValueType.LIST)
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
         .mandatoryPath(KEY_FIELD_NAMES_CONFIG, ConfigValueType.LIST)
         .optionalPath(ZNODE_PREFIX_CONFIG, ConfigValueType.STRING)
         .optionalPath(SESSION_TIMEOUT_MS_CONFIG, ConfigValueType.NUMBER)
         .optionalPath(CONNECTION_TIMEOUT_MS_CONFIG, ConfigValueType.NUMBER)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
   }
   
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.hbase;
 
+import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.utils.JVMUtils;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -32,6 +32,8 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,14 +179,14 @@ public class HBaseUtils {
 
   // HBaseSerde util
   public static StructType buildSchema(Map<String, HBaseSerde.ColumnDef> columnDefinitions) {
-    List<String> fieldNames = Lists.newArrayList();
-    List<String> fieldTypes = Lists.newArrayList();
-    for (Map.Entry<String, HBaseSerde.ColumnDef> columnDef : columnDefinitions.entrySet()) {
-      fieldNames.add(columnDef.getValue().name);
-      fieldTypes.add(columnDef.getValue().type);
+    List<StructField> fields = Lists.newArrayList();
+ 
+   for (Map.Entry<String, HBaseSerde.ColumnDef> columnDef : columnDefinitions.entrySet()) {
+      fields.add(DataTypes.createStructField(columnDef.getValue().name,
+          ConfigurationDataTypes.getSparkDataType(columnDef.getValue().type), true));
     }
-
-    return SchemaUtils.structTypeFor(fieldNames, fieldTypes);
+    
+    return DataTypes.createStructType(fields);
   }
   
   public static Scan mergeRangeScans(List<Scan> rangeScans) {

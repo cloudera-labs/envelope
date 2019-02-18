@@ -21,24 +21,22 @@ import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
 import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
+import com.cloudera.labs.envelope.schema.Schema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.translate.TranslateFunction;
 import com.cloudera.labs.envelope.translate.TranslationResults;
 import com.cloudera.labs.envelope.translate.Translator;
-import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
-import com.cloudera.labs.envelope.validate.AvroSchemaLiteralValidation;
-import com.cloudera.labs.envelope.validate.AvroSchemaPathValidation;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
-import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -74,11 +72,6 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
   public static final String FORMAT_CONFIG = "format";
   public static final String PATH_CONFIG = "path";
 
-  public static final String FIELD_NAMES_CONFIG = "field.names";
-  public static final String FIELD_TYPES_CONFIG = "field.types";
-  public static final String AVRO_LITERAL_CONFIG = "avro-schema.literal";
-  public static final String AVRO_FILE_CONFIG = "avro-schema.file";
-
   public static final String CSV_HEADER_CONFIG = "header";
   public static final String CSV_SEPARATOR_CONFIG = "separator";
   public static final String CSV_ENCODING_CONFIG = "encoding";
@@ -107,6 +100,8 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
   public static final String TEXT_FORMAT = "text";
 
   public static final String TRANSLATOR_CONFIG = "translator";
+
+  public static final String SCHEMA_CONFIG = "schema";
 
   private ConfigUtils.OptionMap options;
   private StructType schema;
@@ -152,31 +147,10 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
           .resolve("mode", CSV_MODE_CONFIG);
     }
 
-    // TODO: move schema loading logic to an Envelope-wide schema loader component
-    if (format.equals(CSV_FORMAT) || format.equals(JSON_FORMAT)) {
-      if (config.hasPath(FIELD_NAMES_CONFIG) || config.hasPath(FIELD_TYPES_CONFIG)) {
-        List<String> names = config.getStringList(FIELD_NAMES_CONFIG);
-        List<String> types = config.getStringList(FIELD_TYPES_CONFIG);
-
-        this.schema = SchemaUtils.structTypeFor(names, types);
-      } else if (config.hasPath(AVRO_FILE_CONFIG) || config.hasPath(AVRO_LITERAL_CONFIG)) {
-        Schema avroSchema;
-
-        if (config.hasPath(AVRO_FILE_CONFIG)) {
-          try {
-            File avroFile = new File(config.getString(AVRO_FILE_CONFIG));
-            avroSchema = new Schema.Parser().parse(avroFile);
-          } catch (IOException e) {
-            // We have already validated the schema file can be parsed, but we still need to
-            // deal with an exception this time around
-            throw new RuntimeException("Error parsing Avro schema file", e);
-          }
-        } else {
-          avroSchema = new Schema.Parser().parse(config.getString(AVRO_LITERAL_CONFIG));
-        }
-
-        this.schema = AvroUtils.structTypeFor(avroSchema);
-      }
+    if ((format.equals(CSV_FORMAT) || format.equals(JSON_FORMAT)) &&
+        config.hasPath(SCHEMA_CONFIG)) {
+      Config schemaConfig = config.getConfig(SCHEMA_CONFIG);
+      this.schema = SchemaFactory.create(schemaConfig, true).getSchema();
     }
 
     if (format.equals(INPUT_FORMAT_FORMAT)) {
@@ -421,24 +395,13 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
         .mandatoryPath(PATH_CONFIG, ConfigValueType.STRING)
         .allowedValues(FORMAT_CONFIG,
             PARQUET_FORMAT, JSON_FORMAT, INPUT_FORMAT_FORMAT, TEXT_FORMAT, CSV_FORMAT)
-        .ifPathHasValue(FORMAT_CONFIG, JSON_FORMAT,
-            Validations.single().atMostOnePathExists(
-                FIELD_NAMES_CONFIG, AVRO_FILE_CONFIG, AVRO_LITERAL_CONFIG))
-        .ifPathHasValue(FORMAT_CONFIG, CSV_FORMAT,
-            Validations.single().atMostOnePathExists(
-                FIELD_NAMES_CONFIG, AVRO_FILE_CONFIG, AVRO_LITERAL_CONFIG))
-        .ifPathExists(FIELD_NAMES_CONFIG,
-            Validations.single().mandatoryPath(FIELD_TYPES_CONFIG, ConfigValueType.LIST))
-        .ifPathExists(FIELD_TYPES_CONFIG,
-            Validations.single().mandatoryPath(FIELD_NAMES_CONFIG, ConfigValueType.LIST))
-        .ifPathExists(AVRO_FILE_CONFIG, new AvroSchemaPathValidation(AVRO_FILE_CONFIG))
-        .ifPathExists(AVRO_LITERAL_CONFIG, new AvroSchemaLiteralValidation(AVRO_LITERAL_CONFIG))
         .ifPathHasValue(FORMAT_CONFIG, TEXT_FORMAT,
             Validations.single().optionalPath(TRANSLATOR_CONFIG, ConfigValueType.OBJECT))
         .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_FORMAT,
             Validations.single().mandatoryPath(INPUT_FORMAT_TYPE_CONFIG, ConfigValueType.STRING))
         .ifPathHasValue(FORMAT_CONFIG, INPUT_FORMAT_FORMAT,
             Validations.single().mandatoryPath(TRANSLATOR_CONFIG, ConfigValueType.OBJECT))
+        .optionalPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
         .optionalPath(CSV_HEADER_CONFIG)
         .optionalPath(CSV_SEPARATOR_CONFIG)
         .optionalPath(CSV_ENCODING_CONFIG)
@@ -459,6 +422,7 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
         .optionalPath(CSV_MAX_MALFORMED_LOG_CONFIG)
         .optionalPath(CSV_MODE_CONFIG)
         .handlesOwnValidationPath(TRANSLATOR_CONFIG)
+        .handlesOwnValidationPath(SCHEMA_CONFIG)
         .add(new InputTranslatorCompatibilityValidation())
         .build();
   }
@@ -470,6 +434,10 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     if (config.hasPath(TRANSLATOR_CONFIG)) {
       TranslateFunction translateFunction = getTranslateFunction(config.getConfig(TRANSLATOR_CONFIG));
       components.addAll(translateFunction.getComponents(config.getConfig(TRANSLATOR_CONFIG), configure));
+    }
+
+    if (config.hasPath(SCHEMA_CONFIG)) {
+      components.addAll(SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG));
     }
 
     return components;

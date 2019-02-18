@@ -251,17 +251,8 @@ Input `type` = `filesystem`.
 |format
 |The file format of the files of the input directory. Envelope supports formats `parquet`, `json`, `csv`, `input-format`, `text`.
 
-|field.names
-|(csv, json) List of StructType field names of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For JSON, the field names must match the JSON data field names.
-
-|field.types
-|(csv, json) List of StructType field data types of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
-
-|avro-schema.literal
-|(csv, json) Inline Avro schema definition of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
-
-|avro-schema.file
-|(csv, json) A local (executor working directory) Avro schema file of the projected Row schema. In Spark, this will execute `DataFrameReader#schema`. For details, see the available options defined in <<Data Type Support>>.
+|schema
+|Optional.  Applies to `csv` and `json` input formats.  Refer to the link:configurations.adoc#schema[Schema documentation].  If a schema is not provided for `csv`/`json` input, Spark will infer the schema as described in the link:https://spark.apache.org/docs/2.1.0/api/java/org/apache/spark/sql/DataFrameReader.html[org.apache.spark.sql.DataFrameReader documentation] (unless `infer-schema = false`)
 
 |separator
 |(csv) Spark option `sep`; sets the single character as a separator for each field and value. (default ,)
@@ -445,11 +436,8 @@ Translator `type` = `avro`.
 |===
 |Configuration suffix|Description
 
-|schema.literal
-|The Avro JSON read schema string for the values being translated. This configuration and `schema.path` are mutually exclusive.
-
-|schema.path
-|The path to the Avro JSON read schema file for the values being translated. This configuration and `schema.literal` are mutually exclusive.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
@@ -476,11 +464,8 @@ Translator `type` = `delimited`.
 |delimiter-regex
 |If `true`, the `delimiter` string will be interpreted as a regular expression. Default `false` (interpret as a literal value).
 
-|field.names
-|The list of fields to read from the delimited record.
-
-|field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |timestamp.formats
 |Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
@@ -510,11 +495,8 @@ Translator `type` = `kvp`.
 |delimiter.field
 |The delimiter that separates the the key and value of each key-value pair.
 
-|field.names
-|The list of key names that will be found in the messages.
-
-|field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |timestamp.formats
 |Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
@@ -550,11 +532,8 @@ Translator `type` = `morphline`.
 |morphline.id
 |The optional identifier of the Morphline pipeline within the configuration file.
 
-|field.names
-|The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
-
-|field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
@@ -584,11 +563,8 @@ Translator `type` = `protobuf`.
 |===
 |Configuration suffix|Description
 
-|descriptor.filepath
-|The Protobuf `Descriptor` file. The file is built with the `protoc` compiler. This binary schema file must be referencable from the Spark workspace, typically by including it with the `--files` option.
-
-|descriptor.message
-|The optional `Message` name of the root Protobuf object in the `Descriptor`. Only one top-level `Message` may be deserialized per Translator, even though the Descriptor may contain multiple top-level `Messages`.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation] (Currently only the Protobuf schema type is supported for the Protobuf translator, `schema.type` = `protobuf`)
 
 |append.raw.enabled
 |If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
@@ -631,11 +607,8 @@ Deriver `type` = `morphline`.
 |morphline.id
 |The optional identifier of the Morphline pipeline within the configuration file.
 
-|field.names
-|The list of field names of the Record used to construct the output DataFrame, i.e. its StructType, and populate the Rows from the Record values.
-
-|field.types
-|The list of data types of the fields in the same order as the list of field names. Supported types are detailed in <<Data Type Support>>.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |===
 
@@ -779,7 +752,7 @@ Deriver `type` = `dq`.
 |Required. String list of field names.
 
 |fieldtype
-|Optional. Type of the field to check for defined values: must be `string`, `long`, `int`, or `decimal`. Defaults to `string`.
+|Optional. Type of the field to check for defined values: must be `string`, `long`, `integer`, or `decimal`. Defaults to `string`.
 
 |values
 |Required. List of values. For strings and decimals define the values using string literals. For integral types use number literals.
@@ -795,7 +768,7 @@ Deriver `type` = `dq`.
 
 |fieldtype
 |Optional. The field type to use when doing range checks. Range values will be interpreted as this type. Must be numeric: allowed values are
-`int`, `long`, `double`, `float`, `decimal`. Take care when using floating point values as exact boundary matches may not behave as expected - use
+`integer`, `long`, `double`, `float`, `decimal`. Take care when using floating point values as exact boundary matches may not behave as expected - use
 `decimal` if exact boundaries are required. Defaults to `long`.
 
 |range
@@ -826,10 +799,8 @@ count is defined. It must be a dataframe with a single field of type `long`.
 ||
 |_checkschema_|
 
-|fields
-|Required. A list of fields and types that are required to be in the dataset. List elements should be objects with
-two fields: `name` and `type`. Valid types are: `string`, `byte`, `short`, `int`, `long`, `float`, `decimal`,
-`boolean`, `binary`, `date`, `timestamp`. For `decimal`, two additional int fields are required: `scale` and `precision`.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |exactmatch
 |Optional. Whether the schema of the Rows must exactly match the specified schema. If false the actual row can contain
@@ -1397,7 +1368,7 @@ so for binary separators use the `\uXXXX` syntax. Defaults to "`:`".
 |Required for `default` serde. A map of column definitions specifying how to map Row fields into HBase columns. Each
 column requires three attributes: the column family `cf`, the column qualifier `col` and
 the column type `type`. The columns which comprise the row key are denoted with `cf = rowkey`.
-Supported types are int, long, boolean, float, double and string. For example:
+Supported types are integer, long, boolean, float, double and string. For example:
 
 ....
 mapping.columns {
@@ -1419,7 +1390,7 @@ mapping.columns {
   orderqty {
     cf = "cf1"
     col = "orderqty"
-    type = "int"
+    type = "integer"
   }
 }
 ....
@@ -1441,11 +1412,8 @@ Output `type` = `zookeeper`.
 |connection
 |The ZooKeeper quorum to connect to, in the format `host1:port1,...`.
 
-|field.names
-|The list of field names for the schema of this output.
-
-|field.types
-|The list of field types for the schema of this output, in the same order as `field.names`. For details, see the available options defined in <<Data Type Support>>.
+|schema
+|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |key.field.names
 |The list of field names that constitute the unique key of the output. Must be a subset of `field.names`. Must always be provided in the same order across pipeline executions.
@@ -1639,24 +1607,81 @@ Spark SQL user-defined functions (UDFs) are provided with a list of UDF specific
 
 |===
 
+== Schema
+
+Envelope provides a number of ways to define the schema for components.  Data type mappings are outlined in the link:configurations.adoc#data-type-support[Data Type Support] section below.
+
+=== Flat
+
+Schema `type` = `flat`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|field.names
+|The list of field names in the schema.
+
+|field.types
+|The list of field types in the schema
+
+|===
+
+=== Avro
+
+Schema `type` = `avro`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|filepath
+|The path to a file containing the Avro schema definition.
+
+|literal
+|The literal JSON string defining the Avro schema.
+
+|===
+
+=== Protobuf
+
+Schema `type` = `protobuf`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|descriptor.filepath
+|The path to a Protobuf descriptor file defining the schema.
+
+|descriptor.message
+|Optional Protobuf schema message parameter.
+
+|===
+
 == Data Type Support
 
-Envelope supports the following Spark data types when defining a StructType schema inline (commonly via the `field.types` parameter):
+=== Flat
+
+Envelope supports the following Spark data types when defining a schema in-line (for example, using `schema.type` = `flat`):
 
 * `string`
 * `byte`
 * `short`
-* `int`
+* `integer`
 * `long`
 * `float`
 * `double`
+* `decimal(_precision_,_scale_)` or (`decimal`, which defaults to (10,0) per https://spark.apache.org/docs/2.2.0/api/java/index.html?org/apache/spark/sql/types/DataTypes.html[DataTypes.createDecimalType])
 * `boolean`
 * `binary`
+* `date`
 * `timestamp`
 
-When using an Avro schema to define the StructType, either via an inline Avro literal or a supporting Avro file, the following Spark data types are supported:
+=== Avro
 
-.Avro to StructType
+When using an Avro schema to define the Spark schema (for example, `schema.type` = `avro`), either via an inline Avro literal or a supporting Avro file, the following Spark data types are supported:
+
 |===
 |Avro Type |Data Type
 
@@ -1704,4 +1729,46 @@ When using an Avro schema to define the StructType, either via an inline Avro li
 
 |decimal (LogicalType, as `bytes`)
 |Decimal
+|===
+
+
+=== Protobuf
+
+When using a Protobuf schema to define the Spark schema (for example, `schema.type` = `protobuf`), the following Spark data types are supported:
+
+|===
+|Protobuf FieldDescriptor Type |Data Type                                                               
+
+|BOOLEAN
+|Boolean
+
+|BYTE_STRING
+|Binary
+
+|DOUBLE
+|Double
+
+|ENUM
+|String
+
+|FLOAT
+|Float
+
+|INT
+|Integer
+
+|LONG
+|Long
+
+|MESSAGE
+|StructType
+
+|STRING
+|String
+
+|double
+|Double
+
+|boolean
+|Boolean
 |===

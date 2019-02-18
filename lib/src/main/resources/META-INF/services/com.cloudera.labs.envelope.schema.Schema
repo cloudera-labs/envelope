@@ -1,0 +1,3 @@
+com.cloudera.labs.envelope.schema.FlatSchema
+com.cloudera.labs.envelope.schema.AvroSchema
+com.cloudera.labs.envelope.schema.ProtobufSchema

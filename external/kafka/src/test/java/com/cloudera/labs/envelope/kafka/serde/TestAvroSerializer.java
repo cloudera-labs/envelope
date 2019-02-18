@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.kafka.serde;
 
 import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
@@ -26,11 +25,13 @@ import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -39,10 +40,12 @@ public class TestAvroSerializer {
 
   @Test
   public void testAvroSerialization() throws IOException {
-    StructType structType = SchemaUtils.structTypeFor(
-        Lists.newArrayList("field1", "field2", "field3"),
-        Lists.newArrayList("string", "int", "boolean"));
-    Row row = new RowWithSchema(structType, "hello", 1, false);
+    List<StructField> fields = Lists.newArrayList(
+        DataTypes.createStructField("field1", DataTypes.StringType, true),
+        DataTypes.createStructField("field2", DataTypes.IntegerType, true),
+        DataTypes.createStructField("field3", DataTypes.BooleanType, true)
+    );
+    Row row = new RowWithSchema(DataTypes.createStructType(fields), "hello", 1, false);
     
     Map<String, String> configs = Maps.newHashMap();
     configs.put(AvroSerializer.SCHEMA_PATH_CONFIG_NAME, getClass().getResource("/kafka/serde/avro-serialization-test.avsc").getFile());

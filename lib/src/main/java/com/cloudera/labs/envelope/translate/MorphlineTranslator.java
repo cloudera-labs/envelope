@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,10 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
@@ -34,15 +37,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Set;
 
-public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesValidations {
+public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesValidations,
+    InstantiatesComponents {
 
   public static final String ENCODING_KEY = "encoding.key";
   public static final String ENCODING_MSG = "encoding.message";
   public static final String MORPHLINE = "morphline.file";
   public static final String MORPHLINE_ID = "morphline.id";
-  public static final String FIELD_NAMES = "field.names";
-  public static final String FIELD_TYPES = "field.types";
+  public static final String SCHEMA_CONFIG = "schema";
 
   private static final Logger LOG = LoggerFactory.getLogger(MorphlineTranslator.class);
   private static final String TRANSLATOR_KEY = "_attachment_key";
@@ -68,9 +72,7 @@ public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesV
     this.morphlineId = config.getString(MORPHLINE_ID);
 
     // Construct the StructType schema for the Rows
-    List<String> fieldNames = config.getStringList(FIELD_NAMES);
-    List<String> fieldTypes = config.getStringList(FIELD_TYPES);
-    this.schema = SchemaUtils.structTypeFor(fieldNames, fieldTypes);
+    this.schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
   }
 
   @Override
@@ -141,9 +143,14 @@ public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesV
         .mandatoryPath(ENCODING_MSG, ConfigValueType.STRING)
         .mandatoryPath(MORPHLINE, ConfigValueType.STRING)
         .mandatoryPath(MORPHLINE_ID, ConfigValueType.STRING)
-        .mandatoryPath(FIELD_NAMES, ConfigValueType.LIST)
-        .mandatoryPath(FIELD_TYPES, ConfigValueType.LIST)
+        .mandatoryPath(SCHEMA_CONFIG, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(SCHEMA_CONFIG) 
         .build();
+  }
+
+  @Override
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    return SchemaUtils.getSchemaComponents(config, configure, SCHEMA_CONFIG);
   }
 
 }

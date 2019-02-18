@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,8 +15,13 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.schema.Schema;
+import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.translate.Translator;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -25,6 +30,7 @@ import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
 import java.util.List;
+import java.util.Set;
 
 public class SchemaUtils {
 
@@ -77,55 +83,19 @@ public class SchemaUtils {
     return to;
   }
 
-  public static StructType structTypeFor(List<String> fieldNames, List<String> fieldTypes) {
-    List<StructField> fields = Lists.newArrayList();
+  public static Set<InstantiatedComponent> getSchemaComponents(Config config, 
+      boolean configure, String ...schemaConfigPaths) {
 
-    for (int i = 0; i < fieldNames.size(); i++) {
-      String fieldName = fieldNames.get(i);
-      String fieldType = fieldTypes.get(i);
+    Set<InstantiatedComponent> components = Sets.newHashSet();
 
-      StructField field;
-      switch (fieldType) {
-        case "string":
-          field = DataTypes.createStructField(fieldName, DataTypes.StringType, true);
-          break;
-        case "float":
-          field = DataTypes.createStructField(fieldName, DataTypes.FloatType, true);
-          break;
-        case "double":
-          field = DataTypes.createStructField(fieldName, DataTypes.DoubleType, true);
-          break;
-        case "byte":
-          field = DataTypes.createStructField(fieldName, DataTypes.ByteType, true);
-          break;
-        case "short":
-          field = DataTypes.createStructField(fieldName, DataTypes.ShortType, true);
-          break;
-        case "int":
-          field = DataTypes.createStructField(fieldName, DataTypes.IntegerType, true);
-          break;
-        case "long":
-          field = DataTypes.createStructField(fieldName, DataTypes.LongType, true);
-          break;
-        case "boolean":
-          field = DataTypes.createStructField(fieldName, DataTypes.BooleanType, true);
-          break;
-        case "binary":
-          field = DataTypes.createStructField(fieldName, DataTypes.BinaryType, true);
-          break;
-        case "timestamp":
-          field = DataTypes.createStructField(fieldName, DataTypes.TimestampType, true);
-          break;
-        default:
-          throw new RuntimeException("Unsupported provided field type: " + fieldType);
-      }
-
-      fields.add(field);
+    for (String schemaConfigPath : schemaConfigPaths) {
+      Config schemaConfig = config.getConfig(schemaConfigPath);
+      Schema schema = SchemaFactory.create(schemaConfig, configure);
+      components.add(new InstantiatedComponent(
+        schema, config.getConfig(schemaConfigPath), schemaConfigPath));
     }
 
-    StructType schema = DataTypes.createStructType(fields);
-
-    return schema;
+    return components;
   }
 
 }

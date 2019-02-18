@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -83,17 +83,17 @@ import java.util.Set;
  *         orderqty {
  *           cf = "cf1"
  *           col = "orderqty"
- *           type = "int"
+ *           type = "integer"
  *         }
  *         leavesqty {
  *           cf = "cf1"
  *           col = "leavesqty"
- *           type = "int"
+ *           type = "integer"
  *         }
  *         cumqty {
  *           cf = "cf1"
  *           col = "cumqty"
- *           type = "int"
+ *           type = "integer"
  *         }
  *       }
  *     }
