@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,27 @@
 
 package com.cloudera.labs.envelope.run;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
+
 import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -24,20 +45,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.types.DataTypes;
-import org.junit.Test;
-
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import com.typesafe.config.ConfigValueFactory;
 
 public class TestLoopStep {
 
@@ -170,7 +178,7 @@ public class TestLoopStep {
 
     Set<Step> unrolled = loopStep.refactor(steps);
 
-    assertEquals(unrolled.size(), 5);
+    assertEquals(5,unrolled.size());
 
     assertEquals(StepUtils.getStepForName("source_step", unrolled).get().getDependencyNames(), Sets.newHashSet());
     assertEquals(StepUtils.getStepForName("loop_step", unrolled).get().getDependencyNames(), Sets.newHashSet("source_step"));
@@ -661,5 +669,85 @@ public class TestLoopStep {
     }
   }
 
+  @Test
+  public void testStepSuffix() throws Exception {
+    Set<Step> steps = Sets.newHashSet();
+
+    Config sourceStepConfig = ConfigFactory.empty();
+    BatchStep sourceStep = new BatchStep("source_step");
+    sourceStep.configure(sourceStepConfig);
+    Dataset<Row> sourceDF = createTestDataframe();
+    sourceStep.setData(sourceDF);
+    steps.add(sourceStep);
+
+    Config loopStepConfig = ConfigFactory.empty()
+        .withValue(Step.DEPENDENCIES_CONFIG, ConfigValueFactory.fromIterable(Lists.newArrayList("source_step")))
+        .withValue(LoopStep.MODE_PROPERTY, ConfigValueFactory.fromAnyRef(LoopStep.MODE_PARALLEL))
+        .withValue(LoopStep.SOURCE_PROPERTY, ConfigValueFactory.fromAnyRef(LoopStep.SOURCE_STEP))
+        .withValue(LoopStep.STEP_PROPERTY, ConfigValueFactory.fromAnyRef("source_step"))
+        .withValue(LoopStep.SUFFIX_PROPERTY, ConfigValueFactory.fromAnyRef("descr"))
+    ;
+        
+    RefactorStep loopStep = new LoopStep("loop_step");
+    loopStep.configure(loopStepConfig);
+    steps.add(loopStep);
+
+    Config step1Config = ConfigFactory.empty()
+        .withValue(Step.DEPENDENCIES_CONFIG, ConfigValueFactory.fromIterable(Lists.newArrayList("loop_step")))
+        .withValue("sql", ConfigValueFactory.fromAnyRef("select ${non_existent_parm}, count(record_id) "
+            + "from some_table "
+            + "where record_month = '${descr}' "
+            + "and record_date <> '${sdate}'"));
+    Step step1 = new BatchStep("dependent_step");
+    step1.configure(step1Config);
+    steps.add(step1);
+
+    Set<Step> unrolled = loopStep.refactor(steps);
+
+    assertEquals(15, unrolled.size());
+
+    assertEquals(StepUtils.getStepForName("source_step", unrolled).get().getDependencyNames(), Sets.newHashSet());
+    assertEquals(StepUtils.getStepForName("loop_step", unrolled).get().getDependencyNames(), Sets.newHashSet("source_step"));
+    assertEquals(13,
+        StepUtils.getImmediateDependentSteps(StepUtils.getStepForName("loop_step", unrolled).get(),unrolled).size());
+    assertEquals(StepUtils.getStepForName("dependent_step_January", unrolled).get().getDependencyNames(), Sets.newHashSet("loop_step"));
+    assertTrue(StepUtils.getStepForName("dependent_step_January", unrolled).get().getConfig().getAnyRef("sql").toString()
+        .matches(".+?\\$\\{non_existent_parm\\}.*?'January'.*?'2019-01-01'.*"));
+    assertEquals(StepUtils.getStepForName("dependent_step_February", unrolled).get().getDependencyNames(), Sets.newHashSet("loop_step"));
+    assertFalse(StepUtils.getStepForName("dependent_step_February", unrolled).get().getConfig().getAnyRef("sql").toString()
+        .matches(".+?\\$\\{non_existent_parm\\}.*?'January'.*?'2019-02-01'.*"));
+    assertEquals(StepUtils.getStepForName("dependent_step_null", unrolled).get().getDependencyNames(), Sets.newHashSet("loop_step"));
+    assertTrue(StepUtils.getStepForName("dependent_step_null", unrolled).get().getConfig().getAnyRef("sql").toString()
+        .matches(".+?\\$\\{non_existent_parm\\}.*?'null'.*?'9999-12-31'.*"));
+  }
+  
+  private static Dataset<Row> createTestDataframe() throws Exception {
+    return Contexts.getSparkSession().createDataFrame(createTestData(), createTestSchema());
+  }
+
+  private static StructType createTestSchema() throws Exception {
+    return DataTypes.createStructType(Lists.newArrayList(
+        DataTypes.createStructField("id", DataTypes.StringType, true),
+        DataTypes.createStructField("descr", DataTypes.StringType, true),
+        DataTypes.createStructField("seq", DataTypes.IntegerType, true),
+        DataTypes.createStructField("sdate", DataTypes.DateType, true)));
+  }
+
+  private static List<Row> createTestData() throws Exception {
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    return Lists.newArrayList(RowFactory.create("J", "January", 1, new Date(df.parse("2019-01-01").getTime())),
+        RowFactory.create("F", "February", 2, new Date(df.parse("2019-02-01").getTime())),
+        RowFactory.create("M", "March", 3, new Date(df.parse("2019-03-01").getTime())),
+        RowFactory.create("A", "April", 4, new Date(df.parse("2019-04-01").getTime())),
+        RowFactory.create("M", "May", 5, new Date(df.parse("2019-05-01").getTime())),
+        RowFactory.create("J", "June", 6, new Date(df.parse("2019-06-01").getTime())),
+        RowFactory.create("J", "July", 7, new Date(df.parse("2019-07-01").getTime())),
+        RowFactory.create("A", "August", 8, new Date(df.parse("2019-08-01").getTime())),
+        RowFactory.create("S", "Septemper", 9, new Date(df.parse("2019-09-01").getTime())),
+        RowFactory.create("O", "October", 10, new Date(df.parse("2019-10-01").getTime())),
+        RowFactory.create("N", "November", 11, new Date(df.parse("2019-11-01").getTime())),
+        RowFactory.create("D", "December", 12, new Date(df.parse("2019-12-01").getTime())),
+        RowFactory.create(null, null, null, new Date(df.parse("9999-12-31").getTime())));
+  }  
 }
 

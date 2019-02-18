@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,11 +15,24 @@
 
 package com.cloudera.labs.envelope.run;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.StepUtils;
+import com.cloudera.labs.envelope.validate.MandatoryPathValidation;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.cloudera.labs.envelope.validate.MandatoryPathValidation;
 import com.google.common.base.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -29,17 +42,9 @@ import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Set;
 
 public class LoopStep extends RefactorStep implements ProvidesValidations {
-  
+
   public static final String MODE_PROPERTY = "mode";
   public static final String MODE_SERIAL = "serial";
   public static final String MODE_PARALLEL = "parallel";
@@ -52,7 +57,9 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
   public static final String RANGE_END_PROPERTY = "range.end";
   public static final String LIST_PROPERTY = "list";
   public static final String STEP_PROPERTY = "step";
-  
+  public static final String SUFFIX_PROPERTY = "suffix";
+  public static final String DEFAULT_SUFFIX_PROPERTY = "value";
+
   private static Logger LOG = LoggerFactory.getLogger(LoopStep.class);
 
   public LoopStep(String name) {
@@ -64,8 +71,8 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
   // static values in the configuration or from dynamic values provided by previous steps.
   @Override
   public Set<Step> refactor(Set<Step> steps) {
-    // The values that the loop iterates over
-    List<Object> values = getValues(steps);
+    // The rows that the loop iterates over
+    List<Row> iterationRows = getIterationRows(steps);
     
     // The mode that the loop runs as, either 'parallel' or 'serial'
     String mode = getMode();
@@ -97,8 +104,9 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     // Each iteration of the loop is a copy of the loop graph steps, where the names of
     // the steps are suffixed with the value of the iteration.
     Set<Step> previousIterationSteps = null;
-    for (Object value : values) {
-      LOG.debug("Constructing loop iteration value: " + value);
+    for (Row iterationRow : iterationRows) {
+      String suffix = getSuffix(iterationRow) ;
+      LOG.debug("Constructing loop for iteration value: {}", suffix);
       // Make a copy of the loop graph steps for this iteration
       Set<Step> iterationSteps = StepUtils.copySteps(loopGraphSteps);
       
@@ -112,7 +120,7 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
         
         for (String dependency : dependencies) {
           if (StepUtils.getStepForName(dependency, loopGraphSteps).isPresent()) {
-            dependenciesToAdd.add(dependency + "_" + value);
+            dependenciesToAdd.add(dependency + "_" + suffix);
             dependenciesToRemove.add(dependency);
           }
         }
@@ -126,7 +134,7 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
       // Adjust the iteration step names to have the iteration value suffix and to
       // have the parameter replaced with the iteration value
       for (Step iterationStep : iterationSteps) {
-        String adjustedIterationStepName = iterationStep.getName() + "_" + value; 
+        String adjustedIterationStepName = iterationStep.getName() + "_" + suffix; 
         LOG.debug("Renaming iteration step {} to {}", iterationStep.getName(), adjustedIterationStepName);
         iterationStep.setName(adjustedIterationStepName);
         
@@ -139,18 +147,14 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
           }
         }
         
-        if (hasParameter()) {
-          Config iterationStepConfig = iterationStep.getConfig();
-          Config parameterReplacedConfig = 
-              ConfigUtils.findReplaceStringValues(iterationStepConfig, "\\$\\{" + getParameter() + "\\}", value);
-          iterationStep.setConfig(parameterReplacedConfig);
-          LOG.debug("Parameter replacement completed");
-        }
+        Config parameterSubstConfig = performSubstitutions(iterationStep.getConfig(), iterationRow);
+        iterationStep.setConfig(parameterSubstConfig);
+        LOG.debug("Parameter substitutions completed: {} ", parameterSubstConfig.toString());
       }
       
       // In serial mode we want all non-first iterations to be dependent on the previous
       // iteration so that they run in serial order
-      if (mode.equals(MODE_SERIAL) && !values.get(0).equals(value)) {
+      if (mode.equals(MODE_SERIAL) && previousIterationSteps != null) {
         LOG.debug("Adjusting iteration steps to be dependent on previous iteration's steps");
         // Add all previous iteration's step names to all this iteration's step dependencies
         for (Step iterationStep : iterationSteps) {
@@ -181,40 +185,77 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     return steps;
   }
   
-  private List<Object> getValues(Set<Step> steps) {
-    List<Object> values;
-    
+  private Config performSubstitutions(Config c, Row row) {
+    Config substConfig = c;
+    for (StructField field : row.schema().fields()) {
+      Object value = row.getAs(field.name());
+      substConfig = ConfigUtils.findReplaceStringValues(substConfig, "\\$\\{" + field.name() + "\\}",
+        value != null ? value : "null");
+    }
+    return substConfig;
+  }
+
+  private String getSuffix(Row row) {
+    Object suffix;
+    if (SOURCE_STEP.equals(config.getString(SOURCE_PROPERTY)) && config.hasPath(SUFFIX_PROPERTY)) {
+      String suffixColumn = config.getString(SUFFIX_PROPERTY);
+      if (row.schema().fieldIndex(suffixColumn) < 0) {
+        throw new RuntimeException("Column '" + SUFFIX_PROPERTY + "=" + suffixColumn
+            + " does not exist in source step's schema " + row.schema().toString());
+      }
+      suffix = row.getAs(suffixColumn);
+    } else {
+      suffix = row.getAs(0);
+    }
+    return suffix == null ? "null" : suffix.toString();
+  }
+  
+  private List<Row> getIterationRows(Set<Step> steps) {
+    List<Row> rows;
+
     String source = config.getString(SOURCE_PROPERTY);
     switch (source) {
       case SOURCE_RANGE:
-        values = getValuesFromRange();
+        rows = getRowsFromRange();
         break;
       case SOURCE_LIST:
-        values = getValuesFromList();
+        rows = getRowsFromList();
         break;
       case SOURCE_STEP:
-        values = getValuesFromStep(steps);
+        rows = getRowsFromStep(steps);
         break;
       default:
         throw new RuntimeException("Invalid source for loop step '" + getName() + "'");
     }
     
-    return values;
+    return rows;
   }
   
-  private List<Object> getValuesFromRange() {
+  private List<Row> getRowsFromRange() {
     int rangeStart = config.getInt(RANGE_START_PROPERTY);
     int rangeEnd = config.getInt(RANGE_END_PROPERTY);
-    
-    return Lists.<Object>newArrayList(ImmutableList.copyOf(ContiguousSet.create(Range.closed(rangeStart, rangeEnd), DiscreteDomain.integers()))); 
+    List<Object> l = Lists.<Object>newArrayList(ImmutableList.copyOf(ContiguousSet.create(Range.closed(rangeStart, rangeEnd), DiscreteDomain.integers()))); 
+    return toRowList(l);
+  }
+
+  private List<Row> getRowsFromList() {
+    return toRowList(config.getAnyRefList(LIST_PROPERTY));
   }
   
-  @SuppressWarnings("unchecked")
-  private List<Object> getValuesFromList() {
-    return (List<Object>)config.getAnyRefList(LIST_PROPERTY);
+  private List<Row> toRowList(List<? extends Object> substitutionValues) {
+    String columnName = hasParameter() ? getParameter() : DEFAULT_SUFFIX_PROPERTY;
+    StructType schema = DataTypes.createStructType(
+      new StructField[] {
+        DataTypes.createStructField(columnName, DataTypes.StringType, false)
+      });
+    List<Row> substitutionRows = new ArrayList<Row>();
+    for(Object value : substitutionValues) {
+      substitutionRows.add(new RowWithSchema(schema, new Object[] {value}));
+    }
+    return substitutionRows;
   }
-  
-  private List<Object> getValuesFromStep(Set<Step> steps) {
+
+  private List<Row> getRowsFromStep(Set<Step> steps) {
     String stepName = config.getString(STEP_PROPERTY);
     Optional<Step> optionalStep = StepUtils.getStepForName(stepName, steps);
     
@@ -233,16 +274,10 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     if (stepRows.count() > 1000) {
       throw new RuntimeException("Step source for loop step '" + getName() + "' can not provide more than 1000 values to loop over");
     }
-    
-    if (stepRows.schema().fields().length != 1) {
-      throw new RuntimeException("Step source for loop step '" + getName() + "' can only provide a single field");
-    }
-    
-    List<Object> stepValues = stepRows.javaRDD().map(new FirstFieldFunction()).collect();
-    
-    return stepValues;
+
+    return stepRows.collectAsList();
   }
-  
+
   private String getMode() {
     String mode;
     
@@ -276,20 +311,11 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     
     return copy;
   }
-  
-  @SuppressWarnings("serial")
-  private static class FirstFieldFunction implements Function<Row, Object> {
-    @Override
-    public Object call(Row row) throws Exception {
-      return row.get(0);
-    }
-  }
 
   @Override
   public Validations getValidations() {
     return Validations.builder()
         .mandatoryPath(MODE_PROPERTY, ConfigValueType.STRING)
-        .mandatoryPath(PARAMETER_PROPERTY, ConfigValueType.STRING)
         .mandatoryPath(SOURCE_PROPERTY, ConfigValueType.STRING)
         .allowedValues(SOURCE_PROPERTY, SOURCE_RANGE, SOURCE_LIST, SOURCE_STEP)
         .ifPathHasValue(SOURCE_PROPERTY, SOURCE_RANGE,
@@ -300,8 +326,13 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
             new MandatoryPathValidation(LIST_PROPERTY, ConfigValueType.LIST))
         .ifPathHasValue(SOURCE_PROPERTY, SOURCE_STEP, 
             new MandatoryPathValidation(STEP_PROPERTY, ConfigValueType.STRING))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_RANGE, 
+            new MandatoryPathValidation(PARAMETER_PROPERTY, ConfigValueType.STRING))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_LIST, 
+            new MandatoryPathValidation(PARAMETER_PROPERTY, ConfigValueType.STRING))
+        .ifPathHasValue(SOURCE_PROPERTY, SOURCE_STEP, 
+            new MandatoryPathValidation(SUFFIX_PROPERTY, ConfigValueType.STRING))
         .addAll(super.getValidations())
         .build();
   }
-  
 }

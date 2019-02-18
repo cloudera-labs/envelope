@@ -14,8 +14,8 @@ Loop steps have three options for specifying the of values to be looped over:
 - `list` provides an ordered list of values
 - `step` provides the values from a previous step
 
-A loop step can specify a parameter, which is a string that will be used to update the configuration of each loop graph instance with the value of the loop. This could be used to run iterations of the loop over, for example, a range of dates, or a list of table names. For a given parameter `parameter_name` all instances of `${parameter_name}` in the loop graph step configurations will be replaced with the value of the loop iteration.
-
+While iterating over the `range` or `list` of values, loop steps can specify a `parameter`, which is a string that will be used to update the configuration of each loop graph instance with the value of the loop. This could be used to run iterations of the loop over, for example, a range of dates, or a list of table names. For a given parameter `parameter_name` all instances of `${parameter_name}` in the loop graph step configurations will be replaced with the value of the loop iteration. 
+ 
 == Example
 
 Consider an example where there is a monthly job that needs to iterate through the dates of the month one at a time, and in sequence. Rather than individually listing out steps for each date of the month we can use a loop step to iterate over the dates.
@@ -135,5 +135,60 @@ steps {
       table = processed_table
     }
   }
+}
+----
+
+
+With `step`, looping is performed over a dataset derived in one of the previous steps.  The content of each row within referenced dataset is accessible inside the loop using a `${field_name}` notation, where `field_name` can be any field in that row's schema.
+
+Also, while using the `step` option, the suffix of the loop graph steps can be controlled by setting configuration parameter `suffix`. Its value should match one of the fields in the schema of a dataset being unrolled. For example, the below Envelope configuration can unroll the `monthly_report` step into a sequence of steps `monthy_report_JAN`, `monthly_report_FEB`, etc., and will substitute parameters `${month_name}`, `${month_start_date}` and `${month_end_date}` in them with corresponding values for a month from the `cal_dim` dataset.
+  
+----
+application {
+  name = Loop with parameters
+}
+
+steps {
+  ...
+  cal_dim {
+    dependencies = [...]
+    deriver {
+      type = sql
+      query.literal = """
+        SELECT month_id, month_name, month_start_date, month_end_date
+        FROM calendar_dim
+        WHERE year = 2019
+      """
+    }
+  }
+  ...
+  loop_dates {
+    dependencies = [cal_dim]
+    type = loop
+    mode = parallel
+    source = step
+    step = cal_dim
+    suffix = month_id
+  }
+
+  monthly_report {
+    dependencies = [loop_dates]
+    deriver {
+      type = sql
+      query.literal = """
+      	  SELECT ${month_name} order_month, sum(order_amount) orders_total
+      	  FROM orders 
+      	  WHERE order_date between ${month_start_date} and ${month_end_date}
+      """
+    }
+    planner {
+      type = append
+    }
+    output {
+      type = hive
+      table = report_table
+    }
+  }
+  ...
 }
 ----
