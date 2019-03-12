@@ -15,10 +15,6 @@
 
 package com.cloudera.labs.envelope.kudu;
 
-import static com.cloudera.labs.envelope.kudu.KuduUtils.IGNORE_MISSING_COLUMNS_CONFIG_NAME;
-import static com.cloudera.labs.envelope.kudu.KuduUtils.INSERT_IGNORE_CONFIG_NAME;
-import static com.cloudera.labs.envelope.kudu.KuduUtils.IS_SECURE_CONFIG_NAME;
-
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
@@ -41,9 +37,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduPredicate;
@@ -56,7 +49,7 @@ import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowResult;
 import org.apache.kudu.spark.kudu.KuduContext;
-import org.apache.kudu.spark.kudu.KuduRelation;
+import org.apache.kudu.spark.kudu.KuduWriteOptions;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
@@ -66,6 +59,14 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.cloudera.labs.envelope.kudu.KuduUtils.IGNORE_MISSING_COLUMNS_CONFIG_NAME;
+import static com.cloudera.labs.envelope.kudu.KuduUtils.INSERT_IGNORE_CONFIG_NAME;
+import static com.cloudera.labs.envelope.kudu.KuduUtils.IS_SECURE_CONFIG_NAME;
 
 public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, ProvidesAlias, ProvidesValidations,
     UsesDelegationTokens {
@@ -203,7 +204,10 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
           values.add(result.getBinaryCopy(columnName));
           break;
         case UNIXTIME_MICROS:
-          values.add(KuduRelation.microsToTimestamp(result.getLong(columnName)));
+          values.add(result.getTimestamp(columnName));
+          break;
+        case DECIMAL:
+          values.add(result.getDecimal(columnName));
           break;
         default:
           throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -219,7 +223,6 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
     List<StructField> fields = Lists.newArrayList();
 
     for (ColumnSchema columnSchema : table.getSchema().getColumns()) {
-      String fieldName = columnSchema.getName();
       DataType fieldType;
 
       switch (columnSchema.getType()) {
@@ -253,15 +256,19 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
         case UNIXTIME_MICROS:
           fieldType = DataTypes.TimestampType;
           break;
+        case DECIMAL:
+          int precision = columnSchema.getTypeAttributes().getPrecision();
+          int scale = columnSchema.getTypeAttributes().getScale();
+          fieldType = DataTypes.createDecimalType(precision, scale);
+          break;
         default:
           throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
       }
+
       fields.add(DataTypes.createStructField(columnSchema.getName(), fieldType, true));
     }
 
-    StructType tableSchema = DataTypes.createStructType(fields);
-
-    return tableSchema;
+    return DataTypes.createStructType(fields);
   }
 
   private KuduScanner scannerForFilters(Iterable<Row> filters, KuduTable table) throws KuduException {
@@ -384,7 +391,10 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
               kuduRow.addBinary(fieldName, plan.<byte[]>getAs(fieldIndex));
               break;
             case UNIXTIME_MICROS:
-              kuduRow.addLong(fieldName, KuduRelation.timestampToMicros(plan.getTimestamp(fieldIndex)));
+              kuduRow.addTimestamp(fieldName, plan.getTimestamp(fieldIndex));
+              break;
+            case DECIMAL:
+              kuduRow.addDecimal(fieldName, plan.getDecimal(fieldIndex));
               break;
             default:
               throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
@@ -445,22 +455,23 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
         }
       }
 
+      KuduWriteOptions kuduWriteOptions = new KuduWriteOptions(
+          KuduUtils.doesInsertIgnoreDuplicates(config),
+          false
+      );
+
       switch (mutationType) {
         case DELETE:
-          kc.deleteRows(mutation, tableName);
+          kc.deleteRows(mutation, tableName, kuduWriteOptions);
           break;
         case INSERT:
-          if (KuduUtils.doesInsertIgnoreDuplicates(config)) {
-            kc.insertIgnoreRows(mutation, tableName);
-          } else {
-            kc.insertRows(mutation, tableName);
-          }
+          kc.insertRows(mutation, tableName, kuduWriteOptions);
           break;
         case UPDATE:
-          kc.updateRows(mutation, tableName);
+          kc.updateRows(mutation, tableName, kuduWriteOptions);
           break;
         case UPSERT:
-          kc.upsertRows(mutation, tableName);
+          kc.upsertRows(mutation, tableName, kuduWriteOptions);
           break;
         default:
           throw new RuntimeException("Kudu bulk output does not support mutation type: " + mutationType);

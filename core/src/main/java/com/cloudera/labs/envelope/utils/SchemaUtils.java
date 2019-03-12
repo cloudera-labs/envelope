@@ -83,7 +83,7 @@ public class SchemaUtils {
     return to;
   }
 
-  public static Set<InstantiatedComponent> getSchemaComponents(Config config, 
+  public static Set<InstantiatedComponent> getSchemaComponents(Config config,
       boolean configure, String ...schemaConfigPaths) {
 
     Set<InstantiatedComponent> components = Sets.newHashSet();
