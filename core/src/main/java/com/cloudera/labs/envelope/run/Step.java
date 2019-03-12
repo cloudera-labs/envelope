@@ -36,7 +36,7 @@ public abstract class Step implements ProvidesValidations {
   protected String name;
   protected Config config;
   protected StepState state;
-  
+
   private Set<String> dependencyNames;
 
   private static final Logger LOG = LoggerFactory.getLogger(Step.class);
@@ -84,14 +84,14 @@ public abstract class Step implements ProvidesValidations {
   public StepState getState() {
     return state;
   }
-  
+
   public void setState(StepState state) {
     if (!getState().equals(state)) {
       LOG.info("State change for step '" + getName() + "': from " + getState() + " to " + state);
     }
     this.state = state;
   }
-  
+
   public abstract Step copy();
 
   // Can be overridden if the step holds additional state

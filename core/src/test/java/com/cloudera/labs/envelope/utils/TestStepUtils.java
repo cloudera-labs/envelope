@@ -245,20 +245,35 @@ public class TestStepUtils {
   @Test
   public void testGetIndependentNonStreamingSteps() {
     Step step1 = new BatchStep("step1");
-    Step step2 = new StreamingStep("step2");
+    Step step2 = new BatchStep("step2");
     Step step3 = new BatchStep("step3");
+
     Step step4 = new StreamingStep("step4");
-    step1.configure(ConfigFactory.empty().withValue("dependencies",
-        ConfigValueFactory.fromIterable(Sets.newHashSet("step3"))));
-    step2.configure(ConfigFactory.empty()
-        .withValue("dependencies", ConfigValueFactory.fromIterable(Sets.newHashSet("step4")))
-        .withValue("input.translator", ConfigFactory.empty().root()));
-    step3.configure(ConfigFactory.empty());
-    step4.configure(
-        ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
-    Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4);
+    Step step5 = new BatchStep("step5");
+
+    Step step6 = new StreamingStep("step6");
+    Step step7 = new BatchStep("step7");
+    Step step8 = new BatchStep("step8");
+
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty().withValue("dependencies",
+        ConfigValueFactory.fromIterable(Sets.newHashSet("step1"))));
+    step3.configure(ConfigFactory.empty().withValue("dependencies",
+        ConfigValueFactory.fromIterable(Sets.newHashSet("step2"))));
+
+    step4.configure(ConfigFactory.empty());
+    step5.configure(ConfigFactory.empty().withValue("dependencies",
+        ConfigValueFactory.fromIterable(Sets.newHashSet("step3", "step4"))));
+
+    step6.configure(ConfigFactory.empty());
+    step7.configure(ConfigFactory.empty().withValue("dependencies",
+        ConfigValueFactory.fromIterable(Sets.newHashSet("step1", "step6"))));
+    step8.configure(ConfigFactory.empty().withValue("dependencies",
+        ConfigValueFactory.fromIterable(Sets.newHashSet("step2", "step6"))));
+
+    Set<Step> steps = Sets.newHashSet(step1, step2, step3, step4, step5, step6, step7, step8);
     
-    assertEquals(StepUtils.getIndependentNonStreamingSteps(steps), Sets.newHashSet(step3));
+    assertEquals(Sets.newHashSet(step1, step2, step3), StepUtils.getIndependentNonStreamingSteps(steps));
   }
 
   @Test

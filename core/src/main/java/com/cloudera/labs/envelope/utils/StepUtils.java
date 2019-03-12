@@ -115,15 +115,19 @@ public class StepUtils {
   }
 
   public static Set<Step> getIndependentNonStreamingSteps(Set<Step> steps) {
-    Set<Step> independents = Sets.newHashSet();
+    // Independent non-streaming steps are all steps that are not streaming and
+    // are not ultimately dependent on a streaming step
+
+    Set<Step> streamsAndDependents = Sets.newHashSet();
 
     for (Step step : steps) {
-      if (!(step instanceof StreamingStep) && step.getDependencyNames().isEmpty()) {
-        independents.add(step);
+      if (step instanceof StreamingStep) {
+        streamsAndDependents.add(step);
+        streamsAndDependents.addAll(StepUtils.getAllDependentSteps(step, steps));
       }
     }
 
-    return independents;
+    return Sets.difference(steps, streamsAndDependents);
   }
 
   public static String stepNamesAsString(Set<? extends Step> steps) {
