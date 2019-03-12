@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -348,7 +348,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
             Validations.single().mandatoryPath(WINDOW_MILLISECONDS_CONFIG, ConfigValueType.NUMBER))
         .optionalPath(OFFSETS_MANAGE_CONFIG, ConfigValueType.BOOLEAN)
         .ifPathHasValue(OFFSETS_MANAGE_CONFIG, true,
-            Validations.single().mandatoryPath(OFFSETS_OUTPUT_CONFIG, ConfigValueType.OBJECT))
+            Validations.single().optionalPath(OFFSETS_OUTPUT_CONFIG, ConfigValueType.OBJECT))
         .handlesOwnValidationPath("translator")
         .handlesOwnValidationPath(OFFSETS_OUTPUT_CONFIG)
         .handlesOwnValidationPath(KafkaCommon.PARAMETER_CONFIG_PREFIX)
