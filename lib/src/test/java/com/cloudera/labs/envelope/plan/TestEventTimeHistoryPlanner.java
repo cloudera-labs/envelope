@@ -35,6 +35,8 @@ import java.util.Map;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestEventTimeHistoryPlanner {
 
@@ -806,6 +808,38 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
     assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
     assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+  }
+
+  @Test
+  public void testSurrogateKey() {
+    config = config
+        .withValue(EventTimeHistoryPlanner.SURROGATE_KEY_FIELD_NAME_CONFIG_NAME,
+            ConfigValueFactory.fromAnyRef("surrogate"));
+    p = new EventTimeHistoryPlanner();
+    assertNoValidationFailures(p, config);
+    p.configure(config);
+
+    Row existingRow = new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES, "");
+    existingRow = PlannerUtils.appendSurrogateKey(existingRow, "surrogate");
+
+    existing.add(existingRow);
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
+    key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 2);
+    assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
+    assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
+    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
+    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
+    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(RowUtils.get(planned.get(0), "surrogate"), existingRow.getAs("surrogate"));
+    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
+    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertNotNull(RowUtils.get(planned.get(1), "surrogate"));
+    assertNotEquals(RowUtils.get(planned.get(0), "surrogate"), RowUtils.get(planned.get(1), "surrogate"));
   }
   
 }

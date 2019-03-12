@@ -17,6 +17,7 @@ package com.cloudera.labs.envelope.plan;
 
 import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
+import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
@@ -33,18 +34,18 @@ import java.util.Map;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 public class TestEventTimeUpsertPlanner {
 
-  Row key;
-  List<Row> arriving;
-  List<Row> existing;
-  StructType keySchema;
-  StructType recordSchema;
-  Map<String, Object> configMap;
-  Config config;
-  EventTimeUpsertPlanner p;
+  private List<Row> arriving;
+  private List<Row> existing;
+  private StructType keySchema;
+  private StructType recordSchema;
+  private Map<String, Object> configMap;
+  private Config config;
+  private EventTimeUpsertPlanner p;
 
   @Before
   public void before() { 
@@ -229,6 +230,46 @@ public class TestEventTimeUpsertPlanner {
     List<Row> planned = p.planMutationsForKey(key, arriving, existing);
 
     assertEquals(planned.size(), 1);
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
+  }
+
+  @Test
+  public void testSurrogateKeyForInsert() {
+    configMap.put(EventTimeUpsertPlanner.SURROGATE_KEY_FIELD_NAME_CONFIG_NAME, "surrogate");
+    config = ConfigFactory.parseMap(configMap);
+    p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
+    p.configure(config);
+
+    arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 1);
+    assertNotNull(planned.get(0).getAs("surrogate"));
+    assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.INSERT);
+  }
+
+  @Test
+  public void testNoSurrogateKeyForUpdate() {
+    configMap.put(EventTimeUpsertPlanner.SURROGATE_KEY_FIELD_NAME_CONFIG_NAME, "surrogate");
+    config = ConfigFactory.parseMap(configMap);
+    p = new EventTimeUpsertPlanner();
+    assertNoValidationFailures(p, config);
+    p.configure(config);
+
+    Row existingRow = new RowWithSchema(recordSchema, "a", "world", 50L);
+    existingRow = PlannerUtils.appendSurrogateKey(existingRow, "surrogate");
+
+    existing.add(existingRow);
+    arriving.add(new RowWithSchema(recordSchema, "a", "hello", 100L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 1);
+    assertFalse(planned.get(0).schema().getFieldIndex("surrogate").isDefined());
     assertEquals(MutationType.valueOf(planned.get(0).<String>getAs(MutationType.MUTATION_TYPE_FIELD_NAME)), MutationType.UPDATE);
   }
 

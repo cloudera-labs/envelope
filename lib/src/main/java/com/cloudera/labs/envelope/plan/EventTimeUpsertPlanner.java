@@ -46,6 +46,7 @@ public class EventTimeUpsertPlanner
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
   public static final String TIMESTAMP_FIELD_NAMES_CONFIG_NAME = "fields.timestamp";
   public static final String VALUE_FIELD_NAMES_CONFIG_NAME = "fields.values";
+  public static final String SURROGATE_KEY_FIELD_NAME_CONFIG_NAME = "field.surrogate.key";
   public static final String EVENT_TIME_MODEL_CONFIG_NAME = "time.model.event";
   public static final String LAST_UPDATED_TIME_MODEL_CONFIG_NAME = "time.model.last.updated";
 
@@ -104,6 +105,10 @@ public class EventTimeUpsertPlanner
         arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
       }
 
+      if (hasSurrogateKeyField()) {
+        arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+      }
+
       planned.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
     }
     else if (PlannerUtils.before(eventTimeModel, arriving, existing)) {
@@ -138,6 +143,14 @@ public class EventTimeUpsertPlanner
 
   private String getLastUpdatedFieldName() {
     return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private boolean hasSurrogateKeyField() {
+    return config.hasPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String getSurrogateKeyFieldName() {
+    return config.getString(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
   }
 
   private List<String> getValueFieldNames() {
@@ -187,6 +200,7 @@ public class EventTimeUpsertPlanner
         .mandatoryPath(VALUE_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
         .mandatoryPath(TIMESTAMP_FIELD_NAMES_CONFIG_NAME, ConfigValueType.LIST)
         .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
         .optionalPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
         .handlesOwnValidationPath(EVENT_TIME_MODEL_CONFIG_NAME)

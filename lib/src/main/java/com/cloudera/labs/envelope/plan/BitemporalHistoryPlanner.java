@@ -53,6 +53,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
   public static final String CURRENT_FLAG_FIELD_NAME_CONFIG_NAME = "field.current.flag";
   public static final String CURRENT_FLAG_YES_CONFIG_NAME = "current.flag.value.yes";
   public static final String CURRENT_FLAG_NO_CONFIG_NAME = "current.flag.value.no";
+  public static final String SURROGATE_KEY_FIELD_NAME_CONFIG_NAME = "field.surrogate.key";
   public static final String CARRY_FORWARD_CONFIG_NAME = "carry.forward.when.null";
   public static final String EVENT_TIME_MODEL_CONFIG_NAME = "time.model.event";
   public static final String SYSTEM_TIME_MODEL_CONFIG_NAME = "time.model.system";
@@ -122,6 +123,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
         if (hasCurrentFlagField()) {
           arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
         }
+        if (hasSurrogateKeyField()) {
+          arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+        }
         arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
         plannedForKey.add(arriving);
 
@@ -145,6 +149,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
           arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
           if (hasCurrentFlagField()) {
             arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), RowUtils.get(plan, getCurrentFlagFieldName()));
+          }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
           }
           arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
           plannedForKey.add(arriving);
@@ -173,6 +180,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
           if (hasCurrentFlagField()) {
             arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+          }
           arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
           plannedForKey.add(arriving);
 
@@ -193,6 +203,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
           if (hasCurrentFlagField()) {
             arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagNoValue());
           }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+          }
           arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
           plannedForKey.add(arriving);
           
@@ -212,6 +225,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
             plan = PlannerUtils.copyPrecedingTime(arriving, timestampTimeModel, plan, eventEffectiveToTimeModel);
             plan = systemEffectiveFromTimeModel.setCurrentSystemTime(plan);
             plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
+            if (hasSurrogateKeyField()) {
+              plan = PlannerUtils.appendSurrogateKey(plan, getSurrogateKeyFieldName());
+            }
             plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
             plannedForKey.add(plan);
           }
@@ -237,6 +253,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
           if (hasCurrentFlagField()) {
             arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), getCurrentFlagYesValue());
           }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+          }
           arriving = PlannerUtils.setMutationType(arriving, MutationType.INSERT);
           plannedForKey.add(arriving);
           
@@ -260,6 +279,9 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
             plan = systemEffectiveToTimeModel.setFarFutureTime(plan);
             if (hasCurrentFlagField()) {
               plan = RowUtils.set(plan, getCurrentFlagFieldName(), getCurrentFlagNoValue());
+            }
+            if (hasSurrogateKeyField()) {
+              plan = PlannerUtils.appendSurrogateKey(plan, getSurrogateKeyFieldName());
             }
             plan = PlannerUtils.setMutationType(plan, MutationType.INSERT);
             plannedForKey.add(plan);
@@ -347,6 +369,10 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
     return config.hasPath(CURRENT_FLAG_NO_CONFIG_NAME);
   }
 
+  private boolean hasSurrogateKeyField() {
+    return config.hasPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
+  }
+
   private String getCurrentFlagFieldName() {
     return config.getString(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
   }
@@ -381,6 +407,10 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
 
   private List<String> getTimestampFieldNames() {
     return config.getStringList(TIMESTAMP_FIELD_NAMES_CONFIG_NAME);
+  }
+
+  private String getSurrogateKeyFieldName() {
+    return config.getString(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
   }
 
   private boolean doesCarryForward() {
@@ -480,6 +510,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
         .optionalPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(CARRY_FORWARD_CONFIG_NAME, ConfigValueType.BOOLEAN)
         .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
         .optionalPath(SYSTEM_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)

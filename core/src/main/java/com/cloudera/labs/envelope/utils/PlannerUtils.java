@@ -20,6 +20,8 @@ import com.cloudera.labs.envelope.plan.time.TimeModel;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 
+import java.util.UUID;
+
 public class PlannerUtils {
 
   /**
@@ -140,6 +142,10 @@ public class PlannerUtils {
    */
   public static boolean after(TimeModel timeModel, Row first, Row second) {
     return timeModel.compare(first, second) > 0;
+  }
+
+  public static Row appendSurrogateKey(Row row, String fieldName) {
+    return RowUtils.append(row, fieldName, DataTypes.StringType, UUID.randomUUID().toString());
   }
 
   private static void assertHasMutationTypeField(Row row) {

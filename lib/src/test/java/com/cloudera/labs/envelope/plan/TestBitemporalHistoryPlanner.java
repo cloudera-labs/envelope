@@ -45,6 +45,8 @@ import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.TIMESTAMP
 import static com.cloudera.labs.envelope.plan.BitemporalHistoryPlanner.VALUE_FIELD_NAMES_CONFIG_NAME;
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestBitemporalHistoryPlanner {
@@ -167,8 +169,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -203,8 +205,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -238,8 +240,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -297,8 +299,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -367,7 +369,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -401,7 +403,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -432,7 +434,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "world");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
@@ -460,7 +462,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "world");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
@@ -494,7 +496,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "world");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
@@ -525,8 +527,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello?");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 300L);
@@ -573,8 +575,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello?");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 300L);
@@ -655,7 +657,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello?");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 300L);
@@ -693,7 +695,7 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello?");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 300L);
@@ -730,8 +732,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -778,8 +780,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -820,7 +822,7 @@ public class TestBitemporalHistoryPlanner {
 
     assertEquals(planned.size(), 1);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "world");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
@@ -849,7 +851,7 @@ public class TestBitemporalHistoryPlanner {
 
     assertEquals(planned.size(), 1);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "world");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 50L);
@@ -875,10 +877,10 @@ public class TestBitemporalHistoryPlanner {
 
     assertEquals(planned.size(), 5);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
-    Long systemStart4 = (Long)RowUtils.get(planned.get(4), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart4 = RowUtils.get(planned.get(4), "systemstart");
 
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
@@ -941,10 +943,10 @@ public class TestBitemporalHistoryPlanner {
 
     assertEquals(planned.size(), 5);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
-    Long systemStart4 = (Long)RowUtils.get(planned.get(4), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart4 = RowUtils.get(planned.get(4), "systemstart");
 
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
@@ -1006,9 +1008,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1062,9 +1064,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1114,9 +1116,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1170,9 +1172,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1270,9 +1272,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(4)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(5)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
-    Long systemStart5 = (Long)RowUtils.get(planned.get(5), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart5 = RowUtils.get(planned.get(5), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1347,9 +1349,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(4)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(5)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
-    Long systemStart5 = (Long)RowUtils.get(planned.get(5), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart5 = RowUtils.get(planned.get(5), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1451,8 +1453,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1496,8 +1498,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1537,8 +1539,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1581,8 +1583,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1644,9 +1646,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value1"), "hello1:100");
     assertEquals(RowUtils.get(planned.get(0), "value2"), "hello2:100");
@@ -1723,9 +1725,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value1"), "hello1:50");
     assertEquals(RowUtils.get(planned.get(0), "value2"), null);
@@ -1803,9 +1805,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value1"), "hello1:100");
     assertEquals(RowUtils.get(planned.get(0), "value2"), "hello2:100");
@@ -1881,9 +1883,9 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
-    Long systemStart3 = (Long)RowUtils.get(planned.get(3), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart3 = RowUtils.get(planned.get(3), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value1"), "hello1:50");
     assertEquals(RowUtils.get(planned.get(0), "value2"), null);
@@ -1946,8 +1948,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
 
-    Long systemStart0 = (Long)RowUtils.get(planned.get(0), "systemstart");
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart0 = RowUtils.get(planned.get(0), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -1989,8 +1991,8 @@ public class TestBitemporalHistoryPlanner {
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
 
-    Long systemStart1 = (Long)RowUtils.get(planned.get(1), "systemstart");
-    Long systemStart2 = (Long)RowUtils.get(planned.get(2), "systemstart");
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
 
     assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
     assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
@@ -2014,6 +2016,62 @@ public class TestBitemporalHistoryPlanner {
     assertTrue(systemStart2 < preplanSystemTime + 5000);
     assertEquals(RowUtils.get(planned.get(2), "systemend"), 253402214400000L);
     assertEquals(RowUtils.get(planned.get(2), "currentflag"), CURRENT_FLAG_DEFAULT_YES);
+  }
+
+  @Test
+  public void testSurrogateKey() {
+    config = config.withValue(BitemporalHistoryPlanner.SURROGATE_KEY_FIELD_NAME_CONFIG_NAME,
+        ConfigValueFactory.fromAnyRef("surrogate"));
+    p = new BitemporalHistoryPlanner();
+    assertNoValidationFailures(p, config);
+    p.configure(config);
+
+    Row existingRow = new RowWithSchema(existingSchema, "a", "hello", 100L, 100L, 253402214400000L, 1L, 253402214400000L, CURRENT_FLAG_DEFAULT_YES);
+    existingRow = PlannerUtils.appendSurrogateKey(existingRow, "surrogate");
+
+    existing.add(existingRow);
+    arriving.add(new RowWithSchema(arrivingSchema, "a", "world", 200L));
+    Row key = new RowWithSchema(keySchema, "a");
+
+    List<Row> planned = p.planMutationsForKey(key, arriving, existing);
+
+    assertEquals(planned.size(), 3);
+    assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
+    assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
+    assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
+
+    Long systemStart1 = RowUtils.get(planned.get(1), "systemstart");
+    Long systemStart2 = RowUtils.get(planned.get(2), "systemstart");
+
+    assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(0), "eventstart"), 100L);
+    assertEquals(RowUtils.get(planned.get(0), "eventend"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(0), "systemstart"), 1L);
+    assertEquals(RowUtils.get(planned.get(0), "systemend"), systemStart1 - 1);
+    assertEquals(RowUtils.get(planned.get(0), "currentflag"), CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(RowUtils.get(planned.get(0), "surrogate"), existingRow.getAs("surrogate"));
+
+    assertEquals(RowUtils.get(planned.get(1), "value"), "hello");
+    assertEquals(RowUtils.get(planned.get(1), "eventstart"), 100L);
+    assertEquals(RowUtils.get(planned.get(1), "eventend"), 199L);
+    assertTrue(systemStart1 >= preplanSystemTime);
+    assertTrue(systemStart1 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(1), "systemend"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(1), "currentflag"), CURRENT_FLAG_DEFAULT_NO);
+    assertNotNull(RowUtils.get(planned.get(1), "surrogate"));
+
+    assertEquals(RowUtils.get(planned.get(2), "value"), "world");
+    assertEquals(RowUtils.get(planned.get(2), "eventstart"), 200L);
+    assertEquals(RowUtils.get(planned.get(2), "eventend"), 253402214400000L);
+    assertTrue(systemStart2 >= preplanSystemTime);
+    assertTrue(systemStart2 < preplanSystemTime + 5000);
+    assertEquals(RowUtils.get(planned.get(2), "systemend"), 253402214400000L);
+    assertEquals(RowUtils.get(planned.get(2), "currentflag"), CURRENT_FLAG_DEFAULT_YES);
+    assertNotNull(RowUtils.get(planned.get(2), "surrogate"));
+
+    assertNotEquals(RowUtils.get(planned.get(0), "surrogate"), RowUtils.get(planned.get(1), "surrogate"));
+    assertNotEquals(RowUtils.get(planned.get(1), "surrogate"), RowUtils.get(planned.get(2), "surrogate"));
+    assertNotEquals(RowUtils.get(planned.get(0), "surrogate"), RowUtils.get(planned.get(2), "surrogate"));
   }
   
 }

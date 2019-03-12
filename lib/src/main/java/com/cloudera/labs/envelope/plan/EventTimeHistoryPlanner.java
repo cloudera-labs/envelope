@@ -50,6 +50,7 @@ public class EventTimeHistoryPlanner
   public static final String EFFECTIVE_FROM_FIELD_NAMES_CONFIG_NAME = "fields.effective.from";
   public static final String EFFECTIVE_TO_FIELD_NAMES_CONFIG_NAME = "fields.effective.to";
   public static final String CURRENT_FLAG_FIELD_NAME_CONFIG_NAME = "field.current.flag";
+  public static final String SURROGATE_KEY_FIELD_NAME_CONFIG_NAME = "field.surrogate.key";
   public static final String CURRENT_FLAG_YES_CONFIG_NAME = "current.flag.value.yes";
   public static final String CURRENT_FLAG_NO_CONFIG_NAME = "current.flag.value.no";
   public static final String LAST_UPDATED_FIELD_NAME_CONFIG_NAME = "field.last.updated";
@@ -119,6 +120,9 @@ public class EventTimeHistoryPlanner
         if (hasLastUpdatedField()) {
           arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
         }
+        if (hasSurrogateKeyField()) {
+          arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+        }
         plannedForKey.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
 
         continue;
@@ -176,6 +180,9 @@ public class EventTimeHistoryPlanner
           if (hasLastUpdatedField()) {
             arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
           }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
+          }
           plannedForKey.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
 
           break;
@@ -195,6 +202,9 @@ public class EventTimeHistoryPlanner
           }
           if (hasLastUpdatedField()) {
             arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
+          }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
           }
           plannedForKey.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
 
@@ -228,6 +238,9 @@ public class EventTimeHistoryPlanner
           }
           if (hasLastUpdatedField()) {
             arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
+          }
+          if (hasSurrogateKeyField()) {
+            arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
           }
           plannedForKey.add(PlannerUtils.setMutationType(arriving, MutationType.INSERT));
 
@@ -274,6 +287,10 @@ public class EventTimeHistoryPlanner
     return config.hasPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
   }
 
+  private boolean hasSurrogateKeyField() {
+    return config.hasPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
+  }
+
   private boolean hasCurrentFlagField() {
     return config.hasPath(CURRENT_FLAG_FIELD_NAME_CONFIG_NAME);
   }
@@ -288,6 +305,10 @@ public class EventTimeHistoryPlanner
 
   private String getLastUpdatedFieldName() {
     return config.getString(LAST_UPDATED_FIELD_NAME_CONFIG_NAME);
+  }
+
+  private String getSurrogateKeyFieldName() {
+    return config.getString(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME);
   }
 
   private String getCurrentFlagFieldName() {
@@ -389,6 +410,7 @@ public class EventTimeHistoryPlanner
         .optionalPath(CURRENT_FLAG_YES_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(CURRENT_FLAG_NO_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(LAST_UPDATED_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
+        .optionalPath(SURROGATE_KEY_FIELD_NAME_CONFIG_NAME, ConfigValueType.STRING)
         .optionalPath(CARRY_FORWARD_CONFIG_NAME, ConfigValueType.BOOLEAN)
         .optionalPath(EVENT_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
         .optionalPath(LAST_UPDATED_TIME_MODEL_CONFIG_NAME, ConfigValueType.OBJECT)
