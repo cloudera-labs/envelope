@@ -615,13 +615,13 @@ public class TestLoopStep {
     Set<Step> unrolled = step1.refactor(steps);
     // Unroll the unrolled two bottom level loops
     for (Step unrolledStep : unrolled) {
-      if (unrolledStep instanceof LoopStep && !unrolledStep.hasSubmitted()) {
+      if (unrolledStep instanceof LoopStep && unrolledStep.getState() == StepState.WAITING) {
         unrolled = ((LoopStep)unrolledStep).refactor(unrolled);
         break;
       }
     }
     for (Step unrolledStep : unrolled) {
-      if (unrolledStep instanceof LoopStep && !unrolledStep.hasSubmitted()) {
+      if (unrolledStep instanceof LoopStep && unrolledStep.getState() == StepState.WAITING) {
         unrolled = ((LoopStep)unrolledStep).refactor(unrolled);
         break;
       }

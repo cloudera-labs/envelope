@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -19,7 +19,6 @@ import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
 import static com.cloudera.labs.envelope.security.SecurityUtils.TOKENS_CHECK_INTERVAL;
 import static com.cloudera.labs.envelope.spark.Contexts.ENVELOPE_CONFIGURATION_SPARK;
 
-import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

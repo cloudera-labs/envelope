@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -19,8 +19,11 @@ import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.typesafe.config.ConfigValueType;
 
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -32,12 +35,15 @@ public abstract class Step implements ProvidesValidations {
 
   protected String name;
   protected Config config;
+  protected StepState state;
   
-  private boolean submitted = false;
   private Set<String> dependencyNames;
+
+  private static final Logger LOG = LoggerFactory.getLogger(Step.class);
 
   public Step(String name) {
     this.name = name;
+    this.state = StepState.WAITING;
   }
 
   public void configure(Config config) {
@@ -67,14 +73,6 @@ public abstract class Step implements ProvidesValidations {
     this.config = config;
   }
 
-  public boolean hasSubmitted() {
-    return submitted;
-  }
-
-  public void setSubmitted(boolean submitted) {
-    this.submitted = submitted;
-  }
-
   public Set<String> getDependencyNames() {
     return dependencyNames;
   }
@@ -83,11 +81,22 @@ public abstract class Step implements ProvidesValidations {
     this.dependencyNames = dependencyNames;
   }
   
+  public StepState getState() {
+    return state;
+  }
+  
+  public void setState(StepState state) {
+    if (!getState().equals(state)) {
+      LOG.info("State change for step '" + getName() + "': from " + getState() + " to " + state);
+    }
+    this.state = state;
+  }
+  
   public abstract Step copy();
 
   // Can be overridden if the step holds additional state
   public void reset() {
-    setSubmitted(false);
+    setState(StepState.WAITING);
   }
   
   @Override
@@ -96,10 +105,23 @@ public abstract class Step implements ProvidesValidations {
         .optionalPath(DEPENDENCIES_CONFIG, ConfigValueType.LIST)
         .build();
   }
-  
+
   @Override
   public String toString() {
-    return getName() + " " + getDependencyNames() + " " + hasSubmitted();
+    return "(Name: " + getName() + ", dependencies: " + getDependencyNames() + ", state: " + state + ")";
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getName());
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) return false;
+    if (!(obj instanceof Step)) return false;
+
+    return this.getName().equals(((Step)obj).getName());
   }
 
 }

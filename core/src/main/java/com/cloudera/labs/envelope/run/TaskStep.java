@@ -40,7 +40,7 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
     
     task.run(dependencies);
     
-    this.setSubmitted(true);
+    this.setState(StepState.FINISHED);
   }
 
   @Override
@@ -48,7 +48,7 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
     Step copy = new TaskStep(name);
     copy.configure(config);
     
-    copy.setSubmitted(hasSubmitted());
+    copy.setState(getState());
     
     return copy;
   }

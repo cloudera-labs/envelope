@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -90,7 +90,7 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
       BatchStep erroredBatchStep = new BatchStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX);
       erroredBatchStep.configure(ConfigFactory.empty());
       erroredBatchStep.setData(errored);
-      erroredBatchStep.setSubmitted(true);
+      erroredBatchStep.setState(StepState.FINISHED);
       addNewBatchStep(erroredBatchStep);
     }
     
@@ -101,7 +101,7 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
     setData(data);
     writeData();
 
-    setSubmitted(true);
+    setState(StepState.FINISHED);
   }
 
   private boolean doesRepartition() {
@@ -160,9 +160,9 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
     BatchStep copy = new BatchStep(name);
     copy.configure(config);
     
-    copy.setSubmitted(hasSubmitted());
+    copy.setState(getState());
     
-    if (hasSubmitted()) {
+    if (getState() == StepState.FINISHED) {
       copy.setData(getData());
     }
     

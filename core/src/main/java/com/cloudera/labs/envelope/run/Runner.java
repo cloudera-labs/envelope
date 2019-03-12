@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -236,7 +236,7 @@ public class Runner {
           runBatch(independentNonStreamingSteps);
 
           streamingStep.setData(streamingStep.translate(raw));
-          streamingStep.setSubmitted(true);
+          streamingStep.setState(StepState.FINISHED);
 
           Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
           Set<Step> batchSteps = Sets.newHashSet(dependentSteps);
@@ -270,6 +270,7 @@ public class Runner {
 
     Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
     Set<Step> refactoredSteps = null;
+    Map<String, StepState> previousStepStates = null;
 
     // The essential logic is to loop through all of the steps until they have all been submitted.
     // Steps will not be submitted until all of their dependency steps have been submitted first.
@@ -284,7 +285,7 @@ public class Runner {
           LOG.debug("Step is batch");
           BatchStep batchStep = (BatchStep)step;
 
-          if (!batchStep.hasSubmitted()) {
+          if (batchStep.getState() == StepState.WAITING) {
             LOG.debug("Step has not been submitted");
 
             // Get the dependency steps that exist so far. Steps can be created
@@ -293,19 +294,14 @@ public class Runner {
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
 
             if (dependencies.size() == step.getDependencyNames().size() &&
-                StepUtils.allStepsSubmitted(dependencies)) {
-              LOG.debug("Step dependencies have been submitted, running step off main thread");
+                StepUtils.allStepsFinished(dependencies)) {
+              LOG.debug("Step dependencies have finished, running step off main thread");
               // Batch steps are run off the main thread so that if they contain outputs they will
               // not block the parallel execution of independent steps.
+              batchStep.setState(StepState.SUBMITTED);
               Future<Void> offMainThreadStep = runStepOffMainThread(batchStep, dependencies, threadPool);
               offMainThreadSteps.add(offMainThreadStep);
             }
-            else {
-              LOG.debug("Step dependencies have not been submitted");
-            }
-          }
-          else {
-            LOG.debug("Step has been submitted");
           }
 
           // If the step has created new batch data steps to load into the running batch,
@@ -319,48 +315,41 @@ public class Runner {
           LOG.debug("Step is a refactor step");
 
           RefactorStep refactorStep = (RefactorStep)step;
-
-          if (!refactorStep.hasSubmitted()) {
+          
+          if (refactorStep.getState() == StepState.WAITING) {
             LOG.debug("Step has not been submitted");
 
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
-
-            if (StepUtils.allStepsSubmitted(dependencies)) {
-              LOG.debug("Step dependencies have submitted, refactoring steps");
+  
+            if (StepUtils.allStepsFinished(dependencies)) {
+              LOG.debug("Step dependencies have finished, refactoring steps");
+              refactorStep.setState(StepState.SUBMITTED);
               refactoredSteps = refactorStep.refactor(steps);
               LOG.debug("Steps refactored");
               break;
             }
-            else {
-              LOG.debug("Step dependencies have not been submitted");
-            }
-          }
-          else {
-            LOG.debug("Step has been submitted");
           }
         }
         else if (step instanceof TaskStep) {
           LOG.debug("Step is a task");
 
           TaskStep taskStep = (TaskStep)step;
-
-          if (!taskStep.hasSubmitted()) {
+          
+          if (taskStep.getState() == StepState.WAITING) {
             LOG.debug("Step has not been submitted");
 
             final Set<Step> dependencies = StepUtils.getDependencies(step, steps);
-
-            if (StepUtils.allStepsSubmitted(dependencies)) {
+            
+            if (StepUtils.allStepsFinished(dependencies)) {
               LOG.debug("Step dependencies have finished, running task");
+              taskStep.setState(StepState.SUBMITTED);
               taskStep.run(StepUtils.getStepDataFrames(dependencies));
               LOG.debug("Task finished");
             }
-            else {
-              LOG.debug("Step dependencies have not been submitted");
-            }
           }
-          else {
-            LOG.debug("Step has been submitted");
-          }
+        }
+        else if (step instanceof StreamingStep) {
+          LOG.debug("Step is streaming");
         }
         else {
           throw new RuntimeException("Unknown step class type: " + step.getClass().getName());
@@ -372,14 +361,29 @@ public class Runner {
       // Add all steps created while looping through previous set of steps.
       steps.addAll(newSteps);
 
-      awaitAllOffMainThreadsFinished(offMainThreadSteps);
-      offMainThreadSteps.clear();
-
       if (refactoredSteps != null) {
         steps = refactoredSteps;
         refactoredSteps = null;
       }
+
+      // Make sure the loop doesn't get stuck from an incorrect config
+      Map<String, StepState> stepStates = StepUtils.getStepStates(steps);
+      Set<Step> waitingSteps = StepUtils.getStepsMatchingState(steps, StepState.WAITING);
+      Set<Step> submittedSteps = StepUtils.getStepsMatchingState(steps, StepState.SUBMITTED);
+      if (stepStates.equals(previousStepStates) &&
+          waitingSteps.size() > 0 &&
+          submittedSteps.size() == 0) {
+        throw new RuntimeException("Envelope pipeline stuck due to steps waiting for dependencies " +
+            "that do not exist. Steps: " + steps);
+      }
+      previousStepStates = stepStates;
+
+      // Avoid the driver getting bogged down in checking for new steps to submit
+      Thread.sleep(20);
     }
+
+    // Wait for the submitted steps that haven't yet finished
+    awaitAllOffMainThreadsFinished(offMainThreadSteps);
 
     LOG.debug("Finished batch for steps: {}", StepUtils.stepNamesAsString(steps));
   }

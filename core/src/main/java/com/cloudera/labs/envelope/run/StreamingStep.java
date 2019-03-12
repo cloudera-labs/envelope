@@ -80,7 +80,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     BatchStep errorStep = new BatchStep(stepName);
     errorStep.configure(ConfigFactory.empty());
     errorStep.setData(data);
-    errorStep.setSubmitted(true);
+    errorStep.setState(StepState.FINISHED);
     return errorStep;
   }
 
@@ -111,9 +111,9 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     StreamingStep copy = new StreamingStep(name);
     copy.configure(config);
 
-    copy.setSubmitted(hasSubmitted());
+    copy.setState(getState());
 
-    if (hasSubmitted()) {
+    if (getState() == StepState.FINISHED) {
       copy.setData(getData());
     }
 

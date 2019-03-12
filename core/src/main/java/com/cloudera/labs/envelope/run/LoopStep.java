@@ -180,7 +180,7 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     
     LOG.debug("Unrolled steps: " + StepUtils.stepNamesAsString(steps));
     
-    this.setSubmitted(true);
+    this.setState(StepState.FINISHED);
     
     return steps;
   }
@@ -307,7 +307,7 @@ public class LoopStep extends RefactorStep implements ProvidesValidations {
     Step copy = new LoopStep(name);
     copy.configure(config);
     
-    copy.setSubmitted(hasSubmitted());
+    copy.setState(getState());
     
     return copy;
   }

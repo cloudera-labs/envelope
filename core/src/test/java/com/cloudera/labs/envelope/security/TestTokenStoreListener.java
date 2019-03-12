@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,8 +17,6 @@ package com.cloudera.labs.envelope.security;
 
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
-import com.cloudera.labs.envelope.validate.Validation;
-import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.apache.hadoop.conf.Configuration;

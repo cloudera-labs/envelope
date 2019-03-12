@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -146,9 +146,9 @@ public abstract class DataStep
 
   @Override
   public void reset() {
-    if (hasSubmitted()) {
+    if (getState() != StepState.WAITING) {
       clearCache();
-      setSubmitted(false);
+      setState(StepState.WAITING);
     }
   }
 
@@ -185,7 +185,7 @@ public abstract class DataStep
   public boolean hasOutput() {
     return config.hasPath(OUTPUT_TYPE);
   }
-  
+
   protected Input getInput(boolean configure) {
     Config inputConfig = config.getConfig(INPUT_TYPE);
 
@@ -296,7 +296,9 @@ public abstract class DataStep
   }
 
   public void clearCache() {
-    data = data.unpersist(false);
+    if (data != null) {
+      data = data.unpersist(false);
+    }
   }
 
   public boolean isCached() {

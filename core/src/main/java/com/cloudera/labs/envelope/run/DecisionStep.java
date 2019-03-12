@@ -95,7 +95,7 @@ public class DecisionStep extends RefactorStep implements ProvidesValidations {
     
     steps.removeAll(pruneSteps);
     
-    this.setSubmitted(true);
+    this.setState(StepState.FINISHED);
 
     return steps;
   }
@@ -195,7 +195,7 @@ public class DecisionStep extends RefactorStep implements ProvidesValidations {
     Step copy = new DecisionStep(name);
     copy.configure(config);
     
-    copy.setSubmitted(hasSubmitted());
+    copy.setState(getState());
     
     return copy;
   }

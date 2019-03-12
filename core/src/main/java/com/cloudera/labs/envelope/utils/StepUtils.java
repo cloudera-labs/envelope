@@ -18,6 +18,7 @@ package com.cloudera.labs.envelope.utils;
 import com.cloudera.labs.envelope.repetition.Repetitions;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.Step;
+import com.cloudera.labs.envelope.run.StepState;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
@@ -35,7 +36,17 @@ public class StepUtils {
   
   public static boolean allStepsSubmitted(Set<Step> steps) {
     for (Step step : steps) {
-      if (!step.hasSubmitted()) {
+      if (step.getState() == StepState.WAITING) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  public static boolean allStepsFinished(Set<Step> steps) {
+    for (Step step : steps) {
+      if (step.getState() != StepState.FINISHED) {
         return false;
       }
     }
@@ -190,6 +201,28 @@ public class StepUtils {
     }
 
     return stepDFs;
+  }
+
+  public static Map<String, StepState> getStepStates(Set<Step> steps) {
+    Map<String, StepState> stepStates = Maps.newHashMap();
+
+    for (Step step : steps) {
+      stepStates.put(step.getName(), step.getState());
+    }
+
+    return stepStates;
+  }
+
+  public static Set<Step> getStepsMatchingState(Set<Step> steps, StepState matching) {
+    Set<Step> matchingSteps = Sets.newHashSet();
+
+    for (Step step : steps) {
+      if (step.getState() == matching) {
+        matchingSteps.add(step);
+      }
+    }
+
+    return matchingSteps;
   }
 
 }

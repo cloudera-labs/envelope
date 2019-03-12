@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -19,6 +19,7 @@ import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.LoopStep;
 import com.cloudera.labs.envelope.run.Step;
+import com.cloudera.labs.envelope.run.StepState;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
@@ -30,6 +31,8 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class TestStepUtils {
@@ -44,8 +47,8 @@ public class TestStepUtils {
     steps.add(step1);
     steps.add(step2);
     
-    step1.setSubmitted(true);
-    step2.setSubmitted(true);
+    step1.setState(StepState.SUBMITTED);
+    step2.setState(StepState.SUBMITTED);
     
     assertTrue(StepUtils.allStepsSubmitted(steps));
   }
@@ -60,7 +63,38 @@ public class TestStepUtils {
     steps.add(step1);
     steps.add(step2);
     
-    step1.setSubmitted(true);
+    step1.setState(StepState.SUBMITTED);
+    
+    assertFalse(StepUtils.allStepsSubmitted(steps));
+  }
+  
+  @Test
+  public void testAllStepsFinished() {
+    Set<Step> steps = Sets.newHashSet();
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
+    steps.add(step1);
+    steps.add(step2);
+    
+    step1.setState(StepState.FINISHED);
+    step2.setState(StepState.FINISHED);
+    
+    assertTrue(StepUtils.allStepsSubmitted(steps));
+  }
+  
+  @Test
+  public void testNotAllStepsFinished() {
+    Set<Step> steps = Sets.newHashSet();
+    BatchStep step1 = new BatchStep("step1");
+    BatchStep step2 = new BatchStep("step2");
+    step1.configure(ConfigFactory.empty());
+    step2.configure(ConfigFactory.empty());
+    steps.add(step1);
+    steps.add(step2);
+    
+    step1.setState(StepState.FINISHED);
     
     assertFalse(StepUtils.allStepsSubmitted(steps));
   }
@@ -246,7 +280,7 @@ public class TestStepUtils {
   }
 
   @Test
-  public void testResetSteps() throws Exception {
+  public void testResetSteps() {
     DataStep step1 = new BatchStep("step1");
     DataStep step2 = new BatchStep("step2");
     DataStep step3 = new BatchStep("step3");
@@ -258,17 +292,17 @@ public class TestStepUtils {
     step2.setData(Contexts.getSparkSession().emptyDataFrame());
     step3.setData(Contexts.getSparkSession().emptyDataFrame());
     
-    step1.setSubmitted(true);
-    step2.setSubmitted(true);
-    step3.setSubmitted(true);
+    step1.setState(StepState.WAITING);
+    step2.setState(StepState.SUBMITTED);
+    step3.setState(StepState.FINISHED);
     
     Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
     
     StepUtils.resetSteps(steps);
     
-    assertFalse(step1.hasSubmitted());
-    assertFalse(step2.hasSubmitted());
-    assertFalse(step3.hasSubmitted());
+    assertSame(step1.getState(), StepState.WAITING);
+    assertSame(step2.getState(), StepState.WAITING);
+    assertSame(step3.getState(), StepState.WAITING);
   }
 
   @Test
@@ -307,13 +341,19 @@ public class TestStepUtils {
     step1.configure(ConfigFactory.empty());
     step2.configure(ConfigFactory.empty().withValue("input.translator", ConfigFactory.empty().root()));
     step3.configure(ConfigFactory.empty());
-    Set<Step> steps = Sets.<Step>newHashSet(step1, step2, step3);
-    
+    Set<Step> steps = Sets.newHashSet(step1, step2, step3);
+
     Set<Step> copiedSteps = StepUtils.copySteps(steps);
-    
+
     for (Step copiedStep : copiedSteps) {
-      assertFalse(steps.contains(copiedStep));
+      for (Step step : steps) {
+        assertNotSame(step, copiedStep);
+      }
     }
+
+    assertTrue(StepUtils.getStepForName("step1", copiedSteps).isPresent());
+    assertTrue(StepUtils.getStepForName("step2", copiedSteps).isPresent());
+    assertTrue(StepUtils.getStepForName("step3", copiedSteps).isPresent());
   }
   
 }
