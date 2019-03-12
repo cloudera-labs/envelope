@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,9 +17,9 @@ package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.validate.FilesystemPathAccessibleValidation;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.cloudera.labs.envelope.validate.FilesystemPathAccessibleValidation;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.typesafe.config.Config;
@@ -66,9 +66,27 @@ public class SQLDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
       query = resolveParameters(query, config.getConfig(PARAMETER_PREFIX_CONFIG_NAME));
     }
 
-    Dataset<Row> derived = Contexts.getSparkSession().sql(query);
+    Dataset<Row> derived = null;
+    try {
+      derived = Contexts.getSparkSession().sql(query);
+    }
+    catch (Exception e) {
+      handleException(e);
+    }
 
     return derived;
+  }
+
+  private void handleException(Exception e) throws Exception {
+    if (e.getMessage().contains("KuduStorageHandler")) {
+      throw new RuntimeException("Kudu tables can not be referenced directly in SQL deriver queries. " +
+          "Instead, use a Kudu input in a previous step to point to the Kudu table, then add that " +
+          "step as a dependency of this step, and then reference that step name as the table " +
+          "in this query.");
+    }
+    else {
+      throw e;
+    }
   }
 
   private String hdfsFileAsString(String hdfsFile) throws Exception {
