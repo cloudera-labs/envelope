@@ -503,8 +503,9 @@ public class Runner {
   }
 
   private static void validateConfigurations(Config config) {
-    if (ConfigUtils.getOrElse(config, Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY,
-        !Validator.CONFIGURATION_VALIDATION_ENABLED_DEFAULT))
+    if (!ConfigUtils.getOrElse(config,
+        Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY,
+        Validator.CONFIGURATION_VALIDATION_ENABLED_DEFAULT))
     {
       LOG.info("Envelope configuration validation disabled");
       return;
