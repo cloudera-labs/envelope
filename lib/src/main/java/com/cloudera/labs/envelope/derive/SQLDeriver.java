@@ -30,8 +30,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -59,7 +61,7 @@ public class SQLDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
       query = config.getString(QUERY_LITERAL_CONFIG_NAME);
     }
     else {
-      query = hdfsFileAsString(config.getString(QUERY_FILE_CONFIG_NAME));
+      query = sqlFileAsString(config.getString(QUERY_FILE_CONFIG_NAME));
     }
 
     if (config.hasPath(PARAMETER_PREFIX_CONFIG_NAME)) {
@@ -89,11 +91,11 @@ public class SQLDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
     }
   }
 
-  private String hdfsFileAsString(String hdfsFile) throws Exception {
-    String contents = null;
+  private String sqlFileAsString(String sqlFile) throws Exception {
+    String contents;
 
-    FileSystem fs = FileSystem.get(new Configuration());
-    InputStream stream = fs.open(new Path(hdfsFile));
+    FileSystem fs = FileSystem.get(new URI(sqlFile), new Configuration());
+    InputStream stream = fs.open(new Path(sqlFile));
     InputStreamReader reader = new InputStreamReader(stream, Charsets.UTF_8);
     contents = CharStreams.toString(reader);
     reader.close();
