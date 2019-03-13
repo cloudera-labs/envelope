@@ -31,6 +31,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestConfigUtils {
 
@@ -54,6 +55,20 @@ public class TestConfigUtils {
     assertEquals(config.getInt("a"), 1);
     assertEquals(config.getString("b.c"), "X");
     assertEquals(config.getString("d.e.f"), "Y");
+  }
+
+  @Test
+  public void testConfigFromPathButJarFile() {
+    try {
+      ConfigUtils.configFromPath(getClass().getResource("/config/test.jar").getPath());
+    }
+    catch (RuntimeException e) {
+      if (e.getMessage().equals(ConfigUtils.JAR_FILE_EXCEPTION_MESSAGE)) {
+        return;
+      }
+    }
+
+    fail();
   }
 
   @Test

@@ -15,6 +15,13 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.ConfigValueType;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,18 +31,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueFactory;
-import com.typesafe.config.ConfigValueType;
-
 public class ConfigUtils {
+
+  public static final String JAR_FILE_EXCEPTION_MESSAGE = "A jar file has been provided as the" +
+      "second argument to the Spark submit call, instead of the Envelope configuration file. " +
+      "If the jar argument contains a wildcard then it is likely expanding out to multiple" +
+      "filenames, and the single Envelope jar file should be specified instead";
 
   public static Config configFromPath(String path) {
     File configFile = new File(path);
-    return ConfigFactory.parseFile(configFile);
+
+    Config config;
+    try {
+      config = ConfigFactory.parseFile(configFile);
+    }
+    catch (ConfigException.Parse e) {
+      // The tell-tale sign is the magic bytes "PK" that is at the start of all jar files
+      if (e.getMessage().contains("Key '\"PK")) {
+        throw new RuntimeException(JAR_FILE_EXCEPTION_MESSAGE);
+      }
+      else {
+        throw e;
+      }
+    }
+
+    return config;
   }
 
   public static Config configFromResource(String resource) {
