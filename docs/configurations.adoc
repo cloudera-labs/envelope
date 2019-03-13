@@ -831,19 +831,22 @@ Deriver `type` = `in-list`.
 |Configuration suffix|Description
 
 |step
-|The name of the dataset whose records will be filtered based on the suppled list of values. Only required if there is more than one dependency, otherwise optional. If provided, must be present in the list of dependencies.
+|The name of the dataset whose records will be filtered based on the supplied list of values. Only required if there is more than one dependency, otherwise optional. If provided, the dataset must be present in the list of dependencies.
 
 |field
-|The name of the field in dataset's schema whose values will be compared with the suppled list of values. Only required if dataset schema contains more than one field, otherwise optional.
+|The name of the field in dataset's schema whose values will be compared with the supplied list of values. Only required if dataset schema contains more than one field, otherwise optional.
 
-|values
-|A list of values that will be used as a filter against designated `field` 's content. Required unless the list is going to be derived via reference (see below).
+|values.literal
+|A list of values that will be used as a filter against designated `field`{rsquo}s content. Required unless the list is going to be derived via reference (see below).
 
-|values-step
+|values.reference.step
 |Step whose records will be used to generate a set of values to filter records against. Can only be specified when literal list (`values`) is not provided. If specified, the name must be present in the `dependencies`.
 
-|values-field
-|The name of the field in `values-step` 's schema whose values will be used to populate the filter. Only required if `values-step` is specified, and its schema has more than one field.
+|values.reference.field
+|The name of the field in `values.reference.step` schema whose values will be used to populate the filter. Only required if `values.reference.step` is specified, and its schema has more than one field.
+
+|values.reference.batch-size
+|The size of the filter batch when generating the values of the `IN` list. Defaults to `1000`.
 
 |===
 
@@ -1769,7 +1772,7 @@ When using an Avro schema to define the Spark schema (for example, `schema.type`
 When using a Protobuf schema to define the Spark schema (for example, `schema.type` = `protobuf`), the following Spark data types are supported:
 
 |===
-|Protobuf FieldDescriptor Type |Data Type                                                               
+|Protobuf FieldDescriptor Type |Data Type
 
 |BOOLEAN
 |Boolean

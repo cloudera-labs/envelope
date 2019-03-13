@@ -418,9 +418,7 @@ A step with multiple dependencies that deduplicates rows in `mydata` dataset:
 
 === In-List
 
-The `in-list` deriver filters rows in a dataset by comparing one of the columns to a list of values. 
-This list could be statically defined as a literal in the deriver's configuration, or it could be dynamically generated from one of the steps in `dependencies`. 
-In the latter case, the resulting list should not be larger than a "sensible" limit (currently 1000 elements). 
+The `in-list` deriver filters rows in a dataset by comparing one of the columns to a list of values. This list could be statically defined as a literal in the deriver's configuration, or it could be dynamically generated from one of the steps in `dependencies`. In the latter case, the resulting list can be batched to manage its construction and filtering; the default batch size is `1000`.
  
 ==== Example Configurations
 
@@ -433,7 +431,7 @@ Step that selects from the `airports` dataset only the rows that have `airport_c
       type = in-list
       step = airports
       field = airport_code
-      values = [EWR, PIT]
+      values.literal = [EWR, PIT]
     }
   }
   ... 
@@ -448,13 +446,15 @@ Another example where `in-list` deriver filters data from the `airports` dataset
       type = in-list
       step = airports
       field = airport_code
-      values-step = delays_top_ten
-      values-field = airport_fk
+      values.reference.step = delays_top_ten
+      values.reference.field = airport_fk
     }
   }
   ... 
 
 ----
+
+CAUTION: In-list filtering using a reference step can be very slow if there are many values in the reference step. A standard SQL join might be more efficient if filtering over more than 1000 values.
 
 === Hash
 

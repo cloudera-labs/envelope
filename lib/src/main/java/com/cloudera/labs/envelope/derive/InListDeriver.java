@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,186 +16,186 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 /**
+ * Return a new <code>Dataset<Row></code> by filtering on an <code>IN</code> clause.
  * <p>
- * Returns new dataset by filtering the dependency on a field being in the list
- * of possible provided values. The list can be either a literal or extracted
- * from another dependency step.
- * </p>
+ * The values of the <code>IN</code> list may be either a literal or extracted from another dependency step.
  * <p>
- * If "dependencies" is a list, a <code>step</code> config parameter is required
- * to disambiguate operand for the in-list() operation, as is the
- * <code>field</code> if the <code>step</code>'s schema contians more than one
- * field.
- * </p>
+ * If this has more than one dependency, the <code>step</code> parameter is required to identify the filtered
+ * {@link Dataset}.
+ * In addition, if the filtered <code>step</code> has more than one {@link Column}, this will use <code>field</code>
+ * parameter to designate the filtered column, otherwise this will default to the first column in the
+ * <code>Dataset</code>.
  * <p>
- * Either <code>values</code> parameter or a combination of
- * <code>values-step</code>/<code>values-field</code> is required.
- * </p>
+ * This expects a list for the inline values parameter, <code>values.literal</code>.
+ * <p>
+ * If this references a step for <code>IN</code> values, the <code>values.reference.step</code> parameter is required.
+ * In addition, if the reference <code>step</code> has more than one <code>Column</code>, this will use
+ * <code>values.reference.field</code> parameter to designate the filtering column, otherwise this will default to the
+ * first column in the reference <code>Dataset</code>.
+ * <p>
+ * This will execute the <code>IN</code> list filtering by batching the referring values according to the value of the
+ * <code>values.reference.batch-size</code> parameter.
+ * This will default to 1000 if no value is specified.
+ * <p>
+ * Note: the <code>IN</code> list filtering is performed using the {@link Dataset#toLocalIterator()} method to marshal
+ * to the list's values.
+ * This operation is necessary to construct the <code>IN</code> filter (see <a href="https://issues.apache.org/jira/browse/SPARK-23945">SPARK-23954</a> for details).
+ * If possible, a typical join operation is much more efficient and recommended.
  */
 
 public class InListDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
 
-  public static final int INLIST_MAX_LIST_SIZE = 1000;
+  public static final int DEFAULT_BATCH_SIZE = 1000;
 
   public static final String INLIST_DERIVER_ALIAS = "in-list";
   public static final String INLIST_STEP_CONFIG = "step";
   public static final String INLIST_FIELD_CONFIG = "field";
-  public static final String INLIST_VALUES_CONFIG = "values";
-  public static final String INLIST_REFSTEP_CONFIG = "values-step";
-  public static final String INLIST_REFFIELD_CONFIG = "values-field";
+  public static final String INLIST_VALUES_CONFIG = "values.literal";
+  public static final String INLIST_REFSTEP_CONFIG = "values.reference.step";
+  public static final String INLIST_REFFIELD_CONFIG = "values.reference.field";
+  public static final String INLIST_BATCH_SIZE = "values.reference.batch-size";
 
-  private enum InListType {
-    LITERAL, REFERENCE
-  }
-
-  private InListType inListType;
   private String stepName;
   private String fieldName;
   private String refStepName;
   private String refFieldName;
   private List<Object> inList;
+  private long batchSize;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InListDeriver.class);
 
   @Override
   public void configure(Config config) {
-    LOGGER.debug("Configuring in-list deriver with " + config.toString());
+    // Step name to query with the IN list
+    this.stepName = ConfigUtils.getOrNull(config, INLIST_STEP_CONFIG);
 
-    if (config.hasPath(INLIST_STEP_CONFIG)) {
-      stepName = config.getString(INLIST_STEP_CONFIG);
-    }
-    if (config.hasPath(INLIST_FIELD_CONFIG)) {
-      fieldName = config.getString(INLIST_FIELD_CONFIG);
-    }
-    if (config.hasPath(INLIST_VALUES_CONFIG)) {
-      inList = config.getList(INLIST_VALUES_CONFIG).unwrapped();
-      inListType = InListType.LITERAL;
-    } else if (config.hasPath(INLIST_REFSTEP_CONFIG)) {
-      refStepName = config.getString(INLIST_REFSTEP_CONFIG);
-      if (config.hasPath(INLIST_REFFIELD_CONFIG)) {
-        refFieldName = config.getString(INLIST_REFFIELD_CONFIG);
-      }
-      inListType = InListType.REFERENCE;
-    }
+    // Column to query with the IN list
+    this.fieldName = ConfigUtils.getOrNull(config, INLIST_FIELD_CONFIG);
+
+    // If the IN list is specified inline
+    this.inList = ConfigUtils.getOrNull(config, INLIST_VALUES_CONFIG);
+
+    // If the IN list is a referenced step dependency
+    this.refStepName = ConfigUtils.getOrNull(config, INLIST_REFSTEP_CONFIG);
+
+    // If the reference dependency has multiple columns
+    this.refFieldName = ConfigUtils.getOrNull(config, INLIST_REFFIELD_CONFIG);
+
+    // Get the batch size
+    this.batchSize = ConfigUtils.getOrElse(config, INLIST_BATCH_SIZE, DEFAULT_BATCH_SIZE);
   }
 
   @Override
-  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-    LOGGER.debug("Derive: Validating dependencies map " + dependencies.toString());
-    validate(dependencies);
-    String step = getStepName(dependencies);
-    String field = getFieldName(dependencies);
-    Object[] inList = getInList(dependencies);
-    LOGGER.debug("Derive: Filtering dataset " + step + " by field " + field + " being IN "
-        + Arrays.asList(inList).toString() + "");
-    return dependencies.get(step).filter(dependencies.get(step).col(field).isin(inList));
+  public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) {
+
+    Dataset<Row> target = getStepDataFrame(dependencies);
+    if (target.columns().length < 1) {
+      throw new RuntimeException("Targeted step, '" + stepName + ",' has no columns");
+    }
+
+    try {
+      String targetField = fieldName == null ? target.columns()[0] : fieldName;
+      Column targetColumn = target.col(targetField);
+
+      LOGGER.debug("Targeting '{}[{}]'", stepName, targetField);
+
+      // If the IN list is inline, there is no batch
+      if (inList != null) {
+        LOGGER.debug("IN list is inline");
+        return target.filter(targetColumn.isin(inList.toArray()));
+      }
+
+      // Otherwise, collect the values from the reference, executed within the batch
+      else {
+        LOGGER.trace("IN list is a reference");
+        Dataset<Row> reference = dependencies.get(refStepName);
+        String referenceField = refFieldName == null ? reference.columns()[0] : refFieldName;
+
+        LOGGER.debug("Referencing using {}[{}]", refStepName, referenceField);
+        Column referenceColumn = reference.col(referenceField);
+
+        Iterator<Row> referenceIterator = reference.select(referenceColumn).distinct().toLocalIterator();
+        this.inList = new ArrayList<>();
+        long counter = 0;
+
+        // Set up the batch collector
+        JavaRDD<Row> unionRDD = new JavaSparkContext(Contexts.getSparkSession().sparkContext()).emptyRDD();
+        Dataset<Row> union = Contexts.getSparkSession().createDataFrame(unionRDD, target.schema());
+
+        while (referenceIterator.hasNext()) {
+          // Flush the batch
+          if (counter == batchSize) {
+            LOGGER.trace("Flushing batch");
+            union = union.union(target.filter(targetColumn.isin(inList.toArray())));
+            inList.clear();
+            counter = 0L;
+          }
+
+          // Gather the elements of the IN list from the reference
+          inList.add(referenceIterator.next().get(0));
+          counter++;
+        }
+
+        // If the selection is under the batch threshold
+        if (union.rdd().isEmpty()) {
+          return target.filter(targetColumn.isin(inList.toArray()));
+        }
+
+        // Flush any remaining IN list values
+        else {
+          return union.union(target.filter(targetColumn.isin(inList.toArray())));
+        }
+      }
+    } catch (Throwable ae) {
+      throw new RuntimeException("Error executing IN list filtering", ae);
+    }
+
+  }
+
+  private Dataset<Row> getStepDataFrame(Map<String, Dataset<Row>> dependencies) {
+    if (stepName != null) {
+      if (!dependencies.containsKey(stepName)) {
+        throw new RuntimeException("In-list deriver does not have step '" + stepName + "' in its dependencies");
+      }
+
+      Dataset<Row> step = dependencies.get(stepName);
+
+      if (step == null) {
+        throw new RuntimeException("Targeted step, '" + stepName + "', is null");
+      }
+
+      return step;
+    }
+    else {
+      if (dependencies.size() != 1) {
+        throw new RuntimeException("In-list deriver must specify a step if it does not only have one dependency");
+      }
+      return dependencies.values().iterator().next();
+    }
   }
 
   @Override
   public String getAlias() {
     return INLIST_DERIVER_ALIAS;
-  }
-
-  void validate(Map<String, Dataset<Row>> dependencies) {
-    if (dependencies.size() == 0) {
-      throw new RuntimeException("Validate: In-List deriver requires at least one dependency");
-    } else if (dependencies.size() == 1) {
-      if (stepName != null && !dependencies.containsKey(stepName)) {
-        throw new RuntimeException("Validate: \"" + INLIST_STEP_CONFIG + "\" " + stepName
-            + " is not listed as dependency in " + dependencies.keySet() + "");
-      }
-    } else {
-      if (stepName == null) {
-        throw new RuntimeException("Validate: In-List deriver requires a \"" + INLIST_STEP_CONFIG
-            + "\" configuration when multiple dependencies have been listed: " + dependencies.keySet() + "");
-      }
-      if (!dependencies.containsKey(stepName)) {
-        throw new RuntimeException("Validate: \"" + INLIST_STEP_CONFIG + "\" " + stepName
-            + " is not listed as dependency in " + dependencies.keySet() + "");
-      }
-    }
-    String step = stepName == null ? dependencies.keySet().iterator().next() : stepName;
-    if (dependencies.get(step) == null) {
-      throw new RuntimeException("Validation: the dataset for \"" + INLIST_STEP_CONFIG + "\" " + step + " is NULL");
-    }
-    String[] fields = dependencies.get(step).columns();
-    if (fields.length == 0) {
-      throw new RuntimeException("Validation: the schema for \"" + INLIST_STEP_CONFIG + "\" " + step + " is empty");
-    }
-    if (fieldName == null && fields.length > 1) {
-      throw new RuntimeException(
-          "Validate: \"" + INLIST_FIELD_CONFIG + "\" parameter should be specified to apply the In-List deriver to \""
-              + INLIST_STEP_CONFIG + "\" " + step + "");
-    }
-    if (fieldName != null && !Arrays.asList(fields).contains(fieldName)) {
-      throw new RuntimeException("Validate: the schema for \"" + INLIST_STEP_CONFIG + "\" " + step
-          + " doesn't contain \"" + INLIST_FIELD_CONFIG + "\" " + fieldName + "");
-    }
-
-    if (inListType == InListType.REFERENCE) {
-      if (!dependencies.containsKey(refStepName)) {
-        throw new RuntimeException("Validate: \"" + INLIST_REFSTEP_CONFIG + "\" " + refStepName
-            + " is not listed as dependency in " + dependencies.keySet() + "");
-      }
-      fields = dependencies.get(refStepName).columns();
-      if (fields.length == 0) {
-        throw new RuntimeException(
-            "Validate: the schema for \"" + INLIST_REFSTEP_CONFIG + "\" " + refStepName + " is empty");
-      }
-      if (refFieldName == null && fields.length > 1) {
-        throw new RuntimeException(
-            "Validate: \"" + INLIST_REFFIELD_CONFIG + "\" parameter should be specified to generate in-list from the \""
-                + INLIST_REFSTEP_CONFIG + "\" " + refStepName + "");
-      }
-      if (refFieldName != null && !Arrays.asList(fields).contains(refFieldName)) {
-        throw new RuntimeException("Validate: the schema for \"" + INLIST_REFSTEP_CONFIG + "\" " + refStepName
-            + " doesn't contain \"" + INLIST_REFFIELD_CONFIG + "\" " + refFieldName + "");
-      }
-      String refField = refFieldName == null ? fields[0] : refFieldName;
-      long refListSize = dependencies.get(refStepName).select(refField).distinct().count();
-      if (refListSize > INLIST_MAX_LIST_SIZE) {
-        throw new RuntimeException("Validate: \"" + INLIST_REFFIELD_CONFIG + "\" " + refStepName + "." + refField
-            + " contains " + refListSize + " elements. Maximum allowed size is " + INLIST_MAX_LIST_SIZE + ".");
-      }
-    }
-  }
-
-  private String getStepName(Map<String, Dataset<Row>> dependencies) {
-    return stepName == null ? dependencies.keySet().iterator().next() : stepName;
-  }
-
-  private String getFieldName(Map<String, Dataset<Row>> dependencies) {
-    return fieldName == null ? dependencies.get(getStepName(dependencies)).columns()[0] : fieldName;
-  }
-
-  private String getRefFieldName(Map<String, Dataset<Row>> dependencies) {
-    return refFieldName == null ? dependencies.get(refStepName).columns()[0] : refFieldName;
-  }
-
-  Object[] getInList(Map<String, Dataset<Row>> dependencies) {
-    if (inListType == InListType.REFERENCE) {
-      List<Row> t = dependencies.get(refStepName).select(getRefFieldName(dependencies)).distinct().collectAsList();
-      inList = new ArrayList<Object>(t.size());
-      for (Row r : t) {
-        inList.add(r.get(0));
-      }
-    }
-    return inList.toArray(new Object[0]);
   }
 
   @Override
@@ -208,6 +208,7 @@ public class InListDeriver implements Deriver, ProvidesAlias, ProvidesValidation
         .exactlyOnePathExists(INLIST_REFSTEP_CONFIG, INLIST_VALUES_CONFIG)
         .ifPathExists(INLIST_REFSTEP_CONFIG,
             Validations.single().optionalPath(INLIST_REFFIELD_CONFIG, ConfigValueType.STRING))
+        .optionalPath(INLIST_BATCH_SIZE, ConfigValueType.NUMBER)
         .build();
   }
 
