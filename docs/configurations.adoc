@@ -867,6 +867,12 @@ Deriver `type` = `hash`.
 |null-string
 |The string that the deriver will use in place of NULLs when concatenating the field values of a row. Default 'pass:[__]NULLpass:[__]'.
 
+|include-fields
+|The list of field names that will contribute to the hash. Default is all fields are included. Can not be used with `exclude-fields`.
+
+|exclude-fields
+|The list of field names that will not contribute to the hash. Default is no fields are excluded. Can not be used with `include-fields`.
+
 |===
 
 ==== Latest

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -29,6 +29,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 
+import java.util.List;
 import java.util.Map;
 
 public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations {
@@ -37,6 +38,8 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
   public static final String HASH_FIELD_NAME_CONFIG = "hash-field";
   public static final String DELIMITER_CONFIG = "delimiter";
   public static final String NULL_STRING_CONFIG = "null-string";
+  public static final String INCLUDE_FIELDS_CONFIG = "include-fields";
+  public static final String EXCLUDE_FIELDS_CONFIG = "exclude-fields";
 
   public static final String DEFAULT_HASH_FIELD_NAME = "hash";
   public static final String DEFAULT_DELIMITER = "";
@@ -48,6 +51,8 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
   private String hashFieldName;
   private String delimiter;
   private String nullString;
+  private List<String> includeFields;
+  private List<String> excludeFields;
 
   @Override
   public void configure(Config config) {
@@ -55,6 +60,8 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
     this.hashFieldName = ConfigUtils.getOrElse(config, HASH_FIELD_NAME_CONFIG, DEFAULT_HASH_FIELD_NAME);
     this.delimiter = ConfigUtils.getOrElse(config, DELIMITER_CONFIG, DEFAULT_DELIMITER);
     this.nullString = ConfigUtils.getOrElse(config, NULL_STRING_CONFIG, DEFAULT_NULL_STRING);
+    this.includeFields = ConfigUtils.getOrNull(config, INCLUDE_FIELDS_CONFIG);
+    this.excludeFields = ConfigUtils.getOrNull(config, EXCLUDE_FIELDS_CONFIG);
   }
 
   @Override
@@ -63,7 +70,8 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
 
     Dataset<Row> dependency = getStepDataFrame(dependencies);
 
-    Dataset<Row> concatenated = dependency.map(new ConcatenationFunction(delimiter, nullString),
+    Dataset<Row> concatenated = dependency.map(
+        new ConcatenationFunction(delimiter, nullString, includeFields, excludeFields),
         RowEncoder.apply(dependency.schema().add(concatenatedFieldName, DataTypes.BinaryType)));
 
     return concatenated
@@ -92,10 +100,15 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
     private StringBuilder sb = new StringBuilder();
     private String delimiter;
     private String nullString;
+    private List<String> includeFields;
+    private List<String> excludeFields;
 
-    public ConcatenationFunction(String delimiter, String nullString) {
+    public ConcatenationFunction(String delimiter, String nullString, List<String> includeFields,
+                                 List<String> excludeFields) {
       this.delimiter = delimiter;
       this.nullString = nullString;
+      this.includeFields = includeFields;
+      this.excludeFields = excludeFields;
     }
 
     @Override
@@ -103,12 +116,24 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
       sb.setLength(0);
 
       for (int fieldNum = 0; fieldNum < toHash.schema().size(); fieldNum++) {
-        Object value = toHash.get(fieldNum);
-        sb.append(value != null ? value : nullString);
-        sb.append(delimiter);
+        if (includeInConcatenation(toHash, fieldNum)) {
+          Object value = toHash.get(fieldNum);
+          sb.append(value != null ? value : nullString);
+          sb.append(delimiter);
+        }
       }
 
       return RowUtils.append(toHash, sb.toString().getBytes());
+    }
+
+    private boolean includeInConcatenation(Row toHash, int fieldNum) {
+      if (includeFields != null) {
+        return includeFields.contains(toHash.schema().apply(fieldNum).name());
+      }
+      if (excludeFields != null) {
+        return !excludeFields.contains(toHash.schema().apply(fieldNum).name());
+      }
+      return true;
     }
   }
 
@@ -126,6 +151,9 @@ public class HashDeriver implements Deriver, ProvidesAlias, ProvidesValidations 
         .allowEmptyValue(DELIMITER_CONFIG)
         .optionalPath(NULL_STRING_CONFIG, ConfigValueType.STRING)
         .allowEmptyValue(NULL_STRING_CONFIG)
+        .optionalPath(INCLUDE_FIELDS_CONFIG, ConfigValueType.LIST)
+        .optionalPath(EXCLUDE_FIELDS_CONFIG, ConfigValueType.LIST)
+        .atMostOnePathExists(INCLUDE_FIELDS_CONFIG, EXCLUDE_FIELDS_CONFIG)
         .build();
   }
 

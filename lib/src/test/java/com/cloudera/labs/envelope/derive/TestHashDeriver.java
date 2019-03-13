@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -154,6 +155,52 @@ public class TestHashDeriver {
     assertTrue(Lists.newArrayList(derived.schema().fieldNames()).contains(HashDeriver.DEFAULT_HASH_FIELD_NAME));
     assertEquals(
         "862ff0dc2acce97b6f8bd6c369df2668",
+        derived.collectAsList().get(0).get(derived.schema().size() - 1));
+  }
+
+  @Test
+  public void testIncludeFieldsHash() {
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+    dependencies.put("dep1", testDataFrame());
+
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(HashDeriver.INCLUDE_FIELDS_CONFIG, Lists.newArrayList("c1", "c2"));
+    Config config = ConfigFactory.parseMap(configMap);
+
+    HashDeriver d = new HashDeriver();
+    assertNoValidationFailures(d, config);
+    d.configure(config);
+
+    Dataset<Row> derived = d.derive(dependencies);
+
+    assertEquals(1, derived.count());
+    assertEquals(testDataFrame().schema().size() + 1, derived.schema().size());
+    assertTrue(Lists.newArrayList(derived.schema().fieldNames()).contains(HashDeriver.DEFAULT_HASH_FIELD_NAME));
+    assertEquals(
+        "203ad5ffa1d7c650ad681fdff3965cd2",
+        derived.collectAsList().get(0).get(derived.schema().size() - 1));
+  }
+
+  @Test
+  public void testExcludeFieldsHash() {
+    Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
+    dependencies.put("dep1", testDataFrame());
+
+    Map<String, Object> configMap = Maps.newHashMap();
+    configMap.put(HashDeriver.EXCLUDE_FIELDS_CONFIG, Lists.newArrayList("c1", "c2"));
+    Config config = ConfigFactory.parseMap(configMap);
+
+    HashDeriver d = new HashDeriver();
+    assertNoValidationFailures(d, config);
+    d.configure(config);
+
+    Dataset<Row> derived = d.derive(dependencies);
+
+    assertEquals(1, derived.count());
+    assertEquals(testDataFrame().schema().size() + 1, derived.schema().size());
+    assertTrue(Lists.newArrayList(derived.schema().fieldNames()).contains(HashDeriver.DEFAULT_HASH_FIELD_NAME));
+    assertEquals(
+        "71fb4bf2f54627f64c60ca5e396d1ccc",
         derived.collectAsList().get(0).get(derived.schema().size() - 1));
   }
 
