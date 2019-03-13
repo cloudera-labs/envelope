@@ -18,7 +18,7 @@ package com.cloudera.labs.envelope.event;
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class EventHandlerFactory extends LoadableFactory<EventHandler> {
+public class EventHandlerFactory extends LoadableFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 

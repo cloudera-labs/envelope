@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -18,7 +18,7 @@ package com.cloudera.labs.envelope.task;
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class TaskFactory extends LoadableFactory<Task> {
+public class TaskFactory extends LoadableFactory {
 
   public static final String CLASS_CONFIG_NAME = "class";
 

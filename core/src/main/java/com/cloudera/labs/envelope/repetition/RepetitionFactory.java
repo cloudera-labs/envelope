@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -21,7 +21,7 @@ import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RepetitionFactory extends LoadableFactory<Repetition> {
+public class RepetitionFactory extends LoadableFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(RepetitionFactory.class);
 

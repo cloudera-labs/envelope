@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -18,7 +18,7 @@ package com.cloudera.labs.envelope.derive.dq;
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class DatasetRuleFactory extends LoadableFactory<DatasetRule> {
+public class DatasetRuleFactory extends LoadableFactory {
 
   private static final String TYPE_CONFIG_NAME = "type";
 

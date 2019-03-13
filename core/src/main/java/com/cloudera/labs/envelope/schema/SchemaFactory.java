@@ -18,7 +18,7 @@ package com.cloudera.labs.envelope.schema;
 import com.cloudera.labs.envelope.load.LoadableFactory;
 import com.typesafe.config.Config;
 
-public class SchemaFactory extends LoadableFactory<Schema> {
+public class SchemaFactory extends LoadableFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
