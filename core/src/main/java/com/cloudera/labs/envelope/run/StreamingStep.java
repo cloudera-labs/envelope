@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -21,7 +21,6 @@ import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
-import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.translate.TranslateFunction;
 import com.cloudera.labs.envelope.translate.TranslationResults;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -33,7 +32,6 @@ import com.typesafe.config.ConfigValueType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
 import java.util.Set;
@@ -90,13 +88,13 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     TranslateFunction translateFunction = getTranslateFunction(config, true);
 
     // Encode the raw messages as rows (i.e. the raw value plus associated metadata fields)
-    Dataset<Row> encoded = Contexts.getSparkSession().createDataFrame(
-        raw.map(streamInput.getMessageEncoderFunction()), streamInput.getProvidingSchema());
+    JavaRDD<Row> encoded = raw.map(streamInput.getMessageEncoderFunction());
 
     // Translate raw message rows to structured rows
     TranslationResults translationResults = new TranslationResults(
-        encoded.flatMap(translateFunction, RowEncoder.apply(translateFunction.getExpectingSchema())),
-        translateFunction.getProvidingSchema(),streamInput.getProvidingSchema());
+        encoded.flatMap(translateFunction),
+        translateFunction.getProvidingSchema(),
+        streamInput.getProvidingSchema());
 
     BatchStep errors = createErrorStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX,
         translationResults.getErrors());

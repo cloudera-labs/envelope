@@ -221,11 +221,12 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
 
     if (hasTranslator) {
       TranslateFunction translateFunction = getTranslateFunction(translatorConfig);
-      Dataset<Row> translated = lines.flatMap(translateFunction,
-          RowEncoder.apply(translateFunction.getExpectingSchema()));
-      TranslationResults results = new TranslationResults(translated, translateFunction.getProvidingSchema(),
+      TranslationResults results = new TranslationResults(
+          lines.javaRDD().flatMap(translateFunction),
+          translateFunction.getProvidingSchema(),
           getProvidingSchema());
       errors = results.getErrors();
+
       return results.getTranslated();
     }
     else {
@@ -242,12 +243,13 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
 
     Dataset<Row> encoded = getEncodedRowsFromInputFormat(path, inputFormatClass);
 
-    Dataset<Row> translated = encoded.flatMap(translateFunction,
-        RowEncoder.apply(translateFunction.getExpectingSchema()));
-    TranslationResults results = new TranslationResults(translated, translateFunction.getProvidingSchema(),
+    TranslationResults results = new TranslationResults(
+        encoded.javaRDD().flatMap(translateFunction),
+        translateFunction.getProvidingSchema(),
         getProvidingSchema());
     errors = results.getErrors();
-    return translated;
+
+    return results.getTranslated();
   }
 
   @Override
