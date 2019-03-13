@@ -586,7 +586,7 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, and `dq`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, `dq`, and `sparkml`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
 
 |===
 
@@ -885,6 +885,23 @@ Deriver `type` = `latest`.
 
 |timestamp-field
 |The name of the field used to order the records for an individual key. Only the record with the highest value of this field for a key will be included in the deriver result.
+
+|===
+
+==== Spark ML
+
+Deriver `type` = `sparkml`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|step
+|The name of the dataset that the pipeline model will be executed over.
+Only required if there is more than one dependency, otherwise optional.
+
+|model-path
+|The path to the pipeline model directory that was created by the Spark ML pipeline model save.
 
 |===
 

@@ -32,6 +32,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-mllib_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.kitesdk</groupId>
       <artifactId>kite-morphlines-core</artifactId>
       <version>${kite-sdk.version}</version>
