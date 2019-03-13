@@ -75,7 +75,7 @@ public class DelimitedTranslator implements Translator, ProvidesAlias, ProvidesV
 
   @Override
   public Iterable<Row> translate(Row message) {
-    String value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+    String value = message.getAs(Translator.VALUE_FIELD_NAME);
 
     String[] stringValues = value.split((delimiterRegex) ?
                             delimiter : Pattern.quote(delimiter), schema.length());

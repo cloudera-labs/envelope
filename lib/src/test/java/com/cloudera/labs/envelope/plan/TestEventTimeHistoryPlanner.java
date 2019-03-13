@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -96,9 +96,9 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -116,12 +116,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -139,12 +139,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
   
   @Test
@@ -191,10 +191,10 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("value"), "world");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -211,10 +211,10 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 50L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 99L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "world");
+    assertEquals(planned.get(0).getAs("startdate"), 50L);
+    assertEquals(planned.get(0).getAs("enddate"), 99L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
   }
 
   @Test
@@ -234,12 +234,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 399L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 400L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("startdate"), 300L);
+    assertEquals(planned.get(0).getAs("enddate"), 399L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 400L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -275,10 +275,10 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("value"), "world");
+    assertEquals(planned.get(0).getAs("startdate"), 300L);
+    assertEquals(planned.get(0).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -298,12 +298,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 149L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 150L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 149L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 150L);
+    assertEquals(planned.get(1).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
   }
 
   @Test
@@ -322,9 +322,9 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 1);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 50L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 99L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("startdate"), 50L);
+    assertEquals(planned.get(0).getAs("enddate"), 99L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
   }
 
   @Test
@@ -343,21 +343,21 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 4);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 299L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 299L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 399L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(2).getAs("startdate"), 300L);
+    assertEquals(planned.get(2).getAs("enddate"), 399L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(3), "startdate"), 400L);
-    assertEquals(RowUtils.get(planned.get(3), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(3), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(3).getAs("startdate"), 400L);
+    assertEquals(planned.get(3).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(3).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -376,17 +376,17 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 3);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 299L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 299L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(2).getAs("startdate"), 300L);
+    assertEquals(planned.get(2).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -405,18 +405,18 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 3);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "world");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 299L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 299L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(2).getAs("startdate"), 300L);
+    assertEquals(planned.get(2).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -456,20 +456,20 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 3);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "world");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "world");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(1), "value"), "world!");
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 299L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("value"), "world!");
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 299L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(2), "value"), "world?");
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 300L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(2).getAs("value"), "world?");
+    assertEquals(planned.get(2).getAs("startdate"), 300L);
+    assertEquals(planned.get(2).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -514,15 +514,15 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "hello");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(1).getAs("value"), "hello");
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -539,15 +539,15 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "hello");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "value"), null);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(1).getAs("value"), null);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -566,20 +566,20 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 3);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 149L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value"), "hello");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 149L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 150L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("value"), "hello");
+    assertEquals(planned.get(1).getAs("startdate"), 150L);
+    assertEquals(planned.get(1).getAs("enddate"), 199L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "value"), "hello");
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(2).getAs("value"), "hello");
+    assertEquals(planned.get(2).getAs("startdate"), 200L);
+    assertEquals(planned.get(2).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -615,23 +615,23 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 3);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(0), "value1"), "hello1:100");
-    assertEquals(RowUtils.get(planned.get(0), "value2"), "hello2:100");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 149L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value1"), "hello1:100");
+    assertEquals(planned.get(0).getAs("value2"), "hello2:100");
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 149L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(1), "value1"), "hello1:150");
-    assertEquals(RowUtils.get(planned.get(1), "value2"), "hello2:100");
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 150L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("value1"), "hello1:150");
+    assertEquals(planned.get(1).getAs("value2"), "hello2:100");
+    assertEquals(planned.get(1).getAs("startdate"), 150L);
+    assertEquals(planned.get(1).getAs("enddate"), 199L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "value1"), "hello1:150");
-    assertEquals(RowUtils.get(planned.get(2), "value2"), "hello2:200");
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(2).getAs("value1"), "hello1:150");
+    assertEquals(planned.get(2).getAs("value2"), "hello2:200");
+    assertEquals(planned.get(2).getAs("startdate"), 200L);
+    assertEquals(planned.get(2).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -668,29 +668,29 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 4);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "value1"), null);
-    assertEquals(RowUtils.get(planned.get(0), "value2"), "hello2:50");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 50L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 99L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value1"), null);
+    assertEquals(planned.get(0).getAs("value2"), "hello2:50");
+    assertEquals(planned.get(0).getAs("startdate"), 50L);
+    assertEquals(planned.get(0).getAs("enddate"), 99L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(1), "value1"), "hello1:100");
-    assertEquals(RowUtils.get(planned.get(1), "value2"), "hello2:50");
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 149L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("value1"), "hello1:100");
+    assertEquals(planned.get(1).getAs("value2"), "hello2:50");
+    assertEquals(planned.get(1).getAs("startdate"), 100L);
+    assertEquals(planned.get(1).getAs("enddate"), 149L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "value1"), "hello1:150");
-    assertEquals(RowUtils.get(planned.get(2), "value2"), "hello2:50");
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 150L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(2).getAs("value1"), "hello1:150");
+    assertEquals(planned.get(2).getAs("value2"), "hello2:50");
+    assertEquals(planned.get(2).getAs("startdate"), 150L);
+    assertEquals(planned.get(2).getAs("enddate"), 199L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(3), "value1"), "hello1:150");
-    assertEquals(RowUtils.get(planned.get(3), "value2"), "hello2:200");
-    assertEquals(RowUtils.get(planned.get(3), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(3), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(3), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(3).getAs("value1"), "hello1:150");
+    assertEquals(planned.get(3).getAs("value2"), "hello2:200");
+    assertEquals(planned.get(3).getAs("startdate"), 200L);
+    assertEquals(planned.get(3).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(3).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -726,29 +726,29 @@ public class TestEventTimeHistoryPlanner {
 
     assertEquals(planned.size(), 4);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "value1"), null);
-    assertEquals(RowUtils.get(planned.get(0), "value2"), "hello2:50");
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 50L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 99L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("value1"), null);
+    assertEquals(planned.get(0).getAs("value2"), "hello2:50");
+    assertEquals(planned.get(0).getAs("startdate"), 50L);
+    assertEquals(planned.get(0).getAs("enddate"), 99L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.UPDATE);
-    assertEquals(RowUtils.get(planned.get(1), "value1"), "hello1:100");
-    assertEquals(RowUtils.get(planned.get(1), "value2"), null);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 149L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("value1"), "hello1:100");
+    assertEquals(planned.get(1).getAs("value2"), null);
+    assertEquals(planned.get(1).getAs("startdate"), 100L);
+    assertEquals(planned.get(1).getAs("enddate"), 149L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(2)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(2), "value1"), "hello1:150");
-    assertEquals(RowUtils.get(planned.get(2), "value2"), null);
-    assertEquals(RowUtils.get(planned.get(2), "startdate"), 150L);
-    assertEquals(RowUtils.get(planned.get(2), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(2), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(2).getAs("value1"), "hello1:150");
+    assertEquals(planned.get(2).getAs("value2"), null);
+    assertEquals(planned.get(2).getAs("startdate"), 150L);
+    assertEquals(planned.get(2).getAs("enddate"), 199L);
+    assertEquals(planned.get(2).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
     assertEquals(PlannerUtils.getMutationType(planned.get(3)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(3), "value1"), null);
-    assertEquals(RowUtils.get(planned.get(3), "value2"), "hello2:200");
-    assertEquals(RowUtils.get(planned.get(3), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(3), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(3), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(3).getAs("value1"), null);
+    assertEquals(planned.get(3).getAs("value2"), "hello2:200");
+    assertEquals(planned.get(3).getAs("startdate"), 200L);
+    assertEquals(planned.get(3).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(3).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -773,12 +773,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.INSERT);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), currFlagNo);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), currFlagYes);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), currFlagNo);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), currFlagYes);
   }
   
   @Test
@@ -802,12 +802,12 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
   }
 
   @Test
@@ -831,15 +831,15 @@ public class TestEventTimeHistoryPlanner {
     assertEquals(planned.size(), 2);
     assertEquals(PlannerUtils.getMutationType(planned.get(0)), MutationType.UPDATE);
     assertEquals(PlannerUtils.getMutationType(planned.get(1)), MutationType.INSERT);
-    assertEquals(RowUtils.get(planned.get(0), "startdate"), 100L);
-    assertEquals(RowUtils.get(planned.get(0), "enddate"), 199L);
-    assertEquals(RowUtils.get(planned.get(0), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
-    assertEquals(RowUtils.get(planned.get(0), "surrogate"), existingRow.getAs("surrogate"));
-    assertEquals(RowUtils.get(planned.get(1), "startdate"), 200L);
-    assertEquals(RowUtils.get(planned.get(1), "enddate"), 253402214400000L);
-    assertEquals(RowUtils.get(planned.get(1), "currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
-    assertNotNull(RowUtils.get(planned.get(1), "surrogate"));
-    assertNotEquals(RowUtils.get(planned.get(0), "surrogate"), RowUtils.get(planned.get(1), "surrogate"));
+    assertEquals(planned.get(0).getAs("startdate"), 100L);
+    assertEquals(planned.get(0).getAs("enddate"), 199L);
+    assertEquals(planned.get(0).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_NO);
+    assertEquals(planned.get(0).getAs("surrogate"), existingRow.getAs("surrogate"));
+    assertEquals(planned.get(1).getAs("startdate"), 200L);
+    assertEquals(planned.get(1).getAs("enddate"), 253402214400000L);
+    assertEquals(planned.get(1).getAs("currentflag"), EventTimeHistoryPlanner.CURRENT_FLAG_DEFAULT_YES);
+    assertNotNull(planned.get(1).getAs("surrogate"));
+    assertNotEquals(planned.get(0).getAs("surrogate"), planned.get(1).getAs("surrogate"));
   }
   
 }

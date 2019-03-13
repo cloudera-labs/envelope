@@ -100,20 +100,6 @@ public class TestRowUtils {
   }
 
   @Test
-  public void testGet() {
-    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
-    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
-    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
-    StructType schema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
-
-    Row row = new RowWithSchema(schema, "hello", 1, 2.0);
-
-    assertEquals(RowUtils.get(row, "field1"), "hello");
-    assertEquals(RowUtils.get(row, "field2"), 1);
-    assertEquals(RowUtils.get(row, "field3"), 2.0);
-  }
-
-  @Test
   public void testSet() {
     StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
     StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
@@ -125,9 +111,9 @@ public class TestRowUtils {
     setRow = RowUtils.set(setRow, "field1", "world");
 
     assertEquals(setRow.length(), 3);
-    assertEquals(RowUtils.get(setRow, "field1"), "world");
-    assertEquals(RowUtils.get(setRow, "field2"), 100);
-    assertEquals(RowUtils.get(setRow, "field3"), 2.0);
+    assertEquals(setRow.getAs("field1"), "world");
+    assertEquals(setRow.getAs("field2"), 100);
+    assertEquals(setRow.getAs("field3"), 2.0);
   }
 
   @Test
@@ -154,11 +140,11 @@ public class TestRowUtils {
     appendRow = RowUtils.append(appendRow, "field5", DataTypes.StringType, "world");
 
     assertEquals(appendRow.length(), 5);
-    assertEquals(RowUtils.get(appendRow, "field1"), "hello");
-    assertEquals(RowUtils.get(appendRow, "field2"), 1);
-    assertEquals(RowUtils.get(appendRow, "field3"), 2.0);
-    assertEquals(RowUtils.get(appendRow, "field4"), true);
-    assertEquals(RowUtils.get(appendRow, "field5"), "world");
+    assertEquals(appendRow.getAs("field1"), "hello");
+    assertEquals(appendRow.getAs("field2"), 1);
+    assertEquals(appendRow.getAs("field3"), 2.0);
+    assertEquals(appendRow.getAs("field4"), true);
+    assertEquals(appendRow.getAs("field5"), "world");
   }
 
   @Test

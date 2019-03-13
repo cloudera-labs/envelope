@@ -230,7 +230,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
       sb.append("/");
       sb.append(field.name());
       sb.append("=");
-      sb.append(RowUtils.get(row, field.name()));
+      sb.append(row.getAs(field.name()));
     }
 
     byte[] serialized = sb.toString().getBytes(Charsets.UTF_8);
@@ -269,7 +269,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   private boolean matchesValueFilter(Row row, Row filter) {
     for (String filterFieldName : filter.schema().fieldNames()) {
       Object rowValue = row.get(row.fieldIndex(filterFieldName));
-      Object filterValue = RowUtils.get(filter, filterFieldName);
+      Object filterValue = filter.getAs(filterFieldName);
       
       if (!rowValue.equals(filterValue)) {
         return false;

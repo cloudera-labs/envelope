@@ -65,7 +65,7 @@ public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesVa
 
   @Override
   public Iterable<Row> translate(Row message) throws Exception {
-    byte[] value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+    byte[] value = message.getAs(Translator.VALUE_FIELD_NAME);
 
     if (value == null || value.length < 1) {
       throw new RuntimeException("Payload value is null or empty");

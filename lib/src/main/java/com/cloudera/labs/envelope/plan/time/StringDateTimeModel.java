@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -110,7 +110,7 @@ public class StringDateTimeModel implements TimeModel, ProvidesAlias, ProvidesVa
 
   @Override
   public Row getTime(Row row) {
-    return new RowWithSchema(getSchema(), RowUtils.get(row, field.name()));
+    return new RowWithSchema(getSchema(), row.getAs(field.name()));
   }
 
   @Override

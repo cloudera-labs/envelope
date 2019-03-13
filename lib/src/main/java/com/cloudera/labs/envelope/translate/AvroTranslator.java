@@ -60,7 +60,7 @@ public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValida
 
   @Override
   public Iterable<Row> translate(Row message) throws Exception {
-    byte[] value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+    byte[] value = message.getAs(Translator.VALUE_FIELD_NAME);
 
     Decoder decoder = DecoderFactory.get().binaryDecoder(value, null);
     GenericRecord record = reader.read(null, decoder);

@@ -294,7 +294,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
 
       List<Object> columnValues = Lists.newArrayList();
       for (Row filter : filtersList) {
-        Object columnValue = RowUtils.get(filter, fieldName);
+        Object columnValue = filter.getAs(fieldName);
         columnValues.add(columnValue);
       }
 

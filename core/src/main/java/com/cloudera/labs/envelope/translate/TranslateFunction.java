@@ -169,7 +169,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
           translated,
           "_" + messageField.name(),
           messageField.dataType(),
-          RowUtils.get(message, messageField.name()));
+          message.getAs(messageField.name()));
     }
 
     return translated;

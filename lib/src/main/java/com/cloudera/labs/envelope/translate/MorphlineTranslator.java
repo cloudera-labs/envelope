@@ -90,8 +90,8 @@ public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesV
 
   @Override
   public Iterable<Row> translate(Row message) throws Exception {
-    Object key = RowUtils.get(message, "key");
-    Object value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+    Object key = message.getAs("key");
+    Object value = message.getAs(Translator.VALUE_FIELD_NAME);
 
     // Get the Morphline Command pipeline
     if (null == this.pipeline) {

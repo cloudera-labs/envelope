@@ -655,10 +655,6 @@ public class RowUtils {
     return subset;
   }
 
-  public static <T> T get(Row row, String fieldName) {
-    return row.getAs(row.fieldIndex(fieldName));
-  }
-
   public static Row set(Row row, String fieldName, Object replacement) {
     Object[] values = new Object[row.length()];
 

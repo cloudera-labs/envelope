@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -148,7 +148,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
           arriving = systemEffectiveFromTimeModel.setCurrentSystemTime(arriving);
           arriving = systemEffectiveToTimeModel.setFarFutureTime(arriving);
           if (hasCurrentFlagField()) {
-            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), RowUtils.get(plan, getCurrentFlagFieldName()));
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), plan.getAs(getCurrentFlagFieldName()));
           }
           if (hasSurrogateKeyField()) {
             arriving = PlannerUtils.appendSurrogateKey(arriving, getSurrogateKeyFieldName());
@@ -426,8 +426,8 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
 
     for (StructField field : into.schema().fields()) {
       String fieldName = field.name();
-      if (RowUtils.get(into, fieldName) == null && RowUtils.get(from, fieldName) != null) {
-        into = RowUtils.set(into, fieldName, RowUtils.get(from, fieldName));
+      if (into.getAs(fieldName) == null && from.getAs(fieldName) != null) {
+        into = RowUtils.set(into, fieldName, from.getAs(fieldName));
       }
     }
 

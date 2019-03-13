@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -151,13 +151,13 @@ public class EventTimeHistoryPlanner
           arriving = PlannerUtils.copyTime(plan, effectiveFromTimeModel, arriving, effectiveFromTimeModel);
           arriving = PlannerUtils.copyTime(plan, effectiveToTimeModel, arriving, effectiveToTimeModel);
           if (hasCurrentFlagField()) {
-            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), RowUtils.get(plan, getCurrentFlagFieldName()));
+            arriving = RowUtils.set(arriving, getCurrentFlagFieldName(), plan.getAs(getCurrentFlagFieldName()));
           }
           if (hasLastUpdatedField()) {
             arriving = lastUpdatedTimeModel.setCurrentSystemTime(arriving);
           }
 
-          if (RowUtils.get(plan, MutationType.MUTATION_TYPE_FIELD_NAME).equals(MutationType.INSERT)) {
+          if (plan.getAs(MutationType.MUTATION_TYPE_FIELD_NAME).equals(MutationType.INSERT)) {
             plannedForKey.set(position, PlannerUtils.setMutationType(arriving, MutationType.INSERT));
           }
           else {
@@ -348,8 +348,8 @@ public class EventTimeHistoryPlanner
 
     for (StructField field : into.schema().fields()) {
       String fieldName = field.name();
-      if (RowUtils.get(into, fieldName) == null && RowUtils.get(from, fieldName) != null) {
-        into = RowUtils.set(into, fieldName, RowUtils.get(from, fieldName));
+      if (into.getAs(fieldName) == null && from.getAs(fieldName) != null) {
+        into = RowUtils.set(into, fieldName, from.getAs(fieldName));
       }
     }
 

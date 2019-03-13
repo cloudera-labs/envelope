@@ -326,23 +326,23 @@ public class DefaultHBaseSerde implements HBaseSerde {
 
   private static byte[] getColumnValueAsBytes(String name, String type, Row row) {
     try {
-      Object field = RowUtils.get(row, name);
+      Object field = row.getAs(name);
       if (field == null) {
         return null;
       }
       switch (type) {
         case ConfigurationDataTypes.STRING:
-          return Bytes.toBytes((String) RowUtils.get(row, name));
+          return Bytes.toBytes((String) row.getAs(name));
         case ConfigurationDataTypes.INTEGER:
-          return Bytes.toBytes((int) RowUtils.get(row, name));
+          return Bytes.toBytes((int) row.getAs(name));
         case ConfigurationDataTypes.LONG:
-          return Bytes.toBytes((long) RowUtils.get(row, name));
+          return Bytes.toBytes((long) row.getAs(name));
         case ConfigurationDataTypes.FLOAT:
-          return Bytes.toBytes((float) RowUtils.get(row, name));
+          return Bytes.toBytes((float) row.getAs(name));
         case ConfigurationDataTypes.DOUBLE:
-          return Bytes.toBytes((double) RowUtils.get(row, name));
+          return Bytes.toBytes((double) row.getAs(name));
         case ConfigurationDataTypes.BOOLEAN:
-          return Bytes.toBytes((boolean) RowUtils.get(row, name));
+          return Bytes.toBytes((boolean) row.getAs(name));
         default:
           LOG.error("Unsupported column type: {}", type);
           throw new IllegalArgumentException("Unsupported column type: " + type);

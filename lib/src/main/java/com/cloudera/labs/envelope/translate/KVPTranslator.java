@@ -75,7 +75,7 @@ public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidat
 
   @Override
   public Iterable<Row> translate(Row message) {
-    String value = RowUtils.get(message, Translator.VALUE_FIELD_NAME);
+    String value = message.getAs(Translator.VALUE_FIELD_NAME);
 
     kvpMap.clear();
     values.clear();

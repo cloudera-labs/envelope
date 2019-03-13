@@ -68,7 +68,7 @@ public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations 
       if (fieldType == String.class && !caseSensitive) {
         check = check && validValues.contains(row.<String>getAs(field).toLowerCase());
       } else {
-        check = check && validValues.contains(RowUtils.get(row, field));
+        check = check && validValues.contains(row.getAs(field));
       }
     }
     return check;

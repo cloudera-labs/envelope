@@ -66,7 +66,7 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
   @Override
   public boolean check(Row row) {
     for (String field : fields) {
-      Object value = RowUtils.get(row, field);
+      Object value = row.getAs(field);
       if (value != null) {
         if (!(value instanceof Comparable)) {
           throw new RuntimeException("Range checkInternal on non-comparable type");

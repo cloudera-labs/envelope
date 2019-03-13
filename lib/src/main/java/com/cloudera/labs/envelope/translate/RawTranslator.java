@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -41,7 +41,7 @@ public class RawTranslator implements Translator, ProvidesAlias, UsesProvidedSch
     List<Object> values = Lists.newArrayList();
 
     for (StructField field : message.schema().fields()) {
-      values.add(RowUtils.get(message, field.name()));
+      values.add(message.getAs(field.name()));
     }
 
     Row row = new RowWithSchema(message.schema(), values.toArray());
