@@ -47,9 +47,10 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
   public Step copy() {
     Step copy = new TaskStep(name);
     copy.configure(config);
-    
+
+    copy.setDependencyNames(getDependencyNames());
     copy.setState(getState());
-    
+
     return copy;
   }
 

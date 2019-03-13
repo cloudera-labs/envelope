@@ -159,9 +159,10 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
   public Step copy() {
     BatchStep copy = new BatchStep(name);
     copy.configure(config);
-    
+
+    copy.setDependencyNames(getDependencyNames());
     copy.setState(getState());
-    
+
     if (getState() == StepState.FINISHED) {
       copy.setData(getData());
     }

@@ -15,27 +15,6 @@
 
 package com.cloudera.labs.envelope.run;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructType;
-import org.junit.Test;
-
 import com.cloudera.labs.envelope.derive.Deriver;
 import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -46,6 +25,26 @@ import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
+
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestLoopStep {
 
@@ -643,6 +642,37 @@ public class TestLoopStep {
     assertTrue(StepUtils.getStepForName("data_step5_11_12", unrolled).isPresent());
     assertTrue(StepUtils.getStepForName("data_step5_11_13", unrolled).isPresent());
     assertTrue(StepUtils.getStepForName("data_step6", unrolled).isPresent());
+
+    assertEquals(Sets.newHashSet(),
+        StepUtils.getStepForName("loop_step1", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1"),
+        StepUtils.getStepForName("data_step2_10", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1"),
+        StepUtils.getStepForName("data_step2_11", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1"),
+        StepUtils.getStepForName("loop_step3_10", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1"),
+        StepUtils.getStepForName("loop_step3_11", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_10"),
+        StepUtils.getStepForName("data_step4_10_12", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_10"),
+        StepUtils.getStepForName("data_step4_10_13", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_11"),
+        StepUtils.getStepForName("data_step4_11_12", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_11"),
+        StepUtils.getStepForName("data_step4_11_13", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_10"),
+        StepUtils.getStepForName("data_step5_10_12", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_10"),
+        StepUtils.getStepForName("data_step5_10_13", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_11"),
+        StepUtils.getStepForName("data_step5_11_12", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("loop_step1", "loop_step3_11"),
+        StepUtils.getStepForName("data_step5_11_13", unrolled).get().getDependencyNames());
+    assertEquals(Sets.newHashSet("data_step2_11", "data_step5_10_12", "data_step5_11_13",
+        "data_step5_10_13", "data_step2_10", "data_step5_11_12", "data_step4_11_12",
+        "data_step4_10_12", "data_step4_11_13", "data_step4_10_13"),
+        StepUtils.getStepForName("data_step6", unrolled).get().getDependencyNames());
   }
 
   @SuppressWarnings("serial")
@@ -687,7 +717,7 @@ public class TestLoopStep {
         .withValue(LoopStep.STEP_PROPERTY, ConfigValueFactory.fromAnyRef("source_step"))
         .withValue(LoopStep.SUFFIX_PROPERTY, ConfigValueFactory.fromAnyRef("descr"))
     ;
-        
+
     RefactorStep loopStep = new LoopStep("loop_step");
     loopStep.configure(loopStepConfig);
     steps.add(loopStep);
@@ -720,7 +750,7 @@ public class TestLoopStep {
     assertTrue(StepUtils.getStepForName("dependent_step_null", unrolled).get().getConfig().getAnyRef("sql").toString()
         .matches(".+?\\$\\{non_existent_parm\\}.*?'null'.*?'9999-12-31'.*"));
   }
-  
+
   private static Dataset<Row> createTestDataframe() throws Exception {
     return Contexts.getSparkSession().createDataFrame(createTestData(), createTestSchema());
   }
@@ -748,6 +778,6 @@ public class TestLoopStep {
         RowFactory.create("N", "November", 11, new Date(df.parse("2019-11-01").getTime())),
         RowFactory.create("D", "December", 12, new Date(df.parse("2019-12-01").getTime())),
         RowFactory.create(null, null, null, new Date(df.parse("9999-12-31").getTime())));
-  }  
+  }
 }
 

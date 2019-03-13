@@ -194,9 +194,10 @@ public class DecisionStep extends RefactorStep implements ProvidesValidations {
   public Step copy() {
     Step copy = new DecisionStep(name);
     copy.configure(config);
-    
+
+    copy.setDependencyNames(getDependencyNames());
     copy.setState(getState());
-    
+
     return copy;
   }
 

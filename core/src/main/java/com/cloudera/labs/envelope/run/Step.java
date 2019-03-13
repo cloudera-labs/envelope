@@ -78,7 +78,7 @@ public abstract class Step implements ProvidesValidations {
   }
   
   public void setDependencyNames(Set<String> dependencyNames) {
-    this.dependencyNames = dependencyNames;
+    this.dependencyNames = Sets.newHashSet(dependencyNames);
   }
   
   public StepState getState() {

@@ -109,6 +109,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     StreamingStep copy = new StreamingStep(name);
     copy.configure(config);
 
+    copy.setDependencyNames(getDependencyNames());
     copy.setState(getState());
 
     if (getState() == StepState.FINISHED) {
