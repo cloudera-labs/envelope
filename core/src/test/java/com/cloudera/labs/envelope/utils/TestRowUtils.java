@@ -28,10 +28,10 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
 import org.joda.time.DateTime;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.matchers.JUnitMatchers;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
@@ -220,7 +220,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(123, field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -229,7 +229,7 @@ public class TestRowUtils {
     DataType field = DataTypes.CalendarIntervalType;
 
     thrown.expect(RuntimeException.class);
-    thrown.expectMessage(JUnitMatchers.containsString("StructField DataType unrecognized or not yet implemented"));
+    thrown.expectMessage(CoreMatchers.containsString("StructField DataType unrecognized or not yet implemented"));
 
     RowUtils.toRowValue("INTERVAL 1 MONTH", field);
   }
@@ -247,7 +247,7 @@ public class TestRowUtils {
     assertEquals("Invalid DateTime", sqlDate, RowUtils.toRowValue(dateObj, field));
 
     thrown.expect(RuntimeException.class);
-    thrown.expectMessage(JUnitMatchers.containsString("Invalid or unrecognized input format"));
+    thrown.expectMessage(CoreMatchers.containsString("Invalid or unrecognized input format"));
     RowUtils.toRowValue(123, field);
   }
 
@@ -279,7 +279,7 @@ public class TestRowUtils {
     assertEquals("Invalid empty format set", sqlTimestamp, RowUtils.toRowValue("2017-01-01T00:00:00", field, metadataEmpty));
 
     thrown.expect(RuntimeException.class);
-    thrown.expectMessage(JUnitMatchers.containsString("Invalid or unrecognized input format"));
+    thrown.expectMessage(CoreMatchers.containsString("Invalid or unrecognized input format"));
     RowUtils.toRowValue(123, field);
   }
 
@@ -297,14 +297,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -322,14 +322,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -347,14 +347,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -372,14 +372,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -408,14 +408,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -433,14 +433,14 @@ public class TestRowUtils {
       RowUtils.toRowValue("foo", field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     try {
       RowUtils.toRowValue(ByteBuffer.allocate(1), field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
   }
 
@@ -475,7 +475,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(ByteBuffer.allocate(1), defaultField);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     DataType customField = DataTypes.createDecimalType(3, 2);
@@ -506,7 +506,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(12.34, field);
       fail("Expected a RuntimeException for invalid type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     // Lists
@@ -518,7 +518,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(1, ByteBuffer.allocate(1), 3), field);
       fail("Expected a RuntimeException for invalid element conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized element format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized element format"));
     }
 
     // Rows
@@ -530,7 +530,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(1, ByteBuffer.allocate(1), 3), field);
       fail("Expected a RuntimeException for invalid element conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
   }
 
@@ -576,7 +576,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(ByteBuffer.allocate(1)), nested);
       fail("Expected a RuntimeException for invalid outer type conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized element format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized element format"));
     }
 
     // Invalid inner type
@@ -591,7 +591,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(testArrayInvalidElement, nested);
       fail("Expected a RuntimeException for invalid inner type conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized element format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized element format"));
     }
 
     // Valid inner null
@@ -623,7 +623,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(ByteBuffer.allocate(1)), nested);
       fail("Expected a RuntimeException for invalid outer type conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Invalid inner type
@@ -631,7 +631,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(RowFactory.create(1, false, 3)), nested);
       fail("Expected a RuntimeException for invalid inner type conversion");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Valid inner null
@@ -688,7 +688,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(ByteBuffer.allocate(1), fieldNotNullable);
       fail("Expected a RuntimeException for type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     // Invalid value
@@ -699,7 +699,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, fieldNotNullable);
       fail("Expected a RuntimeException for invalid value type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Invalid key
@@ -710,7 +710,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, fieldNotNullable);
       fail("Expected a RuntimeException for invalid key type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized key format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized key format"));
     }
 
     // Null key
@@ -721,7 +721,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, fieldNotNullable);
       fail("Expected a RuntimeException for null key");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized key format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized key format"));
     }
 
     // Valid 'null' value
@@ -766,7 +766,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(ByteBuffer.allocate(1), fieldNotNullable);
       fail("Expected a RuntimeException for type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized input format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized input format"));
     }
 
     // Invalid value
@@ -774,7 +774,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputRow, fieldNotNullable);
       fail("Expected a RuntimeException for invalid value type");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Null value
@@ -782,7 +782,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputRow, fieldNotNullable);
       fail("Expected a RuntimeException for 'null' value");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Value cannot be 'null'"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Value cannot be 'null'"));
     }
 
     // Valid Null value
@@ -793,7 +793,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(""), fieldNotNullable);
       fail("Expected a RuntimeException for a missing schema");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid Row format, no schema found"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid Row format, no schema found"));
     }
   }
 
@@ -875,7 +875,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(9L), field);
       fail("Expected a RuntimeException for invalid length ");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid size of input List"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid size of input List"));
     }
 
     // Invalid length (gt)
@@ -883,7 +883,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.<Object>newArrayList(9L, 2, 3), field);
       fail("Expected a RuntimeException for invalid length ");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid size of input List"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid size of input List"));
     }
 
     // Invalid conversion, nullable
@@ -891,7 +891,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(ByteBuffer.allocate(1), 2), field);
       fail("Expected a RuntimeException for invalid type on nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized element format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized element format"));
     }
 
     // Invalid conversion, non-nullable
@@ -899,7 +899,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(9L, ByteBuffer.allocate(1)), field);
       fail("Expected a RuntimeException for invalid type on non-nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized element format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized element format"));
     }
 
     // Valid 'null' value
@@ -910,7 +910,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(Lists.newArrayList(9L, null), field);
       fail("Expected a RuntimeException for invalid nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Element cannot be 'null'"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Element cannot be 'null'"));
     }
 
     //
@@ -938,7 +938,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, field);
       fail("Expected a RuntimeException for invalid or missing key");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Key not found on input"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Key not found on input"));
     }
 
     // Invalid conversion on nullable field
@@ -949,7 +949,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, field);
       fail("Expected a RuntimeException for invalid type on nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Invalid conversion on non-nullable field
@@ -960,7 +960,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, field);
       fail("Expected a RuntimeException for invalid type on non-nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Valid 'null' value
@@ -977,7 +977,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(inputMap, field);
       fail("Expected a RuntimeException for invalid nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     //
@@ -995,7 +995,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(9L), field);
       fail("Expected a RuntimeException for invalid length (lt)");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid size of input Row"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid size of input Row"));
     }
 
     // Invalid length (gt)
@@ -1003,7 +1003,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(9L, 2, 3), field);
       fail("Expected a RuntimeException for invalid length (gt)");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid size of input Row"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid size of input Row"));
     }
 
     // Invalid conversion, nullable
@@ -1011,7 +1011,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(ByteBuffer.allocate(1), 2), field);
       fail("Expected a RuntimeException for invalid type on nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Invalid conversion, non-nullable
@@ -1019,7 +1019,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(9L, ByteBuffer.allocate(1)), field);
       fail("Expected a RuntimeException for invalid type on non-nullable");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Invalid or unrecognized value format"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Invalid or unrecognized value format"));
     }
 
     // Valid 'null' value
@@ -1030,7 +1030,7 @@ public class TestRowUtils {
       RowUtils.toRowValue(RowFactory.create(9L, null), field);
       fail("Expected a RuntimeException for invalid null on nullable field");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Value cannot be 'null'"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Value cannot be 'null'"));
     }
   }
 

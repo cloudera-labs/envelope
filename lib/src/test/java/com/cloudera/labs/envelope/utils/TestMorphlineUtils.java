@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -25,9 +25,9 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.matchers.JUnitMatchers;
 import org.junit.runner.RunWith;
 import org.kitesdk.morphline.api.Command;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
@@ -276,7 +276,7 @@ public class TestMorphlineUtils {
       MorphlineUtils.convertToRow(schema, record);
       fail("Did not throw a RuntimeException");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("DataType cannot contain 'null'"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("DataType cannot contain 'null'"));
     }
 
     new Verifications() {{
@@ -304,7 +304,7 @@ public class TestMorphlineUtils {
       MorphlineUtils.convertToRow(schema, record);
       fail("Did not throw a RuntimeException");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Error converting Field"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Error converting Field"));
     }
   }
 
@@ -328,7 +328,7 @@ public class TestMorphlineUtils {
       MorphlineUtils.convertToRow(schema, record);
       fail("Did not throw a RuntimeException");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("Error converting Field"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("Error converting Field"));
     }
   }
 
@@ -348,7 +348,7 @@ public class TestMorphlineUtils {
       MorphlineUtils.convertToRow(schema, record);
       fail("Did not throw a RuntimeException");
     } catch (Exception e) {
-      assertThat(e.getMessage(), JUnitMatchers.containsString("DataType cannot contain 'null'"));
+      assertThat(e.getMessage(), CoreMatchers.containsString("DataType cannot contain 'null'"));
     }
 
     new Verifications() {{
