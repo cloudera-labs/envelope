@@ -54,7 +54,12 @@ public class PlannerUtils {
    */
   public static Row appendMutationTypeField(Row row) {
     if (!hasMutationTypeField(row)) {
-      row = RowUtils.append(row, MutationType.MUTATION_TYPE_FIELD_NAME, DataTypes.StringType, MutationType.NONE.toString());
+      row = RowUtils.append(
+          row,
+          MutationType.MUTATION_TYPE_FIELD_NAME,
+          DataTypes.StringType,
+          false,
+          MutationType.NONE.toString());
     }
     
     return row;
@@ -145,7 +150,7 @@ public class PlannerUtils {
   }
 
   public static Row appendSurrogateKey(Row row, String fieldName) {
-    return RowUtils.append(row, fieldName, DataTypes.StringType, UUID.randomUUID().toString());
+    return RowUtils.append(row, fieldName, DataTypes.StringType, false, UUID.randomUUID().toString());
   }
 
   private static void assertHasMutationTypeField(Row row) {

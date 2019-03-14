@@ -103,7 +103,7 @@ public class EventTimeHistoryPlanner
       arriving = effectiveFromTimeModel.appendFields(arriving);
       arriving = effectiveToTimeModel.appendFields(arriving);
       if (hasCurrentFlagField()) {
-        arriving = RowUtils.append(arriving, getCurrentFlagFieldName(), DataTypes.StringType, null);
+        arriving = RowUtils.append(arriving, getCurrentFlagFieldName(), DataTypes.StringType, true, null);
       }
       if (hasLastUpdatedField()) {
         arriving = lastUpdatedTimeModel.appendFields(arriving);

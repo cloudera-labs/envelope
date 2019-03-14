@@ -97,7 +97,7 @@ public class StringDatetimeTimeModel implements TimeModel, ProvidesAlias, Provid
 
   @Override
   public Row appendFields(Row row) {
-    return RowUtils.append(row, field.name(), field.dataType(), null);
+    return RowUtils.append(row, field.name(), field.dataType(), true, null);
   }
 
   @Override

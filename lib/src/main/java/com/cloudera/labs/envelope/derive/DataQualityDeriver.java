@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -171,8 +171,12 @@ public class DataQualityDeriver
         ruleOutcomes.put(rule.getKey(), rule.getValue().check(row));
       }
 
-      return RowUtils.append(row, resultsFieldName,
-          DataTypes.createMapType(DataTypes.StringType, DataTypes.BooleanType), toScalaMap(ruleOutcomes));
+      return RowUtils.append(
+          row,
+          resultsFieldName,
+          DataTypes.createMapType(DataTypes.StringType, DataTypes.BooleanType),
+          false,
+          toScalaMap(ruleOutcomes));
     }
 
     private static <A,B> scala.collection.mutable.Map<A,B> toScalaMap(java.util.Map<A,B> jMap) {

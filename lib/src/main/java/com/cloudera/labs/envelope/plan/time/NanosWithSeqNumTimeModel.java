@@ -96,8 +96,8 @@ public class NanosWithSeqNumTimeModel implements TimeModel, ProvidesAlias {
 
   @Override
   public Row appendFields(Row row) {
-    row = RowUtils.append(row, nanoField.name(), nanoField.dataType(), null);
-    row = RowUtils.append(row, seqNumField.name(), seqNumField.dataType(), null);
+    row = RowUtils.append(row, nanoField.name(), nanoField.dataType(), true, null);
+    row = RowUtils.append(row, seqNumField.name(), seqNumField.dataType(), true, null);
     
     return row;
   }

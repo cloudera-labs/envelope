@@ -169,6 +169,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
           translated,
           "_" + messageField.name(),
           messageField.dataType(),
+          messageField.nullable(),
           message.getAs(messageField.name()));
     }
 
@@ -205,7 +206,7 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
   }
 
   private Row appendHadErrorFlag(Row row, boolean hadError) {
-    return RowUtils.append(row, HAD_ERROR_FIELD_NAME, DataTypes.BooleanType, hadError);
+    return RowUtils.append(row, HAD_ERROR_FIELD_NAME, DataTypes.BooleanType, false, hadError);
   }
 
 }

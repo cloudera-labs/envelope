@@ -136,8 +136,8 @@ public class TestRowUtils {
     StructType schema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
 
     Row row = new RowWithSchema(schema, "hello", 1, 2.0);
-    Row appendRow = RowUtils.append(row, "field4", DataTypes.BooleanType, true);
-    appendRow = RowUtils.append(appendRow, "field5", DataTypes.StringType, "world");
+    Row appendRow = RowUtils.append(row, "field4", DataTypes.BooleanType, false, true);
+    appendRow = RowUtils.append(appendRow, "field5", DataTypes.StringType, false, "world");
 
     assertEquals(appendRow.length(), 5);
     assertEquals(appendRow.getAs("field1"), "hello");
@@ -145,6 +145,63 @@ public class TestRowUtils {
     assertEquals(appendRow.getAs("field3"), 2.0);
     assertEquals(appendRow.getAs("field4"), true);
     assertEquals(appendRow.getAs("field5"), "world");
+  }
+
+  @Test
+  public void testAppendRow() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType baseSchema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+    Row base = new RowWithSchema(baseSchema, "hello", 1, 1.0);
+
+    StructField field4 = DataTypes.createStructField("field4", DataTypes.StringType, true);
+    StructField field5 = DataTypes.createStructField("field5", DataTypes.IntegerType, true);
+    StructField field6 = DataTypes.createStructField("field6", DataTypes.FloatType, true);
+    StructType appendSchema = DataTypes.createStructType(Lists.newArrayList(field4, field5, field6));
+    Row append = new RowWithSchema(appendSchema, "world", -1, -1.0);
+
+    Row appended = RowUtils.append(base, append);
+
+    Row expected = new RowWithSchema(
+        DataTypes.createStructType(Lists.newArrayList(field1, field2, field3, field4, field5, field6)),
+        "hello", 1, 1.0, "world", -1, -1.0);
+
+    assertEquals(expected, appended);
+  }
+
+  @Test
+  public void testRemoveOneField() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType removeSchema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+    Row remove = new RowWithSchema(removeSchema, "hello", 1, 1.0);
+
+    Row removed = RowUtils.remove(remove, "field2");
+
+    Row expected = new RowWithSchema(
+        DataTypes.createStructType(Lists.newArrayList(field1, field3)),
+        "hello", 1.0);
+
+    assertEquals(expected, removed);
+  }
+
+  @Test
+  public void testRemoveMultipleFields() {
+    StructField field1 = DataTypes.createStructField("field1", DataTypes.StringType, true);
+    StructField field2 = DataTypes.createStructField("field2", DataTypes.IntegerType, true);
+    StructField field3 = DataTypes.createStructField("field3", DataTypes.FloatType, true);
+    StructType removeSchema = DataTypes.createStructType(Lists.newArrayList(field1, field2, field3));
+    Row remove = new RowWithSchema(removeSchema, "hello", 1, 1.0);
+
+    Row removed = RowUtils.remove(remove, Lists.newArrayList("field3", "field2"));
+
+    Row expected = new RowWithSchema(
+        DataTypes.createStructType(Lists.newArrayList(field1)),
+        "hello");
+
+    assertEquals(expected, removed);
   }
 
   @Test

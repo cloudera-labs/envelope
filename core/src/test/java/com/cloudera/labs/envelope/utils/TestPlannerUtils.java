@@ -41,8 +41,10 @@ public class TestPlannerUtils {
   
   @Before
   public void before() {
-    schemaWithoutMT = DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField("other", DataTypes.StringType, true)));
-    schemaWithMT = schemaWithoutMT.add(DataTypes.createStructField(MutationType.MUTATION_TYPE_FIELD_NAME, DataTypes.StringType, true));
+    schemaWithoutMT = DataTypes.createStructType(Lists.newArrayList(DataTypes.createStructField(
+        "other", DataTypes.StringType, true)));
+    schemaWithMT = schemaWithoutMT.add(DataTypes.createStructField(
+        MutationType.MUTATION_TYPE_FIELD_NAME, DataTypes.StringType, false));
     schemaWithTMs = DataTypes.createStructType(Lists.newArrayList(
         DataTypes.createStructField("first", DataTypes.StringType, true),
         DataTypes.createStructField("second", DataTypes.StringType, true)));

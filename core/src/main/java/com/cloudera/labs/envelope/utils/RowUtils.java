@@ -41,8 +41,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 
 public class RowUtils {
 
@@ -676,23 +676,39 @@ public class RowUtils {
     return appendedRow;
   }
 
-  public static Row append(Row row, String fieldName, DataType fieldType, Object value) {
-    StructType appendedSchema = row.schema().add(fieldName, fieldType);
+  public static Row append(Row row, String fieldName, DataType fieldType, boolean nullable, Object value) {
+    StructType appendedSchema = row.schema().add(fieldName, fieldType, nullable);
     Object[] appendedValues = ObjectArrays.concat(valuesFor(row), value);
     Row appendedRow = new RowWithSchema(appendedSchema, appendedValues);
 
     return appendedRow;
   }
 
+  public static Row append(Row row, Row append) {
+    for (StructField field : append.schema().fields()) {
+      row = append(row, field.name(), field.dataType(), field.nullable(), append.getAs(field.name()));
+    }
+
+    return row;
+  }
+
   public static Row remove(Row row, String fieldName) {
     List<StructField> removedFields = Lists.newArrayList(row.schema().fields());
     removedFields.remove(row.fieldIndex(fieldName));
-    StructType removedSchema = new StructType(removedFields.toArray(new StructField[removedFields.size()]));
+    StructType removedSchema = new StructType(removedFields.toArray(new StructField[0]));
     
     List<Object> removedValues = Lists.newArrayList(RowUtils.valuesFor(row));
     removedValues.remove(row.fieldIndex(fieldName));
     
     return new RowWithSchema(removedSchema, removedValues.toArray());
+  }
+
+  public static Row remove(Row row, List<String> fieldNames) {
+    for (String fieldName : fieldNames) {
+      row = remove(row, fieldName);
+    }
+
+    return row;
   }
 
   public static Object[] valuesFor(Row row) {

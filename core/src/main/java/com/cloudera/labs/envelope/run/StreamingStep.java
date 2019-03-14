@@ -96,9 +96,9 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
         translateFunction.getProvidingSchema(),
         streamInput.getProvidingSchema());
 
-    BatchStep errors = createErrorStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX,
-        translationResults.getErrors());
-    addNewBatchStep(errors);
+    BatchStep errored = createErrorStep(getName() + DEFAULT_ERROR_DATAFRAME_SUFFIX,
+        translationResults.getErrored());
+    addNewBatchStep(errored);
 
     // Provide translated rows and errors
     return translationResults.getTranslated();

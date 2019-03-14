@@ -97,7 +97,7 @@ public class StringDateTimeModel implements TimeModel, ProvidesAlias, ProvidesVa
 
   @Override
   public Row appendFields(Row row) {
-    return RowUtils.append(row, field.name(), field.dataType(), null);
+    return RowUtils.append(row, field.name(), field.dataType(), true, null);
   }
   
   private Date precedingDate(Date date) {

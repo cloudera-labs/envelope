@@ -110,7 +110,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
       arriving = systemEffectiveFromTimeModel.appendFields(arriving);
       arriving = systemEffectiveToTimeModel.appendFields(arriving);
       if (hasCurrentFlagField()) {
-        arriving = RowUtils.append(arriving, getCurrentFlagFieldName(), DataTypes.StringType, null);
+        arriving = RowUtils.append(arriving, getCurrentFlagFieldName(), DataTypes.StringType, true, null);
       }
       arriving = PlannerUtils.appendMutationTypeField(arriving);
 

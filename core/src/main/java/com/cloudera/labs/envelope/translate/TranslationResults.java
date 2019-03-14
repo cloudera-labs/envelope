@@ -40,7 +40,7 @@ public class TranslationResults {
         .drop(TranslateFunction.HAD_ERROR_FIELD_NAME);
   }
 
-  public Dataset<Row> getErrors() {
+  public Dataset<Row> getErrored() {
     return Contexts.getSparkSession()
         .createDataFrame(filterOnHadError(results, true), errorSchema)
         .drop(TranslateFunction.HAD_ERROR_FIELD_NAME);

@@ -21,7 +21,6 @@ import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
 import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
-import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
@@ -58,8 +57,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -225,7 +222,7 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
           lines.javaRDD().flatMap(translateFunction),
           translateFunction.getProvidingSchema(),
           getProvidingSchema());
-      errors = results.getErrors();
+      errors = results.getErrored();
 
       return results.getTranslated();
     }
@@ -247,7 +244,7 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
         encoded.javaRDD().flatMap(translateFunction),
         translateFunction.getProvidingSchema(),
         getProvidingSchema());
-    errors = results.getErrors();
+    errors = results.getErrored();
 
     return results.getTranslated();
   }

@@ -557,7 +557,8 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, `dq`, and `sparkml`. To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, `dq`, `translate`, and `sparkml`.
+To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
 
 |===
 
@@ -865,6 +866,25 @@ Deriver `type` = `latest`.
 
 |timestamp-field
 |The name of the field used to order the records for an individual key. Only the record with the highest value of this field for a key will be included in the deriver result.
+
+|===
+
+==== Translate
+
+Deriver `type` = `translate`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|step
+|The name of the dataset that contains the field to be translated.
+
+|field
+|The name of the field to be translated.
+
+|translator
+|The configuration object for the translator that will translate the field. See the <<derivers.adoc,derivers guide>> for more information on this syntax.
 
 |===
 
