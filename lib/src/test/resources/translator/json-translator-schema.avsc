@@ -1,0 +1,28 @@
+{
+  "type": "record",
+  "name": "test",
+  "fields": [
+    {"name": "f1", "type": "string"},
+    {"name": "f2", "type": "float"},
+    {"name": "f3", "type": "boolean"},
+    {"name": "f4", "type":
+      {
+        "type": "record",
+        "name": "test1",
+        "fields": [
+          {"name": "f41", "type": "string"}
+        ]
+      }
+    },
+    {"name": "f5", "type": {"type": "array", "items": "string"}},
+    {"name": "f6", "type": {"type": "array", "items":
+      {
+        "type": "record",
+        "name": "test6",
+        "fields": [
+          {"name": "f611", "type": {"type": "array", "items": "boolean"}}
+        ]
+      }
+    }}
+  ]
+}

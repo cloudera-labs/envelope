@@ -424,7 +424,10 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |Configuration suffix|Description
 
 |type
-|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`, `protobuf`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
+|The translator type to be used. Envelope provides `avro`, `json`, `delimited`, `kvp`, `morphline`, `protobuf`, `raw`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
+
+|append.raw.enabled
+|If `true` then the translator will append the raw fields to the translated row. Each appended field name will be prefixed with an underscore, e.g. `_value`. Default `false`.
 
 |===
 
@@ -437,16 +440,20 @@ Translator `type` = `avro`.
 |Configuration suffix|Description
 
 |schema
-|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
-|append.raw.enabled
-|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
+|===
 
-|append.raw.key.field.name
-|The name of the appended field that contains the raw input key. Default `_key`.
+==== JSON
 
-|append.raw.value.field.name
-|The name of the appended field that contains the raw input value. Default `_value`.
+Translator `type` = `json`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|schema
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |===
 
@@ -465,19 +472,10 @@ Translator `type` = `delimited`.
 |If `true`, the `delimiter` string will be interpreted as a regular expression. Default `false` (interpret as a literal value).
 
 |schema
-|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |timestamp.formats
 |Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
-
-|append.raw.enabled
-|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
-
-|append.raw.key.field.name
-|The name of the appended field that contains the raw input key. Default `_key`.
-
-|append.raw.value.field.name
-|The name of the appended field that contains the raw input value. Default `_value`.
 
 |===
 
@@ -496,19 +494,10 @@ Translator `type` = `kvp`.
 |The delimiter that separates the the key and value of each key-value pair.
 
 |schema
-|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |timestamp.formats
 |Optional list of timestamp format patterns. For timestamp field type, one or more patterns may be supplied in https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html[Joda timestamp format]. If this configuration is supplied, timestamp format must confirm to one of these pattens to be considered validity. For performance sensitive processing, list patterns in order of probability of occurrence. If this configuration is not supplied, timestamp data must confirm to http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()[ISO 8601 date, time or datetime format].
-
-|append.raw.enabled
-|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
-
-|append.raw.key.field.name
-|The name of the appended field that contains the raw input key. Default `_key`.
-
-|append.raw.value.field.name
-|The name of the appended field that contains the raw input value. Default `_value`.
 
 |===
 
@@ -533,25 +522,10 @@ Translator `type` = `morphline`.
 |The optional identifier of the Morphline pipeline within the configuration file.
 
 |schema
-|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation]
-
-|append.raw.enabled
-|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
-
-|append.raw.key.field.name
-|The name of the appended field that contains the raw input key. Default `_key`.
-
-|append.raw.value.field.name
-|The name of the appended field that contains the raw input value. Default `_value`.
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
 
 |error.on.empty
 |If `true` then all input rows must map to an output row, otherwise an error will be thrown. Default `true`.
-
-||
-|`_rawstring_`|_This translator has no custom configurations_.
-
-||
-|`_rawbinary_`|_This translator has no custom configurations_.
 
 |===
 
@@ -564,18 +538,15 @@ Translator `type` = `protobuf`.
 |Configuration suffix|Description
 
 |schema
-|The schema definition.  Refer to the link:configurations.adoc#schema[Schema documentation] (Currently only the Protobuf schema type is supported for the Protobuf translator, `schema.type` = `protobuf`)
-
-|append.raw.enabled
-|If `true` then the translator will append the raw input key and value as binary fields to the translated row. Default `false`.
-
-|append.raw.key.field.name
-|The name of the appended field that contains the raw input key. Default `_key`.
-
-|append.raw.value.field.name
-|The name of the appended field that contains the raw input value. Default `_value`.
+|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation] (Currently only the Protobuf schema type is supported for the Protobuf translator, `schema.type` = `protobuf`)
 
 |===
+
+==== Raw
+
+Translator `type` = `raw`.
+
+_This translator has no additional configurations._
 
 === Derivers
 

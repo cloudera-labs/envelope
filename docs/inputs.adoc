@@ -124,17 +124,35 @@ input {
 
 == Translators
 
-The process of turning a DStream micro-batch into a DataFrame is known as translation. Every stream input must specify a <<configurations.adoc#translators,translator>> to convert the raw stream messages into structured rows for the DataFrame.
+In Envelope the process of deserializing raw messages into structured rows is known as translation.
 
-Envelope has five `Translator` implementations by default.
+Envelope provides seven translator implementations.
 
 === Avro
 
+_Documentation for this translator has not yet been added._
+
+=== JSON
+
+The `json` translator converts JSON strings into structured rows.
+This is equivalent to using Spark SQL's `from_json` SQL function.
+
+The translator must be configured with the schema of the JSON strings.
+This schema is specified using the Avro schema format, either directly using `schema.literal`, or via a file using `schema.path`.
+
+NOTE: Specifying the schema via the Avro schema format does not imply that the data itself is related to Avro records or files
+
 === Delimited
+
+_Documentation for this translator has not yet been added._
 
 === Key-Value
 
+_Documentation for this translator has not yet been added._
+
 === Morphline
+
+_Documentation for this translator has not yet been added._
 
 === Protobuf
 
@@ -200,6 +218,10 @@ steps {
 ...
 }
 ----
+
+=== Raw
+
+_Documentation for this translator has not yet been added._
 
 == Custom inputs and translators
 
