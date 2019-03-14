@@ -37,6 +37,7 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -92,6 +93,10 @@ public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValida
       // Avro returns Utf8s for strings, which Spark SQL doesn't know how to use
       if (fieldType.equals(Type.STRING) && value != null) {
         value = value.toString();
+      }
+      // Avro returns binary as a ByteBuffer, but Spark SQL wants a byte[]
+      if (fieldType.equals(Type.BYTES) && value != null) {
+        value = ((ByteBuffer)value).array();
       }
 
       values.add(value);

@@ -1,8 +1,20 @@
 {
   "type": "record",
-  "name": "test",
+  "name": "avroserializationtest",
   "fields": [
     {"name": "field1", "type": "string"},
-    {"name": "field2", "type": "int"}
+    {"name": "field2", "type": "boolean"},
+    {"name": "field3", "type": "bytes"},
+    {"name": "field4", "type": "double"},
+    {"name": "field5", "type": "int"},
+    {"name": "field6", "type": "float"},
+    {"name": "field7", "type": "long"},
+    {"name": "field8", "type": ["string", "null"]},
+    {"name": "field9", "type": ["boolean", "null"]},
+    {"name": "field10", "type": ["bytes", "null"]},
+    {"name": "field11", "type": ["double", "null"]},
+    {"name": "field12", "type": ["int", "null"]},
+    {"name": "field13", "type": ["float", "null"]},
+    {"name": "field14", "type": ["long", "null"]}
   ]
 }

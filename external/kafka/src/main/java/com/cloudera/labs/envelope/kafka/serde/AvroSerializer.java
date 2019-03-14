@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,7 +50,9 @@ public class AvroSerializer implements Serializer<Row> {
   
   private Schema schema;
   private DatumWriter<GenericRecord> datumWriter;
-  private Set<Type> unsupportedTypes = Sets.newHashSet(Type.ARRAY, Type.ENUM, Type.FIXED, Type.MAP, Type.RECORD);
+  private Set<Type> supportedTypes = Sets.newHashSet(
+      Type.STRING, Type.BOOLEAN, Type.BYTES, Type.DOUBLE, Type.FLOAT, Type.INT, Type.LONG
+  );
   
   @Override
   public void configure(Map<String, ?> configs, boolean isKey) {
@@ -58,7 +62,7 @@ public class AvroSerializer implements Serializer<Row> {
     validateSchemaIsSupported(schema);
     
     this.schema = schema;
-    this.datumWriter = new GenericDatumWriter<GenericRecord>(schema);
+    this.datumWriter = new GenericDatumWriter<>(schema);
     
     LOG.info("Kafka output Avro serializer configured");
   }
@@ -112,10 +116,18 @@ public class AvroSerializer implements Serializer<Row> {
   
   private GenericRecord recordForRow(Row row, Schema schema) {
     GenericRecord record = new GenericData.Record(schema);
-        
+
     Object[] values = RowUtils.valuesFor(row);
     for (int valueNum = 0; valueNum < values.length; valueNum++) {
-      record.put(valueNum, values[valueNum]);
+      Object value = values[valueNum];
+
+      if (value instanceof byte[]) {
+        // Spark SQL uses byte[] for binary, but Avro uses ByteBuffer
+        record.put(valueNum, ByteBuffer.wrap((byte[])value));
+      }
+      else {
+        record.put(valueNum, value);
+      }
     }
     
     return record;
@@ -124,7 +136,23 @@ public class AvroSerializer implements Serializer<Row> {
   private void validateSchemaIsSupported(Schema schema) {
     for (Field field : schema.getFields()) {
       Type type = field.schema().getType();
-      if (unsupportedTypes.contains(type)) {
+
+      if (type.equals(Type.UNION)) {
+        List<Schema> types = field.schema().getTypes();
+
+        if (types.size() != 2) {
+          throw new RuntimeException("Union type in Avro serializer schema must only contain two types");
+        }
+
+        if (types.get(0).getType().equals(Type.NULL)) {
+          type = types.get(1).getType();
+        }
+        else {
+          type = types.get(0).getType();
+        }
+      }
+
+      if (!supportedTypes.contains(type)) {
         throw new RuntimeException("Avro serializer for Kafka output does not support Avro schema type: " + type);
       }
     }

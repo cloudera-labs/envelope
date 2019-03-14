@@ -15,8 +15,7 @@
 
 package com.cloudera.labs.envelope.kafka.serde;
 
-import com.cloudera.labs.envelope.spark.RowWithSchema;
-import com.google.common.collect.Lists;
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -25,27 +24,30 @@ import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestAvroSerializer {
 
   @Test
   public void testAvroSerialization() throws IOException {
-    List<StructField> fields = Lists.newArrayList(
-        DataTypes.createStructField("field1", DataTypes.StringType, true),
-        DataTypes.createStructField("field2", DataTypes.IntegerType, true),
-        DataTypes.createStructField("field3", DataTypes.BooleanType, true)
-    );
-    Row row = new RowWithSchema(DataTypes.createStructType(fields), "hello", 1, false);
+    Row row = Contexts.getSparkSession().sql("SELECT " +
+        "'hello' field1, " +
+        "true field2, " +
+        "BINARY('world') field3, " +
+        "CAST(1.0 AS DOUBLE) field4, " +
+        "CAST(1 AS INT) field5, " +
+        "CAST(1.0 AS FLOAT) field6, " +
+        "CAST(1 AS BIGINT) field7, " +
+        "NULL field8, NULL field9, NULL field10, NULL field11, NULL field12, NULL field13, NULL field14"
+    ).collectAsList().get(0);
     
     Map<String, String> configs = Maps.newHashMap();
     configs.put(AvroSerializer.SCHEMA_PATH_CONFIG_NAME, getClass().getResource("/kafka/serde/avro-serialization-test.avsc").getFile());
@@ -59,9 +61,17 @@ public class TestAvroSerializer {
     GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
     Decoder decoder = DecoderFactory.get().binaryDecoder(serialized, null);
     GenericRecord deserialized = reader.read(null, decoder);
-    assertEquals(deserialized.get("field1").toString(), "hello"); // Avro encodes strings with Utf8 class
-    assertEquals(deserialized.get("field2"), 1);
-    assertEquals(deserialized.get("field3"), false);
+
+    assertEquals("hello", deserialized.get("field1").toString());
+    assertEquals(true, deserialized.get("field2"));
+    assertEquals("world", new String(((ByteBuffer) deserialized.get("field3")).array()));
+    assertEquals(1.0d, deserialized.get("field4"));
+    assertEquals(1, deserialized.get("field5"));
+    assertEquals(1.0f, deserialized.get("field6"));
+    assertEquals(1L, deserialized.get("field7"));
+    for (int i = 8; i <= 14; i++) {
+      assertNull(deserialized.get("field" + i));
+    }
   }
   
 }

@@ -15,46 +15,72 @@
 
 package com.cloudera.labs.envelope.translate;
 
-import com.cloudera.labs.envelope.schema.AvroSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.spark.Contexts;
+import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.nio.ByteBuffer;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class TestAvroTranslator {
 
   private static final String AVRO_FILE = "/translator/avro-translator-test.avsc";
 
   @Test
+  public void testAvroTranslationWithLiteralSchema() throws Exception {
+    Config config = ConfigFactory.empty()
+        .withValue("schema.type", ConfigValueFactory.fromAnyRef("avro"))
+        .withValue("schema.literal", ConfigValueFactory.fromAnyRef(getSchema().toString()));
+
+    performAvroTranslation(config);
+  }
+
+  @Test
   public void testAvroTranslationWithPathToSchema() throws Exception {
-    Schema schema = SchemaBuilder.record("test").fields()
-        .requiredString("field1")
-        .requiredInt("field2")
-        .endRecord();
+    Config config = ConfigFactory.empty()
+        .withValue("schema.type", ConfigValueFactory.fromAnyRef("avro"))
+        .withValue("schema.filepath",
+            ConfigValueFactory.fromAnyRef(getClass().getResource(AVRO_FILE).getFile()));
+
+    performAvroTranslation(config);
+  }
+
+  private Schema getSchema() throws Exception {
+    return new Schema.Parser().parse(new File(
+        getClass().getResource(AVRO_FILE).getFile()));
+  }
+
+  private void performAvroTranslation(Config config) throws Exception {
+    Schema schema = getSchema();
+
     Record record = new Record(schema);
     record.put("field1", "hello");
-    record.put("field2", 100);
-    
+    record.put("field2", true);
+    record.put("field3", ByteBuffer.wrap("world".getBytes()));
+    record.put("field4", 1.0d);
+    record.put("field5", 1);
+    record.put("field6", 1.0f);
+    record.put("field7", 1L);
+    for (int i = 8; i <= 14; i++) {
+      record.put("field" + i, null);
+    }
+
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
     DatumWriter<Record> writer = new GenericDatumWriter<>(schema);
@@ -63,19 +89,25 @@ public class TestAvroTranslator {
     byte[] a = out.toByteArray();
     out.close();
 
-    Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(AvroTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "avro");
-    paramMap.put(AvroTranslator.SCHEMA_CONFIG + "." + AvroSchema.AVRO_FILE_CONFIG, 
-        AvroTranslator.class.getResource(AVRO_FILE).getPath());
-    Config config = ConfigFactory.parseMap(paramMap);
-
     AvroTranslator t = new AvroTranslator();
     assertNoValidationFailures(t, config);
     t.configure(config);
-    
-    Row r = t.translate(TestingMessageFactory.get(a, DataTypes.BinaryType)).iterator().next();
-    
-    assertEquals(r, RowFactory.create("hello", 100));
+
+    Row translated = t.translate(TestingMessageFactory.get(a, DataTypes.BinaryType)).iterator().next();
+
+    Row validated = Contexts.getSparkSession().createDataFrame(
+        Lists.newArrayList(translated), translated.schema()).collectAsList().get(0);
+
+    assertEquals("hello", validated.getAs("field1"));
+    assertEquals(true, validated.getAs("field2"));
+    assertEquals("world", new String(validated.<byte[]>getAs("field3")));
+    assertEquals(1.0d, validated.getAs("field4"));
+    assertEquals(1, validated.getAs("field5"));
+    assertEquals(1.0f, validated.getAs("field6"));
+    assertEquals(1L, validated.getAs("field7"));
+    for (int i = 8; i < 14; i++) {
+      assertNull(validated.getAs("field" + i));
+    }
   }
   
 }
