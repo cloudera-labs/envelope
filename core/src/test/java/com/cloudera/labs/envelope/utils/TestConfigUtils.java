@@ -20,8 +20,12 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import javax.xml.bind.DatatypeConverter;
+import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -34,6 +38,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TestConfigUtils {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   @BeforeClass
   public static void envSetup() {
@@ -58,9 +65,16 @@ public class TestConfigUtils {
   }
 
   @Test
-  public void testConfigFromPathButJarFile() {
+  public void testConfigFromPathButJarFile() throws Exception {
+    byte[] testJarContents = DatatypeConverter.parseBase64Binary(
+        "UEsDBAoAAAAAAPJrbU4AAAAAAAAAAAAAAAAFABAAdGVzdC9VWAwAfD6JXHc+iVz2ARQAUEsBAhUDCgAAAAAA8mtt" +
+            "TgAAAAAAAAAAAAAAAAUADAAAAAAAAAAAQO1BAAAAAHRlc3QvVVgIAHw+iVx3PolcUEsFBgAAAAABAAEAPwAA" +
+            "ADMAAAAAAA==");
+
     try {
-      ConfigUtils.configFromPath(getClass().getResource("/config/test.jar").getPath());
+      File jarFile = folder.newFile("test.jar");
+      Files.write(jarFile.toPath(), testJarContents);
+      ConfigUtils.configFromPath(jarFile.getAbsolutePath());
     }
     catch (RuntimeException e) {
       if (e.getMessage().equals(ConfigUtils.JAR_FILE_EXCEPTION_MESSAGE)) {
