@@ -19,6 +19,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestAccumulatorRequest {
@@ -62,4 +63,26 @@ public class TestAccumulatorRequest {
     new AccumulatorRequest("hello", Float.class);
   }
   
+  @Test
+  public void testHashCode() {
+    AccumulatorRequest[] requests = {
+        new AccumulatorRequest("hello", Long.class),
+        new AccumulatorRequest("world", Long.class),
+        new AccumulatorRequest("goodbye", Double.class),
+        new AccumulatorRequest("void", Double.class),
+        new AccumulatorRequest("hello", Long.class),
+        new AccumulatorRequest("anotherworld", Double.class)
+    };
+    
+    for (AccumulatorRequest request : requests) {
+      for (AccumulatorRequest other : requests) {
+        if (request.equals(other)) {
+          assertEquals("Hash codes for accumulators "+request.getName()+" and "+other.getName()+" are not equal", request.hashCode(), other.hashCode());
+        }
+        else {
+          assertNotEquals("Hash codes for accumulators "+request.getName()+" and "+other.getName()+" are equal", request.hashCode(), other.hashCode());
+        }
+      }
+    }
+  }
 }

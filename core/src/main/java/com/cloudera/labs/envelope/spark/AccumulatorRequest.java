@@ -50,4 +50,9 @@ public class AccumulatorRequest {
     return true;
   }
 
+  @Override
+  public int hashCode() {
+    return getName().hashCode();
+  }
+
 }
