@@ -6,6 +6,8 @@
 BASE_DIR=$( readlink -f $( dirname $0 ) )
 FILES=$BASE_DIR/nav-morphline.conf#nav-morphline.conf
 
+export SPARK_KAFKA_VERSION=0.10
+
 spark2-submit \
   --files $FILES \
-  $BASE_DIR/../../build/envelope/target/envelope-*.jar $BASE_DIR/nav-audit.hcon
+  $BASE_DIR/../../build/envelope/target/envelope-*.jar $BASE_DIR/nav-audit.conf

@@ -19,4 +19,4 @@ spark2-submit \
   --files $FILES,<(cat $KERBEROS_KEYTAB)#$(basename $KERBEROS_KEYTAB) \
   --driver-java-options "-Djava.security.auth.login.config=jaas.conf -Djavax.net.ssl.trustStore=truststore.jks" \
   --conf "spark.executor.extraJavaOptions=-Djava.security.auth.login.config=jaas.conf -Djavax.net.ssl.trustStore=truststore.jks" \
-  $BASE_DIR/../../build/envelope/target/envelope-*.jar $BASE_DIR/nav-audit.hcon
+  $BASE_DIR/../../build/envelope/target/envelope-*.jar $BASE_DIR/nav-audit.conf
