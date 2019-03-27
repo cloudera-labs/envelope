@@ -1387,8 +1387,8 @@ The default serde configuration syntax adheres as closely as possible to that of
 Spark-HBase DataSource at the expense of some additional functionality - this is with a view to
 moving to the HBaseRelation at some point in the future.
 
-|mapping.rowkey
-|Required for `default` serde. The ordered list columns which comprise the HBase row key. These are expected to be separated by `rowkey.separator` in HBase, e.g. `["symbol", "transacttime"]`.
+|mapping.rowkey.columns
+|Required for `default` serde. The ordered list columns which comprise the HBase row key. These are expected to be separated by `mapping.rowkey.separator` in HBase, e.g. `["symbol", "transacttime"]`.
 
 |mapping.rowkey.separator
 |Optional. The separator to use when constructing the row key. This is interpreted as a Unicode string

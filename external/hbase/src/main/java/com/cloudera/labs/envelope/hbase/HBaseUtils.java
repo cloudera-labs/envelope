@@ -49,12 +49,12 @@ public class HBaseUtils {
 
   public static final String ZK_QUORUM_PROPERTY = "zookeeper";
   public static final String TABLE_NAME_PROPERTY = "table.name";
-  public static final String ROWKEY_PROPERTY = "mapping.rowkey";
+  public static final String ROWKEY_PROPERTY = "mapping.rowkey.columns";
+  public static final String KEY_SEPARATOR = "mapping.rowkey.separator";
   public static final String COLUMNS_PROPERTY = "mapping.columns";
   public static final String SERDE_PROPERTY = "mapping.serde";
   public static final String HBASE_PASSTHRU_PREFIX = "hbase.conf";
   public static final String HBASE_BATCH_SIZE = "batch.size";
-  public static final String KEY_SEPARATOR = "mapping.rowkey.separator";
 
   public static final int DEFAULT_HBASE_BATCH_SIZE = 1000;
   public static final String DEFAULT_SERDE_PROPERTY = "default";

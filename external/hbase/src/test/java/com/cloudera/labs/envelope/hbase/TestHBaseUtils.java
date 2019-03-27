@@ -102,6 +102,8 @@ public class TestHBaseUtils {
   public void testCustomRowKeySeparatorFor() {
     Config goodConfig = ConfigUtils.configFromResource("/hbase/hbase-output-with-different-keysep.conf").getConfig("output");
 
+    List<String> rowKeys = HBaseUtils.rowKeyFor(goodConfig);
+    assertArrayEquals(new String[] { "symbol", "transacttime" }, rowKeys.toArray());
     byte[] rowKeySeparatorFor = HBaseUtils.rowKeySeparatorFor(goodConfig);
     assertArrayEquals("^^".getBytes(), rowKeySeparatorFor);
   }
