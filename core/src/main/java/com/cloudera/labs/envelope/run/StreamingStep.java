@@ -59,11 +59,6 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
   @SuppressWarnings("rawtypes")
   public JavaDStream<?> getStream() throws Exception {
     JavaDStream stream = ((StreamInput)getInput(true)).getDStream();
-
-    if (doesRepartition()) {
-      stream = repartition(stream);
-    }
-
     return stream;
   }
 
@@ -82,7 +77,7 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     return errorStep;
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked","rawtypes"})
   public Dataset<Row> translate(JavaRDD raw) {
     StreamInput streamInput = (StreamInput)getInput(true);
     TranslateFunction translateFunction = getTranslateFunction(config, true);
@@ -101,7 +96,11 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
     addNewBatchStep(errored);
 
     // Provide translated rows and errors
-    return translationResults.getTranslated();
+    Dataset<Row> translated = translationResults.getTranslated();
+    if (doesRepartition()) {
+      translated = translated.repartition(config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY));
+    }
+    return translated;
   }
 
   @Override
@@ -121,12 +120,6 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
 
   private boolean doesRepartition() {
     return config.hasPath(REPARTITION_NUM_PARTITIONS_PROPERTY);
-  }
-
-  private JavaDStream<?> repartition(JavaDStream<?> stream) {
-    int numPartitions = config.getInt(REPARTITION_NUM_PARTITIONS_PROPERTY);
-
-    return stream.repartition(numPartitions);
   }
 
   @Override
@@ -169,5 +162,4 @@ public class StreamingStep extends DataStep implements CanRecordProgress, Provid
       return new TranslateFunction(config.getConfig(TRANSLATOR_PROPERTY));
     }
   }
-
 }
