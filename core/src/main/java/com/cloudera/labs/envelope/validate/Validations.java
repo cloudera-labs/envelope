@@ -245,10 +245,30 @@ public class Validations extends HashSet<Validation> {
     }
 
     /**
+     * If this configuration has this value, then run these configuration validations.
+     */
+    public ValidationsBuilder ifPathHasValue(String ifPath, Object hasValue, Validations thenValidations) {
+      for (Validation validation : thenValidations) {
+        v.add(new IfPathHasValueValidation(ifPath, hasValue, validation));
+      }
+      return this;
+    }
+
+    /**
      * If this configuration exists, then run this configuration validation.
      */
     public ValidationsBuilder ifPathExists(String ifPath, Validation thenValidation) {
       v.add(new IfPathExistsValidation(ifPath, thenValidation));
+      return this;
+    }
+
+    /**
+     * If this configuration exists, then run this configuration validation.
+     */
+    public ValidationsBuilder ifPathExists(String ifPath, Validations thenValidations) {
+      for (Validation validation : thenValidations) {
+        v.add(new IfPathExistsValidation(ifPath, validation));
+      }
       return this;
     }
 

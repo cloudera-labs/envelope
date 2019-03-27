@@ -19,6 +19,8 @@ import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.security.KerberosParameterValidations;
+import com.cloudera.labs.envelope.security.KerberosUtils;
 import com.cloudera.labs.envelope.security.SecurityUtils;
 import com.cloudera.labs.envelope.security.TokenProvider;
 import com.cloudera.labs.envelope.security.UsesDelegationTokens;
@@ -67,6 +69,8 @@ import java.util.Set;
 import static com.cloudera.labs.envelope.kudu.KuduUtils.IGNORE_MISSING_COLUMNS_CONFIG_NAME;
 import static com.cloudera.labs.envelope.kudu.KuduUtils.INSERT_IGNORE_CONFIG_NAME;
 import static com.cloudera.labs.envelope.kudu.KuduUtils.IS_SECURE_CONFIG_NAME;
+
+import static com.cloudera.labs.envelope.security.SecurityConfig.KERBEROS_PREFIX;
 
 public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, ProvidesAlias, ProvidesValidations,
     UsesDelegationTokens {
@@ -530,6 +534,7 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
         .optionalPath(INSERT_IGNORE_CONFIG_NAME, ConfigValueType.BOOLEAN)
         .optionalPath(IGNORE_MISSING_COLUMNS_CONFIG_NAME, ConfigValueType.BOOLEAN)
         .optionalPath(IS_SECURE_CONFIG_NAME, ConfigValueType.BOOLEAN)
+        .ifPathExists(KERBEROS_PREFIX, KerberosParameterValidations.getValidations())
         .addAll(SecurityUtils.getValidations())
         .build();
   }

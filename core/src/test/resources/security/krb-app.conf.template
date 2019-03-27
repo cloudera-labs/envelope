@@ -1,0 +1,4 @@
+krb {
+  keytab = %KEYTAB%
+  user-principal = "testuser@ENVELOPE.LOCAL"
+}

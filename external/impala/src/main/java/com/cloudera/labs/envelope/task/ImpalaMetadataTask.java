@@ -17,97 +17,64 @@ package com.cloudera.labs.envelope.task;
 
 import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.run.TaskStep;
+import com.cloudera.labs.envelope.security.KerberosLoginContext;
+import com.cloudera.labs.envelope.security.KerberosParameterValidations;
+import com.cloudera.labs.envelope.security.KerberosUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.validate.Validation;
-import com.cloudera.labs.envelope.validate.ValidationResult;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.cloudera.labs.envelope.validate.Validity;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueType;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kerby.kerberos.kerb.KrbException;
-import org.apache.kerby.kerberos.kerb.client.ClientUtil;
-import org.apache.kerby.kerberos.kerb.client.KrbConfig;
-import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.FailedLoginException;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-import java.io.File;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import static com.cloudera.labs.envelope.security.SecurityConfig.KERBEROS_PREFIX;
+import static com.cloudera.labs.envelope.security.SecurityConfig.SERVICE_PRINCIPAL_NAME_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.AUTH_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.HOST_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.PASSWORD_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.PORT_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_FORMAT_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_LOCATION_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_RANGE_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_RANGE_END_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_RANGE_INCLUSIVITY_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_RANGE_START_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_RANGE_VAL_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_PART_SPEC_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_TABLE_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.QUERY_TYPE_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.SSL_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.SSL_TRUSTSTORE_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.SSL_TRUSTSTORE_PASSWORD_CONFIG;
+import static com.cloudera.labs.envelope.task.ImpalaMetadataTaskConfig.USERNAME_CONFIG;
 
 public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidations {
-
-  public static final String HOST_CONFIG = "host";
-  public static final String PORT_CONFIG = "port";
-  public static final String SERVICE_PRINCIPAL_NAME_CONFIG = "krb-service-principal";
-  public static final String REALM_CONFIG = "krb-realm";
-  public static final String KEYTAB_CONFIG = "krb-keytab";
-  public static final String USER_PRINC_CONFIG = "krb-user-principal";
-  public static final String TICKET_RENEW_INTERVAL = "krb-ticket-renew-interval";
-  public static final String DEBUG = "debug";
-  public static final String QUERY_TYPE_CONFIG = "query.type";
-  public static final String QUERY_TABLE_CONFIG = "query.table";
-  public static final String QUERY_PART_SPEC_CONFIG = "query.partition.spec";
-  public static final String QUERY_LOCATION_CONFIG = "query.partition.location";
-  public static final String QUERY_PART_RANGE_CONFIG = "query.partition.range";
-  public static final String QUERY_PART_RANGE_VAL_CONFIG = QUERY_PART_RANGE_CONFIG + ".value";
-  public static final String QUERY_PART_RANGE_START_CONFIG = QUERY_PART_RANGE_CONFIG + ".start";
-  public static final String QUERY_PART_RANGE_END_CONFIG = QUERY_PART_RANGE_CONFIG + ".end";
-  public static final String QUERY_PART_RANGE_INCLUSIVITY_CONFIG = QUERY_PART_RANGE_CONFIG + ".inclusivity";
-  public static final String QUERY_FORMAT_CONFIG = "query.format";
-  public static final String AUTH_CONFIG = "auth";
-  public static final String SSL_CONFIG = "ssl";
-  public static final String SSL_TRUSTSTORE_CONFIG = "ssl-truststore";
-  public static final String SSL_TRUSTSTORE_PASSWORD_CONFIG = "ssl-truststore-password";
-  public static final String USERNAME_CONFIG = "username";
-  public static final String PASSWORD_CONFIG = "password";
-
-  private static final Set<String> KNOWN_PATHS = new HashSet<>();
-  static {
-    KNOWN_PATHS.add(KEYTAB_CONFIG);
-    KNOWN_PATHS.add(USER_PRINC_CONFIG);
-  }
 
   private static final Logger LOG = LoggerFactory.getLogger(ImpalaMetadataTask.class);
   private static final String DRIVER_NAME = "org.apache.hive.jdbc.HiveDriver";
 
-  private static final Pattern LIFETIME_DHMS = Pattern
-      .compile("\\s*(\\d+d)?\\s*(\\d+h)?\\s*(\\d+m)?\\s*(\\d+s)?\\s*");
-  private static final Pattern LIFETIME_HMS = Pattern.compile("\\s*(\\d+):(\\d+)(:(\\d+))?\\s*");
-  private static final Pattern LIFETIME_SECS = Pattern.compile("\\s*(\\d+)\\s*");
-  private static final int DEFAULT_LIFETIME_SECS = 86400;
-  private static final boolean DEFAULT_DEBUG = false;
   private static final String DEFAULT_RANGE_INCLUSIVITY = "ie";
 
-  private long lastLoginTime = 0;
   private String connectionString;
   private Config config;
-  private SparkConf sparkConf;
 
-  private transient KrbConfig krb5config = null;
   private transient Connection connection = null;
-  private transient Subject subject = null;
-  private transient LoginContext loginContext = null;
+  private transient KerberosLoginContext loginContext = null;
 
   private enum KuduRangeOperator {
     LT("<"),LTE("<=");
@@ -120,190 +87,18 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
     }
   }
 
-  private static class KerberosConfiguration extends javax.security.auth.login.Configuration {
-
-    private Map<String, String> optionsMap = new HashMap<>();
-
-    KerberosConfiguration(String keytab, String principal, boolean debug) {
-      optionsMap.put("doNotPrompt", "true");
-      optionsMap.put("useKeyTab", "true");
-      optionsMap.put("storeKey", "true");
-      optionsMap.put("refreshKrb5Config", "true");
-      optionsMap.put("keyTab", keytab);
-      optionsMap.put("principal", principal);
-      optionsMap.put("debug", Boolean.toString(debug).toLowerCase());
-    }
-
-    @Override
-    public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-      return new AppConfigurationEntry[]{
-          new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-              AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-              optionsMap)
-      };
-    }
-
-  }
-
-  private void createKerberosLoginContext() throws LoginException {
-    if (isKerberos(config)) {
-      subject = new Subject();
-      loginContext = new LoginContext("envelope-impala-context", subject, null,
-          new KerberosConfiguration(
-              getKerberosKeytab(config, sparkConf),
-              getKerberosPrincipal(config, sparkConf),
-              isDebug(config)));
-
-      LOG.info("Created Kerberos login context for {} using keytab: {}",
-          getKerberosPrincipal(config, sparkConf),
-          getKerberosKeytab(config, sparkConf));
-    } else {
-      LOG.info("No special login context required");
-    }
-  }
-
-  void login() {
-    if (isKerberos(config)) {
-      try {
-        loginContext.login();
-        lastLoginTime = System.currentTimeMillis();
-      } catch (FailedLoginException e) {
-        LOG.error("Authentication failed: {}", e.getMessage());
-        String errorMsg = String
-            .format("Could not authenticate using keytab %s and principal %s: %s",
-                getKerberosKeytab(config, sparkConf), getKerberosPrincipal(config, sparkConf),
-                e.getMessage());
-        throw new RuntimeException(errorMsg);
-      } catch (LoginException e) {
-        LOG.error("Login attempt failed: {}", e.getMessage());
-        String errorMsg = String.format("Problem running login: %s", e.getMessage());
-        throw new RuntimeException(errorMsg);
-      }
-    }
-  }
-
-  static String getKerberosKeytab(Config config, SparkConf sparkConf) {
-    if (config.hasPath(KEYTAB_CONFIG)) return config.getString(KEYTAB_CONFIG);
-    else return sparkConf.get("spark.yarn.keytab");
-  }
-
-  static String getKerberosPrincipal(Config config, SparkConf sparkConf) {
-    if (config.hasPath(USER_PRINC_CONFIG)) return config.getString(USER_PRINC_CONFIG);
-    else return sparkConf.get("spark.yarn.principal");
-  }
-
   private static boolean isKerberos(Config config) {
-    return config.getString(AUTH_CONFIG).equals("kerberos");
-  }
-
-  private static boolean isDebug(Config config) {
-    if (config.hasPath(DEBUG)) {
-      return config.getBoolean(DEBUG);
+    if (config.hasPath(AUTH_CONFIG)) {
+      return config.getString(AUTH_CONFIG).equals("kerberos");
     } else {
-      return DEFAULT_DEBUG;
+      return UserGroupInformation.isSecurityEnabled();
     }
   }
 
   private void renewIfExpired() throws KrbException {
     if (isKerberos(config)) {
-      if ((System.currentTimeMillis() - lastLoginTime) > getRenewInterval() * 1000) {
-        LOG.debug("Kerberos ticket is due for renewal, authenticating again");
-        login();
-      }
+      KerberosUtils.loginIfRequired(loginContext, config);
     }
-  }
-
-  KrbConfig getKrb5config() throws KrbException {
-    if (krb5config == null) {
-      // Use the same logic as the standard Java Kerberos classes to load the krb5.conf
-      // configuration file (https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/KerberosReq.html):
-      //
-      //   1. If the system property java.security.krb5.conf is set, its value is assumed to
-      //      specify the path and file name.
-      //   2. <java-home>/lib/security/krb5.conf
-      //   3. /etc/krb5.conf
-      if (System.getProperty("java.security.krb5.conf") != null &&
-          fileExists(System.getProperty("java.security.krb5.conf"))) {
-        krb5config = ClientUtil.getConfig(new File(System.getProperty("java.security.krb5.conf")));
-      } else if (fileExists(System.getProperty("java.home") + File.separator + "lib" +
-          File.separator + "security" + File.separator + "krb5.conf")) {
-        krb5config = ClientUtil.getConfig(new File(System.getProperty("java.home") +
-            File.separator + "lib" + File.separator + "security" + File.separator + "krb5.conf"));
-      } else if (fileExists("/etc/krb5.conf")) {
-        krb5config = ClientUtil.getConfig(new File("/etc/krb5.conf"));
-      } else {
-        throw new RuntimeException("Could not find a valid /etc/krb5.conf file");
-      }
-    }
-    return krb5config;
-  }
-
-  private boolean fileExists(String file) {
-    File theFile = new File(file);
-    return theFile.exists();
-  }
-
-  int getRenewInterval() throws KrbException {
-    String configuredLifetime = getKrb5config().getTicketLifetime();
-    if (config.hasPath(TICKET_RENEW_INTERVAL)) {
-      return new Long(config.getDuration(TICKET_RENEW_INTERVAL, TimeUnit.SECONDS)).intValue();
-    } else if (configuredLifetime != null) {
-      return parseLifetime(configuredLifetime);
-    } else {
-      return DEFAULT_LIFETIME_SECS;
-    }
-  }
-
-  static int parseLifetime(String lifetime) {
-    // Check possible patterns in turn (see https://web.mit.edu/kerberos/krb5-1.13/doc/basic/date_format.html#duration)
-    Matcher dhmsMatcher = LIFETIME_DHMS.matcher(lifetime);
-    Matcher hmsMatcher = LIFETIME_HMS.matcher(lifetime);
-    Matcher secondsMatcher = LIFETIME_SECS.matcher(lifetime);
-    if (dhmsMatcher.matches()) {
-      int days = 0, hours = 0, minutes = 0, seconds = 0;
-      for (int i = 1; i <= dhmsMatcher.groupCount(); i++) {
-        String match = dhmsMatcher.group(i);
-        if (match != null) {
-          int value = Integer.parseInt(match.substring(0, match.length() - 1));
-          switch (match.charAt(match.length() - 1)) {
-            case 'd':
-              days = value;
-              break;
-            case 'h':
-              hours = value;
-              break;
-            case 'm':
-              minutes = value;
-              break;
-            case 's':
-              seconds = value;
-              break;
-          }
-        }
-      }
-      return (86400 * days) + (3600 * hours) + (60 * minutes) + seconds;
-    } else if (hmsMatcher.matches()) {
-      int hours = Integer.parseInt(hmsMatcher.group(1));
-      int minutes = Integer.parseInt(hmsMatcher.group(2));
-      int seconds = hmsMatcher.group(3) == null ? 0 : Integer.parseInt(hmsMatcher.group(4));
-      return (3600 * hours) + (60 * minutes) + seconds;
-    } else if (secondsMatcher.matches()) {
-      return Integer.parseInt(secondsMatcher.group(1));
-    } else {
-      LOG.warn(
-          "Could not determine ticket lifetime from [{}]. Falling back to default [{} seconds]",
-          lifetime, DEFAULT_LIFETIME_SECS);
-      return DEFAULT_LIFETIME_SECS;
-    }
-  }
-
-  String getKerberosRealm(Config config) throws KrbException {
-    if (config.hasPath(REALM_CONFIG)) {
-      return config.getString(REALM_CONFIG);
-    }
-
-    // Infer realm
-    return getKrb5config().getDefaultRealm();
   }
 
   String buildConnectionString() {
@@ -316,7 +111,8 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
       case "kerberos":
         try {
           url += String.format(";principal=%s/%s@%s;auth=kerberos;kerberosAuthType=fromSubject",
-              config.getString(SERVICE_PRINCIPAL_NAME_CONFIG), config.getString(HOST_CONFIG), getKerberosRealm(config));
+              config.getString(SERVICE_PRINCIPAL_NAME_CONFIG), config.getString(HOST_CONFIG),
+              KerberosUtils.getKerberosRealm(config));
         } catch (KrbException e) {
           LOG.error("Could not obtain default Kerberos realm: " + e.getMessage());
           throw new RuntimeException(e);
@@ -385,14 +181,13 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
     // Merge with defaults
     this.config = config.withFallback(ConfigFactory.parseString(generateDefaultConfig()));
 
-    // Get a copy of the sparkconf
-    this.sparkConf = new SparkConf();
-
     // Initialize kerberos if required
-    try {
-      createKerberosLoginContext();
-    } catch (LoginException e) {
-      throw new RuntimeException("Problem creating Kerberos login context: " + e.getMessage());
+    if (isKerberos(config)) {
+      try {
+        loginContext = KerberosUtils.createKerberosLoginContext("envelope-impala-context", config);
+      } catch (LoginException e) {
+        throw new RuntimeException("Problem creating Kerberos login context: " + e.getMessage());
+      }
     }
 
     // Build JDBC connection string
@@ -499,7 +294,7 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
       try {
         if (isKerberos(config)) {
           renewIfExpired();
-          Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
+          Subject.doAs(loginContext.getSubject(), new PrivilegedExceptionAction<Void>() {
             public Void run() throws SQLException {
               executeQuery(thisQuery);
               return null;
@@ -519,39 +314,6 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
             " " + e.getMessage());
       }
     }
-  }
-
-  public static class KerberosParameterValidation implements Validation {
-
-    private static final String USAGE = String.format(
-        "If Kerberos authentication is used must supply either %s or use --keytab and %s or use --principal",
-        KEYTAB_CONFIG, USER_PRINC_CONFIG
-        );
-
-    @Override
-    public ValidationResult validate(Config config) {
-      if ((config.hasPath(AUTH_CONFIG) && config.getString(AUTH_CONFIG).equals("kerberos")) ||
-          (!config.hasPath(AUTH_CONFIG) && UserGroupInformation.isSecurityEnabled())) {
-        SparkConf conf = new SparkConf();
-        if (!config.hasPath(KEYTAB_CONFIG) && !conf.contains("spark.yarn.keytab")) {
-          return new ValidationResult(this, Validity.INVALID, USAGE);
-        }
-        if (!config.hasPath(USER_PRINC_CONFIG) && !conf.contains("spark.yarn.principal")) {
-          return new ValidationResult(this, Validity.INVALID, USAGE);
-        }
-        return new ValidationResult(this, Validity.VALID,
-            "Both Kerberos keytab and principal have been supplied");
-      } else {
-        return new ValidationResult(this, Validity.VALID,
-            "Kerberos authentication not being used");
-      }
-    }
-
-    @Override
-    public Set<String> getKnownPaths() {
-      return KNOWN_PATHS;
-    }
-
   }
 
   @Override
@@ -592,13 +354,8 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
         .optionalPath(AUTH_CONFIG, ConfigValueType.STRING)
         .allowedValues(AUTH_CONFIG, "kerberos", "ldap", "none")
         .optionalPath(PORT_CONFIG, ConfigValueType.NUMBER)
-        .add(new KerberosParameterValidation())
-        .ifPathHasValue(AUTH_CONFIG, "kerberos", Validations.single()
-            .optionalPath(SERVICE_PRINCIPAL_NAME_CONFIG, ConfigValueType.STRING))
-        .ifPathHasValue(AUTH_CONFIG, "kerberos", Validations.single()
-            .optionalPath(REALM_CONFIG, ConfigValueType.STRING))
-        .ifPathHasValue(AUTH_CONFIG, "kerberos", Validations.single()
-            .optionalPath(TICKET_RENEW_INTERVAL))
+        .ifPathExists(KERBEROS_PREFIX, KerberosParameterValidations.getValidations())
+        .ifPathHasValue(AUTH_CONFIG, "kerberos", KerberosParameterValidations.getValidations())
         .ifPathHasValue(AUTH_CONFIG, "ldap", Validations.single()
             .mandatoryPath(USERNAME_CONFIG, ConfigValueType.STRING))
         .ifPathHasValue(AUTH_CONFIG, "ldap", Validations.single()
@@ -608,7 +365,6 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
             .optionalPath(SSL_TRUSTSTORE_CONFIG))
         .ifPathExists(SSL_CONFIG, Validations.single()
             .optionalPath(SSL_TRUSTSTORE_PASSWORD_CONFIG))
-        .optionalPath(DEBUG, ConfigValueType.BOOLEAN)
         // TODO remove below after ENV-353 is fixed
         .optionalPath(TaskStep.DEPENDENCIES_CONFIG)
         .optionalPath(TaskFactory.CLASS_CONFIG_NAME)
