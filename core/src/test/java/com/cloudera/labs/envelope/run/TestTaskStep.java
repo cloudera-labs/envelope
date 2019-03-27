@@ -17,6 +17,7 @@ package com.cloudera.labs.envelope.run;
 
 import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.task.Task;
+import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -38,11 +39,12 @@ public class TestTaskStep {
 
     Map<String, Object> taskStepConfigMap = Maps.newHashMap();
     taskStepConfigMap.put(ComponentFactory.TYPE_CONFIG_NAME, "task");
-    taskStepConfigMap.put(TaskStep.CLASS_CONFIG, CustomTask.class.getName());
-    taskStepConfigMap.put("value", "hello");
+    taskStepConfigMap.put(TaskStep.TASK_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, CustomTask.class.getName());
+    taskStepConfigMap.put(TaskStep.TASK_CONFIG + "." + "value", "hello");
     Config taskStepConfig = ConfigFactory.parseMap(taskStepConfigMap);
 
     TaskStep taskStep = new TaskStep("task_step");
+    ValidationAssert.assertNoValidationFailures(taskStep, taskStepConfig);
     taskStep.configure(taskStepConfig);
 
     taskStep.run(Maps.<String, Dataset<Row>>newHashMap());

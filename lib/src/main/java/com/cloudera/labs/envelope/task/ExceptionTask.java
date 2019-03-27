@@ -52,8 +52,6 @@ public class ExceptionTask implements Task, ProvidesAlias, ProvidesValidations {
   public Validations getValidations() {
     return Validations.builder()
         .mandatoryPath(MESSAGE_CONFIG, ConfigValueType.STRING)
-        .optionalPath(TaskStep.DEPENDENCIES_CONFIG)
-        .optionalPath(TaskStep.CLASS_CONFIG)
         .build();
   }
 

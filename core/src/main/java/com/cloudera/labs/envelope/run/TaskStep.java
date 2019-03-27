@@ -23,6 +23,7 @@ import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -31,18 +32,14 @@ import java.util.Set;
 
 public class TaskStep extends Step implements ProvidesValidations, InstantiatesComponents {
 
-  public static final String CLASS_CONFIG = "class";
+  public static final String TASK_CONFIG = "task";
 
   public TaskStep(String name) {
     super(name);
   }
   
   public void run(Map<String, Dataset<Row>> dependencies) {
-    Config taskConfig = config
-        .withoutPath(ComponentFactory.TYPE_CONFIG_NAME)
-        .withValue(ComponentFactory.TYPE_CONFIG_NAME, config.getValue(CLASS_CONFIG));
-
-    Task task = ComponentFactory.create(Task.class, taskConfig, true);
+    Task task = ComponentFactory.create(Task.class, config.getConfig(TASK_CONFIG), true);
     
     task.run(dependencies);
     
@@ -63,14 +60,15 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
   @Override
   public Validations getValidations() {
     return Validations.builder()
+        .mandatoryPath(TASK_CONFIG, ConfigValueType.OBJECT)
+        .handlesOwnValidationPath(TASK_CONFIG)
         .addAll(super.getValidations())
-        .allowUnrecognizedPaths()
         .build();
   }
 
   @Override
-  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) throws Exception {
-    Task task = ComponentFactory.create(Task.class, config, configure);
+  public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
+    Task task = ComponentFactory.create(Task.class, config.getConfig(TASK_CONFIG), configure);
 
     Set<InstantiatedComponent> components = Sets.newHashSet(
         new InstantiatedComponent(task, config, "Task"));

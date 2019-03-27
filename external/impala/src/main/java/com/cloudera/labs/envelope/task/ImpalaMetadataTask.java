@@ -365,10 +365,6 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
             .optionalPath(SSL_TRUSTSTORE_CONFIG))
         .ifPathExists(SSL_CONFIG, Validations.single()
             .optionalPath(SSL_TRUSTSTORE_PASSWORD_CONFIG))
-        // TODO remove below after ENV-353 is fixed
-        .optionalPath(TaskStep.DEPENDENCIES_CONFIG)
-        .optionalPath(TaskStep.CLASS_CONFIG)
-        // TODO remove above after ENV-353 is fixed
         .build();
   }
 }
