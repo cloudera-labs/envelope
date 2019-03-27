@@ -24,9 +24,6 @@ import com.cloudera.labs.envelope.event.Event;
 import com.cloudera.labs.envelope.event.EventHandler;
 import com.cloudera.labs.envelope.event.EventManager;
 import com.cloudera.labs.envelope.event.impl.LogEventHandler;
-import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.security.SecurityUtils;
 import com.cloudera.labs.envelope.security.TokenProvider;
 import com.cloudera.labs.envelope.security.TokenStoreListener;
@@ -70,7 +67,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static com.cloudera.labs.envelope.security.SecurityUtils.SECURITY_PREFIX;
-import static com.cloudera.labs.envelope.spark.Contexts.APPLICATION_SECTION_PREFIX;
 
 /**
  * Runner merely submits the pipeline steps to Spark in dependency order.
@@ -88,20 +84,26 @@ public class Runner {
   public static final String UDFS_NAME = "name";
   public static final String UDFS_CLASS = "class";
   public static final String EVENT_HANDLERS_CONFIG = "event-handlers";
+  public static final String CONFIG_LOADER_PROPERTY = "config-loader";
   public static final String PIPELINE_THREADS_PROPERTY = "application.pipeline.threads";
 
-  private static ExecutorService threadPool;
-  private static TokenStoreManager tokenStoreManager;
+  private Config baseConfig;
+  private ExecutorService threadPool;
+  private TokenStoreManager tokenStoreManager;
+
   private static Logger LOG = LoggerFactory.getLogger(Runner.class);
 
   /**
    * Run the Envelope pipeline
    * @param config The full configuration of the Envelope pipeline
    */
-  public static void run(Config config) throws Exception {
+  public void run(Config config) throws Exception {
+    this.baseConfig = config;
+    config = ConfigUtils.mergeLoadedConfiguration(config);
+
     validateConfigurations(config);
 
-    Set<Step> steps = extractSteps(config, true, true);
+    Set<Step> steps = StepUtils.extractSteps(config, true, true);
 
     ExecutionMode mode = getExecutionMode(steps);
 
@@ -138,73 +140,7 @@ public class Runner {
     notifyPipelineFinished();
   }
 
-  private static Set<Step> extractSteps(Config config, boolean configure, boolean notify) {
-    LOG.debug("Starting getting steps");
-
-    long startTime = System.nanoTime();
-
-    Set<Step> steps = Sets.newHashSet();
-
-    Set<String> stepNames = config.getObject(STEPS_SECTION_CONFIG).keySet();
-    for (String stepName : stepNames) {
-      Config stepConfig = config.getConfig(STEPS_SECTION_CONFIG).getConfig(stepName);
-
-      Step step;
-
-      if (!stepConfig.hasPath(TYPE_PROPERTY) || stepConfig.getString(TYPE_PROPERTY).equals(DATA_TYPE)) {
-        if (stepConfig.hasPath(DataStep.INPUT_TYPE)) {
-          Config stepInputConfig = stepConfig.getConfig(DataStep.INPUT_TYPE);
-          Input stepInput = ComponentFactory.create(Input.class, stepInputConfig, false);
-
-          if (stepInput instanceof BatchInput) {
-            LOG.debug("Adding batch step: " + stepName);
-            step = new BatchStep(stepName);
-          }
-          else if (stepInput instanceof StreamInput) {
-            LOG.debug("Adding streaming step: " + stepName);
-            step = new StreamingStep(stepName);
-          }
-          else {
-            throw new RuntimeException("Invalid step input sub-class for: " + stepName);
-          }
-        }
-        else {
-          LOG.debug("Adding batch step: " + stepName);
-          step = new BatchStep(stepName);
-        }
-      }
-      else if (stepConfig.getString(TYPE_PROPERTY).equals(LOOP_TYPE)) {
-        LOG.debug("Adding loop step: " + stepName);
-        step = new LoopStep(stepName);
-      }
-      else if (stepConfig.getString(TYPE_PROPERTY).equals(TASK_TYPE)) {
-        LOG.debug("Adding task step: " + stepName);
-        step = new TaskStep(stepName);
-      }
-      else if (stepConfig.getString(TYPE_PROPERTY).equals(DECISION_TYPE)) {
-        LOG.debug("Adding decision step: " + stepName);
-        step = new DecisionStep(stepName);
-      }
-      else {
-        throw new RuntimeException("Unknown step type: " + stepConfig.getString(TYPE_PROPERTY));
-      }
-
-      if (configure) {
-        step.configure(stepConfig);
-        LOG.debug("With configuration: " + stepConfig);
-      }
-
-      steps.add(step);
-    }
-
-    if (notify) {
-      notifyStepsExtracted(config, steps, System.nanoTime() - startTime);
-    }
-
-    return steps;
-  }
-
-  private static ExecutionMode getExecutionMode(Set<Step> steps) {
+  private ExecutionMode getExecutionMode(Set<Step> steps) {
     ExecutionMode mode = StepUtils.hasStreamingStep(steps) ? Contexts.ExecutionMode.STREAMING : Contexts.ExecutionMode.BATCH;
     notifyExecutionMode(mode);
 
@@ -216,7 +152,7 @@ public class Runner {
    * @param steps The full configuration of the Envelope pipeline
    */
   @SuppressWarnings("unchecked")
-  private static void runStreaming(final Set<Step> steps) throws Exception {
+  private void runStreaming(final Set<Step> steps) throws Exception {
     final Set<Step> independentNonStreamingSteps = StepUtils.getIndependentNonStreamingSteps(steps);
     runBatch(independentNonStreamingSteps);
 
@@ -237,8 +173,8 @@ public class Runner {
           streamingStep.setData(streamingStep.translate(raw));
           streamingStep.setState(StepState.FINISHED);
 
-          Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, steps);
-          Set<Step> batchSteps = Sets.newHashSet(dependentSteps);
+          Set<Step> batchSteps = StepUtils.mergeLoadedSteps(steps, streamingStep, baseConfig);
+          Set<Step> dependentSteps = StepUtils.getAllDependentSteps(streamingStep, batchSteps);
           batchSteps.add(streamingStep);
           batchSteps.addAll(streamingStep.loadNewBatchSteps());
           batchSteps.addAll(independentNonStreamingSteps);
@@ -264,7 +200,11 @@ public class Runner {
    * Run the steps in dependency order.
    * @param steps The steps to run, which may be the full Envelope pipeline, or a subset of it.
    */
-  private static void runBatch(Set<Step> steps) throws Exception {
+  private void runBatch(Set<Step> steps) throws Exception {
+    if (steps.isEmpty()) {
+      return;
+    }
+
     LOG.debug("Started batch for steps: {}", StepUtils.stepNamesAsString(steps));
 
     Set<Future<Void>> offMainThreadSteps = Sets.newHashSet();
@@ -387,7 +327,7 @@ public class Runner {
     LOG.debug("Finished batch for steps: {}", StepUtils.stepNamesAsString(steps));
   }
 
-  private static void initializeThreadPool(Config config) {
+  private void initializeThreadPool(Config config) {
     if (config.hasPath(PIPELINE_THREADS_PROPERTY)) {
       threadPool = Executors.newFixedThreadPool(config.getInt(PIPELINE_THREADS_PROPERTY));
     }
@@ -396,7 +336,7 @@ public class Runner {
     }
   }
 
-  private static Future<Void> runStepOffMainThread(final BatchStep step, final Set<Step> dependencies, final ExecutorService threadPool) {
+  private Future<Void> runStepOffMainThread(final BatchStep step, final Set<Step> dependencies, final ExecutorService threadPool) {
     return threadPool.submit(new Callable<Void>() {
       @Override
       public Void call() throws Exception {
@@ -406,31 +346,31 @@ public class Runner {
     });
   }
 
-  private static void awaitAllOffMainThreadsFinished(Set<Future<Void>> offMainThreadSteps) throws Exception {
+  private void awaitAllOffMainThreadsFinished(Set<Future<Void>> offMainThreadSteps) throws Exception {
     for (Future<Void> offMainThreadStep : offMainThreadSteps) {
       offMainThreadStep.get();
     }
   }
 
-  private static void shutdownThreadPool() {
+  private void shutdownThreadPool() {
     threadPool.shutdown();
   }
 
-  private static void initializeEventHandlers(Config config) {
+  private void initializeEventHandlers(Config config) {
     EventManager.register(getEventHandlers(config, true).values());
   }
 
-  private static Map<Config, EventHandler> getEventHandlers(Config config, boolean configure) {
+  private Map<Config, EventHandler> getEventHandlers(Config config, boolean configure) {
     Map<Config, EventHandler> handlers = Maps.newHashMap();
     Set<String> nonConfiguredDefaultHandlerAliases = Sets.newHashSet(
         new LogEventHandler().getAlias()
     );
 
-    if (config.hasPath(Contexts.APPLICATION_SECTION_PREFIX + "." + EVENT_HANDLERS_CONFIG)) {
+    if (ConfigUtils.getApplicationConfig(config).hasPath(EVENT_HANDLERS_CONFIG)) {
       List<? extends ConfigObject> handlerConfigObjects;
       try {
-        handlerConfigObjects = config.getObjectList(
-            Contexts.APPLICATION_SECTION_PREFIX + "." + EVENT_HANDLERS_CONFIG);
+        handlerConfigObjects =
+            ConfigUtils.getApplicationConfig(config).getObjectList(EVENT_HANDLERS_CONFIG);
       }
       catch (ConfigException.WrongType e) {
         throw new RuntimeException("Event handler configuration must be a list of event handler objects");
@@ -459,15 +399,15 @@ public class Runner {
     return handlers;
   }
 
-  private static void notifyPipelineStarted() {
+  private void notifyPipelineStarted() {
     EventManager.notify(new Event(CoreEventTypes.PIPELINE_STARTED, "Pipeline started"));
   }
 
-  private static void notifyPipelineFinished() {
+  private void notifyPipelineFinished() {
     EventManager.notify(new Event(CoreEventTypes.PIPELINE_FINISHED, "Pipeline finished"));
   }
 
-  private static void notifyPipelineException(Exception e) {
+  private void notifyPipelineException(Exception e) {
     Map<String, Object> metadata = Maps.newHashMap();
     metadata.put(CoreEventMetadataKeys.PIPELINE_EXCEPTION_OCCURRED_EXCEPTION, e);
     Event event = new Event(
@@ -477,21 +417,7 @@ public class Runner {
     EventManager.notify(event);
   }
 
-  private static void notifyStepsExtracted(Config config, Set<Step> steps, long timeTakenNs) {
-    Map<String, Object> metadata = Maps.newHashMap();
-    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_CONFIG, config);
-    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_STEPS, steps);
-    metadata.put(CoreEventMetadataKeys.STEPS_EXTRACTED_TIME_TAKEN_NS, timeTakenNs);
-
-    Event event = new Event(
-        CoreEventTypes.STEPS_EXTRACTED,
-        "Steps extracted: " + StepUtils.stepNamesAsString(steps),
-        metadata);
-
-    EventManager.notify(event);
-  }
-
-  private static void notifyExecutionMode(ExecutionMode mode) {
+  private void notifyExecutionMode(ExecutionMode mode) {
     Map<String, Object> metadata = Maps.newHashMap();
     metadata.put(CoreEventMetadataKeys.EXECUTION_MODE_DETERMINED_MODE, mode);
 
@@ -501,7 +427,7 @@ public class Runner {
         metadata));
   }
 
-  private static void validateConfigurations(Config config) {
+  private void validateConfigurations(Config config) {
     if (!ConfigUtils.getOrElse(config,
         Validator.CONFIGURATION_VALIDATION_ENABLED_PROPERTY,
         Validator.CONFIGURATION_VALIDATION_ENABLED_DEFAULT))
@@ -517,7 +443,7 @@ public class Runner {
     // Validate steps
     Set<Step> steps;
     try {
-      steps = extractSteps(config, false, false);
+      steps = StepUtils.extractSteps(config, false, false);
     }
     catch (Exception e) {
       if (e.getCause() instanceof ClassNotFoundException) {
@@ -536,8 +462,6 @@ public class Runner {
     }
 
     // Validate application section
-    Config applicationConfig = config.hasPath(Contexts.APPLICATION_SECTION_PREFIX) ?
-        config.getConfig(Contexts.APPLICATION_SECTION_PREFIX) : ConfigFactory.empty();
     List<ValidationResult> applicationResults = Validator.validate(new ProvidesValidations() {
       @Override
       public Validations getValidations() {
@@ -548,12 +472,14 @@ public class Runner {
             .optionalPath(Contexts.EXECUTOR_MEMORY_PROPERTY, ConfigValueType.STRING)
             .optionalPath(Contexts.BATCH_MILLISECONDS_PROPERTY, ConfigValueType.NUMBER)
             .optionalPath(EVENT_HANDLERS_CONFIG, ConfigValueType.LIST)
+            .optionalPath(CONFIG_LOADER_PROPERTY, ConfigValueType.OBJECT)
             .optionalPath(PIPELINE_THREADS_PROPERTY, ConfigValueType.NUMBER)
             .optionalPath(Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, ConfigValueType.BOOLEAN)
             .handlesOwnValidationPath(Contexts.SPARK_CONF_PROPERTY_PREFIX)
+            .handlesOwnValidationPath(CONFIG_LOADER_PROPERTY)
             .build();
       }
-    }, applicationConfig);
+    }, ConfigUtils.getApplicationConfig(config));
     ValidationUtils.prefixValidationResultMessages(applicationResults, "Application");
     results.addAll(applicationResults);
 
@@ -597,9 +523,9 @@ public class Runner {
     LOG.info("Provided Envelope configuration is valid (" + results.size() + " checks passed)");
   }
 
-  private static void initializeSecurity(Config config, Set<Step> steps) throws Exception {
-    tokenStoreManager = new TokenStoreManager(ConfigUtils.getOrElse(config,
-        APPLICATION_SECTION_PREFIX + "." + SECURITY_PREFIX, ConfigFactory.empty()));
+  private void initializeSecurity(Config config, Set<Step> steps) throws Exception {
+    tokenStoreManager = new TokenStoreManager(ConfigUtils.getOrElse(
+        ConfigUtils.getApplicationConfig(config), SECURITY_PREFIX, ConfigFactory.empty()));
     LOG.info("Security manager created");
 
     Set<InstantiatedComponent> secureComponents = Sets.newHashSet();
@@ -641,12 +567,12 @@ public class Runner {
     tokenStoreManager.start();
   }
 
-  private static void shutdownSecurity() {
+  private void shutdownSecurity() {
     tokenStoreManager.stop();
     TokenStoreListener.stop();
   }
 
-  private static void initializeAccumulators(Set<Step> steps) {
+  private void initializeAccumulators(Set<Step> steps) {
     Set<AccumulatorRequest> requests = Sets.newHashSet();
 
     for (DataStep dataStep : StepUtils.getDataSteps(steps)) {
@@ -660,7 +586,7 @@ public class Runner {
     }
   }
 
-  static void initializeUDFs(Config config) {
+  void initializeUDFs(Config config) {
     if (!config.hasPath(UDFS_SECTION_CONFIG)) return;
 
     ConfigList udfList = config.getList(UDFS_SECTION_CONFIG);

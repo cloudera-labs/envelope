@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -54,6 +54,8 @@ public class EnvelopeMain {
     }
     LOG.info("Configuration loaded");
 
-    Runner.run(config);
+    Runner runner = new Runner();
+    runner.run(config);
   }
+
 }

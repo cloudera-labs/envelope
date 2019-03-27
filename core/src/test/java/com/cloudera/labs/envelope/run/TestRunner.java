@@ -55,7 +55,7 @@ public class TestRunner {
     Contexts.closeSparkSession();
     Config config = ConfigUtils.configFromResource("/udf/udf_valid.conf");
 
-    Runner.initializeUDFs(config);
+    new Runner().initializeUDFs(config);
     Deriver deriver = ComponentFactory.create(
         Deriver.class, config.getConfig(Runner.STEPS_SECTION_CONFIG + ".runudf.deriver"), true);
     Dataset<Row> derived = deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
@@ -69,7 +69,7 @@ public class TestRunner {
     Contexts.closeSparkSession();
     Config config = ConfigUtils.configFromResource("/udf/udf_none.conf");
 
-    Runner.initializeUDFs(config);
+    new Runner().initializeUDFs(config);
     Deriver deriver = ComponentFactory.create(
         Deriver.class, config.getConfig("steps.runudf.deriver"), true);
     deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
@@ -92,6 +92,7 @@ public class TestRunner {
   }
   
   public static class TestingSQLDeriver implements Deriver {
+    public static final String QUERY_LITERAL_CONFIG = "query.literal";
     private Config config;
 
     @Override
@@ -100,8 +101,8 @@ public class TestRunner {
     }
 
     @Override
-    public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) throws Exception {
-      String query = config.getString("query.literal");
+    public Dataset<Row> derive(Map<String, Dataset<Row>> dependencies) {
+      String query = config.getString(QUERY_LITERAL_CONFIG);
       Dataset<Row> derived = Contexts.getSparkSession().sql(query);
       return derived;
     }
@@ -169,7 +170,7 @@ public class TestRunner {
     Config config = ConfigUtils.configFromResource("/event/expected_core_events.conf");
     config = config.withFallback(executionKeyConfig).resolve();
 
-    Runner.run(config);
+    new Runner().run(config);
 
     List<Event> events = TestingEventHandler.getHandledEvents(executionKey);
 
@@ -202,7 +203,7 @@ public class TestRunner {
     config = config.withFallback(executionKeyConfig).resolve();
 
     try {
-      Runner.run(config);
+      new Runner().run(config);
     }
     catch (Exception e) {
       // Ignore the exception as we should see it in the handled event below

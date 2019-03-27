@@ -98,6 +98,10 @@ Application-level configurations have the `application.` prefix.
 |security.renew-factor
 |At what proportion of a token's lifetime to request a new token. Defaults to 0.8. Recommended to leave at default.
 
+|config-loader
+|The config loader object that will provide configurations to be merged into the base configuration at the start of the pipeline and for every micro-batch.
+Note this is typically only required when streaming pipelines require dynamic refreshing of configurations.
+
 |===
 
 == Steps

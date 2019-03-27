@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.configuration.ConfigLoader;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.LoopStep;
@@ -23,6 +24,7 @@ import com.cloudera.labs.envelope.run.StepState;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Sets;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import org.junit.Test;
@@ -64,10 +66,10 @@ public class TestStepUtils {
     steps.add(step2);
     
     step1.setState(StepState.SUBMITTED);
-    
+
     assertFalse(StepUtils.allStepsSubmitted(steps));
   }
-  
+
   @Test
   public void testAllStepsFinished() {
     Set<Step> steps = Sets.newHashSet();
@@ -77,13 +79,13 @@ public class TestStepUtils {
     step2.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
-    
+
     step1.setState(StepState.FINISHED);
     step2.setState(StepState.FINISHED);
-    
+
     assertTrue(StepUtils.allStepsSubmitted(steps));
   }
-  
+
   @Test
   public void testNotAllStepsFinished() {
     Set<Step> steps = Sets.newHashSet();
@@ -93,7 +95,7 @@ public class TestStepUtils {
     step2.configure(ConfigFactory.empty());
     steps.add(step1);
     steps.add(step2);
-    
+
     step1.setState(StepState.FINISHED);
     
     assertFalse(StepUtils.allStepsSubmitted(steps));
@@ -369,6 +371,35 @@ public class TestStepUtils {
     assertTrue(StepUtils.getStepForName("step1", copiedSteps).isPresent());
     assertTrue(StepUtils.getStepForName("step2", copiedSteps).isPresent());
     assertTrue(StepUtils.getStepForName("step3", copiedSteps).isPresent());
+  }
+
+  @Test
+  public void testMergeLoadedSteps() {
+    Config baseConfig = ConfigUtils.configFromResource("/configuration/step-utils/base.conf").resolve();
+    Set<Step> baseSteps = StepUtils.extractSteps(baseConfig, true, false);
+    Step parentStep = StepUtils.getStepForName("parent", baseSteps).get();
+
+    Set<Step> mergedSteps = StepUtils.mergeLoadedSteps(baseSteps, parentStep, baseConfig);
+
+    Config expectedConfig = ConfigUtils.configFromResource("/configuration/step-utils/merged.conf").resolve();
+    Set<Step> expectedSteps = StepUtils.extractSteps(expectedConfig, true, false);
+
+    assertEquals(expectedSteps.size(), mergedSteps.size());
+    for (Step expectedStep : expectedSteps) {
+      assertTrue(StepUtils.getStepForName(expectedStep.getName(), mergedSteps).isPresent());
+      assertEquals(expectedStep.getConfig(),
+          StepUtils.getStepForName(expectedStep.getName(), mergedSteps).get().getConfig());
+    }
+  }
+
+  public static class TestingConfigLoader implements ConfigLoader {
+    @Override
+    public void configure(Config config) { }
+
+    @Override
+    public Config getConfig() {
+      return ConfigUtils.configFromResource("/configuration/step-utils/loaded.conf").resolve();
+    }
   }
   
 }

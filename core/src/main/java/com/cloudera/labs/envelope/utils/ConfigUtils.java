@@ -15,6 +15,10 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.cloudera.labs.envelope.configuration.ConfigLoader;
+import com.cloudera.labs.envelope.run.Runner;
+import com.cloudera.labs.envelope.spark.Contexts;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -81,6 +85,23 @@ public class ConfigUtils {
     }
 
     return applySubstitutions(config);
+  }
+
+  public static Config getApplicationConfig(Config config) {
+    return getOrElse(config, Contexts.APPLICATION_SECTION_PREFIX, ConfigFactory.empty());
+  }
+
+  public static Config mergeLoadedConfiguration(Config config) {
+    if (getApplicationConfig(config).hasPath(Runner.CONFIG_LOADER_PROPERTY)) {
+      Config configLoaderConfig = getApplicationConfig(config).getConfig(Runner.CONFIG_LOADER_PROPERTY);
+      ConfigLoader configLoader = ComponentFactory.create(ConfigLoader.class, configLoaderConfig, true);
+      Config loadedConfig = configLoader.getConfig();
+
+      return loadedConfig.withFallback(config).resolve();
+    }
+    else {
+      return config;
+    }
   }
 
   @SuppressWarnings("serial")

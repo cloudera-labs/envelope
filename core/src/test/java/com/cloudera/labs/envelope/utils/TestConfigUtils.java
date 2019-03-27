@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.configuration.ConfigLoader;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -181,6 +182,25 @@ public class TestConfigUtils {
   public void getOrNullNotExists() {
     Config config = ConfigFactory.empty();
     assertNull(ConfigUtils.getOrNull(config, "hello"));
+  }
+
+  @Test
+  public void testMergeLoadedConfiguration() {
+    Config baseConfig = ConfigUtils.configFromResource("/configuration/config-utils/base.conf");
+    Config mergedConfig = ConfigUtils.mergeLoadedConfiguration(baseConfig);
+    Config expectedConfig = ConfigUtils.configFromResource("/configuration/config-utils/merged.conf");
+
+    assertEquals(expectedConfig, mergedConfig);
+  }
+
+  public static class TestingConfigLoader implements ConfigLoader {
+    @Override
+    public void configure(Config config) { }
+
+    @Override
+    public Config getConfig() {
+      return ConfigUtils.configFromResource("/configuration/config-utils/load.conf");
+    }
   }
 
 }
