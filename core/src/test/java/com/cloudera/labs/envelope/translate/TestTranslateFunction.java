@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -36,7 +37,7 @@ public class TestTranslateFunction {
   @Test
   public void testAppendRaw() {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(TranslatorFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
+    configMap.put(ComponentFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
     configMap.put(TranslateFunction.APPEND_RAW_ENABLED_CONFIG, true);
     Config config = ConfigFactory.parseMap(configMap);
 
@@ -54,7 +55,7 @@ public class TestTranslateFunction {
   @Test
   public void testExplicitDontAppendRaw() {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(TranslatorFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
+    configMap.put(ComponentFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
     configMap.put(TranslateFunction.APPEND_RAW_ENABLED_CONFIG, false);
     Config config = ConfigFactory.parseMap(configMap);
 
@@ -71,7 +72,7 @@ public class TestTranslateFunction {
   @Test
   public void testImplicitDontAppendRaw() {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(TranslatorFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
+    configMap.put(ComponentFactory.TYPE_CONFIG_NAME, DummyTranslator.class.getName());
     Config config = ConfigFactory.parseMap(configMap);
 
     TranslateFunction tf = new TranslateFunction(config);

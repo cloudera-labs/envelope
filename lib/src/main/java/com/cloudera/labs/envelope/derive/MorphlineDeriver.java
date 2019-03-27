@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
@@ -34,7 +35,6 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,7 +67,7 @@ public class MorphlineDeriver implements Deriver, ProvidesAlias, ProvidesValidat
     this.morphlineId = config.getString(MORPHLINE_ID);
 
     // Construct the StructType schema for the Rows
-    this.schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    this.schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
     errorOnEmpty = ConfigUtils.getOrElse(config, ERROR_ON_EMPTY, true);
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.repetition;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
@@ -36,9 +36,14 @@ public class ScheduledRepetition
   private static final String FREQUENCY_CONFIG = "every";
 
   @Override
-  public void configure(BatchStep step, String name, Config config) {
-    super.configure(step, name, config);
+  public void configure(Config config) {
+    super.configure(config);
     Repetitions.get().submitRegularTask(this, config.getDuration(FREQUENCY_CONFIG, TimeUnit.MILLISECONDS));
+  }
+
+  @Override
+  public void configureStep(BatchStep step, String name) {
+    super.configureStep(step, name);
   }
 
   @Override

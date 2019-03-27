@@ -15,12 +15,13 @@
 
 package com.cloudera.labs.envelope.zookeeper;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -75,7 +76,7 @@ public class ZooKeeperOutput implements RandomOutput, ProvidesAlias, ProvidesVal
   public void configure(Config config) {
     String connectionString = config.getString(ZooKeeperConnection.CONNECTION_CONFIG);
     keyFieldNames = config.getStringList(KEY_FIELD_NAMES_CONFIG);
-    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
     
     if (config.hasPath(ZNODE_PREFIX_CONFIG)) {
       znodePrefix = config.getString(ZNODE_PREFIX_CONFIG);

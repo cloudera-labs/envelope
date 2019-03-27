@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -28,12 +28,6 @@ import org.apache.spark.sql.Row;
 @SuppressWarnings("serial")
 public abstract class ConfigurablePartitioner extends Partitioner implements Component {
 
-  /**
-   * Configure the partitioner.
-   * @param config The configuration of the partitioner.
-   * @param rdd The RDD of keyed arriving records. This may be used to determine the suggest the
-   * number of partitions, or to read arriving records for the partitioning logic.
-   */
-  public abstract void configure(Config config, JavaPairRDD<Row, Row> rdd);
+  public abstract void configureRDD(JavaPairRDD<Row, Row> rdd);
 
 }

@@ -15,13 +15,13 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.derive.dq.DatasetRowRuleWrapper;
 import com.cloudera.labs.envelope.derive.dq.DatasetRule;
-import com.cloudera.labs.envelope.derive.dq.DatasetRuleFactory;
 import com.cloudera.labs.envelope.derive.dq.RowRule;
-import com.cloudera.labs.envelope.derive.dq.RowRuleFactory;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -137,8 +137,25 @@ public class DataQualityDeriver
   private Map<String, DatasetRule> getDatasetRules(Config rulesConfig, boolean configure) {
     Map<String, DatasetRule> datasetRules = Maps.newHashMap();
 
-    for (String rule : rulesConfig.root().keySet()) {
-      datasetRules.put(rule, DatasetRuleFactory.create(rule, rulesConfig.getConfig(rule), configure));
+    for (String ruleName : rulesConfig.root().keySet()) {
+      DatasetRule rule;
+      // First, see if this is a Dataset rule
+      try {
+        rule = ComponentFactory.create(DatasetRule.class, rulesConfig.getConfig(ruleName), configure);
+      }
+      // It's probably a row rule
+      catch (Exception e) {
+        rule = new DatasetRowRuleWrapper();
+        if (configure) {
+          rule.configure(rulesConfig.getConfig(ruleName));
+        }
+      }
+
+      if (configure) {
+        rule.configureName(ruleName);
+      }
+
+      datasetRules.put(ruleName, rule);
     }
 
     return datasetRules;
@@ -147,8 +164,10 @@ public class DataQualityDeriver
   private Map<String, RowRule> getRowRules(Config rulesConfig, boolean configure) {
     Map<String, RowRule> rowRules = Maps.newHashMap();
 
-    for (String rule : rulesConfig.root().keySet()) {
-      rowRules.put(rule, RowRuleFactory.create(rule, rulesConfig.getConfig(rule), configure));
+    for (String ruleName : rulesConfig.root().keySet()) {
+      RowRule rule = ComponentFactory.create(RowRule.class, rulesConfig.getConfig(ruleName), configure);
+      rule.configureName(ruleName);
+      rowRules.put(ruleName, rule);
     }
 
     return rowRules;

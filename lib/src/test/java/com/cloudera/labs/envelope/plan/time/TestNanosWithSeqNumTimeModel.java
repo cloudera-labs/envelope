@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -47,7 +47,8 @@ public class TestNanosWithSeqNumTimeModel {
     schema = DataTypes.createStructType(Lists.newArrayList(nanoField, seqNumField));
     
     tm = new NanosWithSeqNumTimeModel();
-    tm.configure(ConfigFactory.empty(), Lists.newArrayList(nanoField.name(), seqNumField.name()));
+    tm.configure(ConfigFactory.empty());
+    tm.configureFieldNames(Lists.newArrayList(nanoField.name(), seqNumField.name()));
     
     first = new RowWithSchema(schema, new BigDecimal(1000), 10);
     second = new RowWithSchema(schema, new BigDecimal(1000), 11);

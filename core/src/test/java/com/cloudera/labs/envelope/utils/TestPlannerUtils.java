@@ -51,8 +51,10 @@ public class TestPlannerUtils {
     
     firstTM = new DummyTimeModel();
     secondTM = new DummyTimeModel();
-    firstTM.configure(ConfigFactory.empty(), Lists.newArrayList("first"));
-    secondTM.configure(ConfigFactory.empty(), Lists.newArrayList("second"));
+    firstTM.configure(ConfigFactory.empty());
+    firstTM.configureFieldNames(Lists.newArrayList("first"));
+    secondTM.configure(ConfigFactory.empty());
+    secondTM.configureFieldNames(Lists.newArrayList("second"));
   }
 
   @Test
@@ -120,7 +122,10 @@ public class TestPlannerUtils {
     private StructField field;
 
     @Override
-    public void configure(Config config, List<String> fieldNames) {
+    public void configure(Config config) {}
+
+    @Override
+    public void configureFieldNames(List<String> fieldNames) {
       this.field = DataTypes.createStructField(fieldNames.get(0), DataTypes.LongType, true);
     }
 

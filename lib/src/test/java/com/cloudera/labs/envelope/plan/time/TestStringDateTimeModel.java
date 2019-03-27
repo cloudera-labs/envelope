@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -56,7 +56,8 @@ public class TestStringDateTimeModel {
     tm = new StringDateTimeModel();
     config = ConfigFactory.empty();
     assertNoValidationFailures(tm, config);
-    tm.configure(config, Lists.newArrayList(field.name()));
+    tm.configure(config);
+    tm.configureFieldNames(Lists.newArrayList(field.name()));
     
     first = new RowWithSchema(schema, "2017-12-31");
     second = new RowWithSchema(schema, "2018-01-01");
@@ -134,7 +135,8 @@ public class TestStringDateTimeModel {
     config = config.withValue(StringDateTimeModel.DATETIME_FORMAT_CONFIG,
         ConfigValueFactory.fromAnyRef("dd-MMM-yyyy"));
     assertNoValidationFailures(tm, config);
-    tm.configure(config, Lists.newArrayList(field.name()));
+    tm.configure(config);
+    tm.configureFieldNames(Lists.newArrayList(field.name()));
     
     first = new RowWithSchema(schema, "31-DEC-2017");
     second = new RowWithSchema(schema, "01-JAN-2018");

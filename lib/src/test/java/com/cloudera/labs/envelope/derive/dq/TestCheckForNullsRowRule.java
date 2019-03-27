@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -72,7 +72,8 @@ public class TestCheckForNullsRowRule {
 
     CheckForNullsRowRule rule = new CheckForNullsRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("fieldscheck", config);
+    rule.configure(config);
+    rule.configureName("fieldscheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", null, 34, new BigDecimal("0.00"));
     assertFalse("Row should not pass rule", rule.check(row1));

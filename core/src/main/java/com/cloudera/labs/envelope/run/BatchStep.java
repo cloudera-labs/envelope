@@ -15,12 +15,12 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.CanReturnErroredData;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.input.BatchInput;
-import com.cloudera.labs.envelope.component.CanReturnErroredData;
 import com.cloudera.labs.envelope.repetition.Repetition;
-import com.cloudera.labs.envelope.repetition.RepetitionFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.StepUtils;
@@ -146,8 +146,8 @@ public class BatchStep extends DataStep implements ProvidesValidations, Instanti
     if (config.hasPath(REPETITION_PREFIX)) {
       Config repConfig = config.getConfig(REPETITION_PREFIX);
       for (String rep : repConfig.root().keySet()) {
-        Repetition repetition = RepetitionFactory.create(
-            this, rep, repConfig.getConfig(rep), configure);
+        Repetition repetition = ComponentFactory.create(Repetition.class, repConfig.getConfig(rep), configure);
+        repetition.configureStep(this, rep);
         repetitions.put(rep, repetition);
       }
     }

@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
@@ -36,9 +37,9 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -65,7 +66,7 @@ public class KVPTranslator implements Translator, ProvidesAlias, ProvidesValidat
   public void configure(Config config) {
     kvpDelimiter = resolveDelimiter(config.getString(KVP_DELIMITER_CONFIG_NAME));
     fieldDelimiter = resolveDelimiter(config.getString(FIELD_DELIMITER_CONFIG_NAME));
-    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
     if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
       rowValueMetadata.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS,

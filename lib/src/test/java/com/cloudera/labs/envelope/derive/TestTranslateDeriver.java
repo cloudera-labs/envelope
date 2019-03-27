@@ -15,12 +15,11 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.translate.DelimitedTranslator;
-import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.google.common.collect.Lists;
@@ -61,12 +60,12 @@ public class TestTranslateDeriver {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put(TranslateDeriver.STEP_CONFIG, "step_name");
     configMap.put(TranslateDeriver.FIELD_CONFIG, "c");
-    configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + TranslatorFactory.TYPE_CONFIG_NAME,
+    configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
         "delimited");
     configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + DelimitedTranslator.DELIMITER_CONFIG_NAME,
         ":");
     configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + DelimitedTranslator.SCHEMA_CONFIG +
-        "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+        "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + DelimitedTranslator.SCHEMA_CONFIG +
         "." + FlatSchema.FIELD_NAMES_CONFIG, Lists.newArrayList("e", "f", "g"));
     configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + DelimitedTranslator.SCHEMA_CONFIG +

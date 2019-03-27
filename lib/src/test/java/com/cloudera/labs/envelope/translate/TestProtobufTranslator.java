@@ -15,10 +15,9 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.ProtobufSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
-import com.cloudera.labs.envelope.utils.TestProtobufUtils;
 import com.google.protobuf.ByteString;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -44,7 +43,6 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
-import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -85,13 +83,13 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(TranslatorFactory.TYPE_CONFIG_NAME, ALIAS);
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ComponentFactory.TYPE_CONFIG_NAME, ALIAS);
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
 
-    Translator translator = TranslatorFactory.create(config, true);
+    Translator translator = ComponentFactory.create(Translator.class, config, true);
     assertThat(translator, instanceOf(Translator.class));
   }
 
@@ -100,7 +98,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
@@ -165,7 +163,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
@@ -193,7 +191,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
@@ -212,7 +210,7 @@ public class TestProtobufTranslator {
     assertThat(results.iterator().hasNext(), is(true));
     Row row = results.iterator().next();
     assertThat(row.getString(0), is("repeating message"));
-    List<Row> nested = row.getList(18);
+    List<Row> nested = row.<Row>getList(18);
     assertThat(nested.size(), is(1));
     assertThat(nested.get(0).getString(0), is("nested"));
   }
@@ -222,7 +220,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
@@ -249,7 +247,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(MULTIPLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." +
@@ -276,7 +274,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);
@@ -297,7 +295,7 @@ public class TestProtobufTranslator {
     String descPath = TestProtobufTranslator.class.getResource(SINGLE_EXAMPLE).getPath();
 
     Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "protobuf");
+    configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "protobuf");
     configMap.put(ProtobufTranslator.SCHEMA_CONFIG + "." + 
         ProtobufSchema.DESCRIPTOR_FILEPATH_CONFIG, descPath);
     Config config = ConfigFactory.parseMap(configMap);

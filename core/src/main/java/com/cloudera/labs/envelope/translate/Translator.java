@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -19,7 +19,6 @@ import com.cloudera.labs.envelope.component.Component;
 import com.cloudera.labs.envelope.schema.DeclaresExpectingSchema;
 import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
@@ -34,13 +33,6 @@ public interface Translator extends Component, DeclaresExpectingSchema, Declares
    * The name of the field on the raw message row that is to be translated.
    */
   String VALUE_FIELD_NAME = "value";
-
-  /**
-   * Configure the translator.
-   * This is called once by Envelope, immediately after translator instantiation.
-   * @param config The configuration of the translator.
-   */
-  void configure(Config config);
 
   /**
    * Translate the raw message into one or more structured rows.

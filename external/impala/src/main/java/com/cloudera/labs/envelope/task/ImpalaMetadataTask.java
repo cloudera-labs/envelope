@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.task;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.run.TaskStep;
 import com.cloudera.labs.envelope.security.KerberosLoginContext;
 import com.cloudera.labs.envelope.security.KerberosParameterValidations;
@@ -367,7 +367,7 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
             .optionalPath(SSL_TRUSTSTORE_PASSWORD_CONFIG))
         // TODO remove below after ENV-353 is fixed
         .optionalPath(TaskStep.DEPENDENCIES_CONFIG)
-        .optionalPath(TaskFactory.CLASS_CONFIG_NAME)
+        .optionalPath(TaskStep.CLASS_CONFIG)
         // TODO remove above after ENV-353 is fixed
         .build();
   }

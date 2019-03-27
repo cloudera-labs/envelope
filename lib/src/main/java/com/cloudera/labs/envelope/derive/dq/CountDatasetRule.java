@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
@@ -39,14 +39,18 @@ public class CountDatasetRule implements DatasetRule, ProvidesAlias, ProvidesVal
   private String name;
 
   @Override
-  public void configure(String name, Config config) {
-    this.name = name;
+  public void configure(Config config) {
     if (config.hasPath(EXPECTED_LITERAL_CONFIG)) {
       expected = config.getLong(EXPECTED_LITERAL_CONFIG);
     }
     if (config.hasPath(EXPECTED_DEPENDENCY_CONFIG)) {
       dependency = config.getString(EXPECTED_DEPENDENCY_CONFIG);
     }
+  }
+
+  @Override
+  public void configureName(String name) {
+    this.name = name;
   }
 
   @Override

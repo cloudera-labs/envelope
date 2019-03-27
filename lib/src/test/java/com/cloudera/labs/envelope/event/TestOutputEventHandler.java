@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.event;
 
-import com.cloudera.labs.envelope.output.OutputFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.run.TestRunner;
 import com.cloudera.labs.envelope.validate.ValidationAssert;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -41,7 +40,7 @@ public class TestOutputEventHandler {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put(OutputEventHandler.LOG_ALL_EVENTS_CONFIG, true);
     configMap.put(
-        OutputEventHandler.OUTPUT_CONFIG + "." + OutputFactory.TYPE_CONFIG_NAME,
+        OutputEventHandler.OUTPUT_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
         TestRunner.TestingMemoryOutput.class.getName());
     Config config = ConfigFactory.parseMap(configMap);
 

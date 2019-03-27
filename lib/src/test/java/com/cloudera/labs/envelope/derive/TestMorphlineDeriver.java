@@ -15,10 +15,10 @@
 
 package com.cloudera.labs.envelope.derive;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
-import com.cloudera.labs.envelope.translate.TestMorphlineTranslator;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.translate.TestMorphlineTranslator;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -63,7 +63,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo", "bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -86,7 +86,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -145,7 +145,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "nope");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -170,7 +170,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, "morphline");
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "id");
-    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -204,7 +204,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.STEP_NAME_CONFIG, "dep1");
     paramMap.put(MorphlineDeriver.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     paramMap.put(MorphlineDeriver.MORPHLINE_ID, "deriver");
-    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo", "bar", "baz"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,

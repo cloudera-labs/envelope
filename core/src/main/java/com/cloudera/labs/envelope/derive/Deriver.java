@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -27,13 +26,6 @@ import java.util.Map;
  * Custom derivers should directly implement this interface.
  */
 public interface Deriver extends Component {
-
-  /**
-   * Configure the deriver.
-   * This is called once by Envelope, immediately after deriver instantiation.
-   * @param config The configuration of the deriver.
-   */
-  void configure(Config config);
 
   /**
    * Derive a new DataFrame from the DataFrames of the dependency steps.

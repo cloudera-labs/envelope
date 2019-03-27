@@ -15,19 +15,16 @@
 
 package com.cloudera.labs.envelope.input;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.AvroSchema;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.schema.TestAvroSchema;
 import com.cloudera.labs.envelope.translate.DummyInputFormatTranslator;
 import com.cloudera.labs.envelope.translate.KVPTranslator;
-import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.spark.SparkException;
@@ -134,7 +131,7 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.CSV_HEADER_CONFIG, "true");
-    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
                  Lists.newArrayList("A Long", "An Int", "A String", "Another String"));
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -161,7 +158,7 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "csv");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.CSV_HEADER_CONFIG, "true");
-    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "avro");
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + AvroSchema.AVRO_FILE_CONFIG,
                  FileSystemInput.class.getResource(TestAvroSchema.AVRO_SCHEMA_DATA).getPath());
     config = ConfigFactory.parseMap(paramMap);
@@ -205,7 +202,7 @@ public class TestFileSystemInput {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "json");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(JSON_DATA).getPath());
-    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
                  Lists.newArrayList("field1", "field2", "field3", "field4"));
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -272,7 +269,7 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.FORMAT_CONFIG, "input-format");
     paramMap.put(FileSystemInput.PATH_CONFIG, FileSystemInput.class.getResource(CSV_DATA).getPath());
     paramMap.put(FileSystemInput.INPUT_FORMAT_TYPE_CONFIG, TextInputFormat.class.getCanonicalName());
-    paramMap.put("translator" + "." + TranslatorFactory.TYPE_CONFIG_NAME,
+    paramMap.put("translator" + "." + ComponentFactory.TYPE_CONFIG_NAME,
         DummyInputFormatTranslator.class.getCanonicalName());
     config = ConfigFactory.parseMap(paramMap);
 

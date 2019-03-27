@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -28,7 +28,10 @@ public class TestInstantiatedComponent {
 
   @Test
   public void testEquality() {
-    Component component = new Component(){};
+    Component component = new Component(){
+      @Override
+      public void configure(Config config) { }
+    };
     Config config = ConfigFactory.empty();
     String label = "hello";
 
@@ -41,7 +44,10 @@ public class TestInstantiatedComponent {
 
   @Test
   public void testInequality() {
-    Component component = new Component(){};
+    Component component = new Component(){
+      @Override
+      public void configure(Config config) { }
+    };
     Config config = ConfigFactory.empty();
     String label1 = "hello";
     String label2 = "world";

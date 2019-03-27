@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,12 +15,11 @@
 
 package com.cloudera.labs.envelope.schema;
 
-import com.cloudera.labs.envelope.input.InputFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.cloudera.labs.envelope.translate.Translator;
-import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ValidationAssert;
 import com.google.common.collect.Maps;
@@ -40,11 +39,11 @@ public class TestInputTranslatorCompatibilityValidation {
   public void testInputTranslatorCompatible() {
     Map<String, Object> translatorConfigMap = Maps.newHashMap();
     translatorConfigMap.put(
-        TranslatorFactory.TYPE_CONFIG_NAME, StringExpectingTranslator.class.getName());
+        ComponentFactory.TYPE_CONFIG_NAME, StringExpectingTranslator.class.getName());
 
     Map<String, Object> inputConfigMap = Maps.newHashMap();
     inputConfigMap.put(
-        InputFactory.TYPE_CONFIG_NAME, StringProvidingStreamInput.class.getName());
+        ComponentFactory.TYPE_CONFIG_NAME, StringProvidingStreamInput.class.getName());
     inputConfigMap.put(
         StreamingStep.TRANSLATOR_WITHIN_INPUT_PROPERTY, translatorConfigMap);
 
@@ -61,11 +60,11 @@ public class TestInputTranslatorCompatibilityValidation {
   public void testInputTranslatorIncompatible() {
     Map<String, Object> translatorConfigMap = Maps.newHashMap();
     translatorConfigMap.put(
-        TranslatorFactory.TYPE_CONFIG_NAME, BinaryExpectingTranslator.class.getName());
+        ComponentFactory.TYPE_CONFIG_NAME, BinaryExpectingTranslator.class.getName());
 
     Map<String, Object> inputConfigMap = Maps.newHashMap();
     inputConfigMap.put(
-        InputFactory.TYPE_CONFIG_NAME, StringProvidingStreamInput.class.getName());
+        ComponentFactory.TYPE_CONFIG_NAME, StringProvidingStreamInput.class.getName());
     inputConfigMap.put(
         StreamingStep.TRANSLATOR_WITHIN_INPUT_PROPERTY, translatorConfigMap);
 

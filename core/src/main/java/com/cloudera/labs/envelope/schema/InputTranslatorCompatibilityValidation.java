@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,12 +15,11 @@
 
 package com.cloudera.labs.envelope.schema;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.run.DataStep;
 import com.cloudera.labs.envelope.run.StreamingStep;
 import com.cloudera.labs.envelope.translate.Translator;
-import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.validate.Validation;
 import com.cloudera.labs.envelope.validate.ValidationResult;
 import com.cloudera.labs.envelope.validate.Validity;
@@ -37,10 +36,9 @@ public class InputTranslatorCompatibilityValidation implements Validation {
     Input input;
     Translator translator;
     try {
-      input = InputFactory.create(
-          config.getConfig(DataStep.INPUT_TYPE), false);
-      translator = TranslatorFactory.create(
-          config.getConfig(StreamingStep.TRANSLATOR_PROPERTY), false);
+      input = ComponentFactory.create(Input.class, config.getConfig(DataStep.INPUT_TYPE), false);
+      translator = ComponentFactory.create(
+          Translator.class, config.getConfig(StreamingStep.TRANSLATOR_PROPERTY), false);
     }
     catch (Exception e) {
       return new ValidationResult(this, Validity.VALID,

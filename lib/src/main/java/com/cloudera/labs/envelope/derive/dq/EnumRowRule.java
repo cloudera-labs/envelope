@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -39,15 +39,13 @@ public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations 
 
   private static final boolean DEFAULT_CASE_SENSITIVITY = true;
 
-  private String name;
   private Set validValues;
   private List<String> fields;
   private Class fieldType;
   private boolean caseSensitive;
 
   @Override
-  public void configure(String name, Config config) {
-    this.name = name;
+  public void configure(Config config) {
     this.caseSensitive = ConfigUtils.getOrElse(config, CASE_SENSITIVE_CONFIG, DEFAULT_CASE_SENSITIVITY);
     this.fieldType = getFieldType(config.getString(FIELD_TYPE_CONFIG));
     this.validValues = getValueSet(fieldType, config.getAnyRefList(VALUES_CONFIG));
@@ -59,6 +57,11 @@ public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations 
       validValues = replacementValues;
     }
     this.fields = config.getStringList(FIELDS_CONFIG);
+  }
+
+  @Override
+  public void configureName(String name) {
+    // Not used
   }
 
   @Override

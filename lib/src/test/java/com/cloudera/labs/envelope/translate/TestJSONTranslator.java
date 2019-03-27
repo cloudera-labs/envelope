@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.AvroSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ValidationAssert;
@@ -34,7 +34,7 @@ public class TestJSONTranslator {
   @Test
   public void testTranslation() {
     Config config = ConfigFactory.empty()
-        .withValue(JSONTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+        .withValue(JSONTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
             ConfigValueFactory.fromAnyRef(new AvroSchema().getAlias()))
         .withValue(JSONTranslator.SCHEMA_CONFIG + "." + AvroSchema.AVRO_FILE_CONFIG,
             ConfigValueFactory.fromAnyRef(

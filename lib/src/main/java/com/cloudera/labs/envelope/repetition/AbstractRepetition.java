@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -34,12 +34,16 @@ public abstract class AbstractRepetition implements Repetition, ProvidesValidati
   private long lastRepeat = 0;
 
   @Override
-  public void configure(BatchStep step, String name, Config config) {
-    this.step = step;
-    this.name = name;
+  public void configure(Config config) {
     if (config.hasPath(MIN_REPEAT_INTERVAL)) {
       minimumIntervalMs = config.getDuration(MIN_REPEAT_INTERVAL, TimeUnit.MILLISECONDS);
     }
+  }
+
+  @Override
+  public void configureStep(BatchStep step, String name) {
+    this.step = step;
+    this.name = name;
   }
 
   /**

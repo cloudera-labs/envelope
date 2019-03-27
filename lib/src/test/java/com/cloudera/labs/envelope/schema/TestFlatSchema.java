@@ -15,15 +15,17 @@
 
 package com.cloudera.labs.envelope.schema;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.google.common.collect.Lists;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
@@ -36,7 +38,7 @@ public class TestFlatSchema {
   @Test
   public void validSchema() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(FlatSchema.FIELD_NAMES_CONFIG, Lists.newArrayList(
         "decimalField", "stringField", "floatField", "doubleField", "byteField",
         "shortField", "integerField", "longField", "booleanField",
@@ -81,7 +83,7 @@ public class TestFlatSchema {
   @Test
   public void missingConfig() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "flat");
     config = ConfigFactory.parseMap(paramMap);
     FlatSchema flatSchema = new FlatSchema(); 
     assertValidationFailures(flatSchema, config);
@@ -90,7 +92,7 @@ public class TestFlatSchema {
   @Test
   public void missingNames() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(FlatSchema.FIELD_TYPES_CONFIG, Lists.newArrayList("long", "integer"));
     config = ConfigFactory.parseMap(paramMap);
     FlatSchema flatSchema = new FlatSchema(); 
@@ -100,7 +102,7 @@ public class TestFlatSchema {
   @Test
   public void missingTypes() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "flat");
     paramMap.put(FlatSchema.FIELD_NAMES_CONFIG, Lists.newArrayList("A Long", "An Int"));
     config = ConfigFactory.parseMap(paramMap);
     FlatSchema flatSchema = new FlatSchema(); 

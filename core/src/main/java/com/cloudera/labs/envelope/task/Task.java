@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,15 +16,12 @@
 package com.cloudera.labs.envelope.task;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import java.util.Map;
 
 public interface Task extends Component {
-  
-  void configure(Config config);
 
   void run(Map<String, Dataset<Row>> dependencies);
   

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,7 +17,7 @@ package com.cloudera.labs.envelope.kafka;
 
 import com.cloudera.labs.envelope.kafka.serde.AvroSerializer;
 import com.cloudera.labs.envelope.kafka.serde.DelimitedSerializer;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;

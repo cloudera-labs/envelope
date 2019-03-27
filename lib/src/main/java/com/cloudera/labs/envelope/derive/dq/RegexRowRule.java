@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validation;
 import com.cloudera.labs.envelope.validate.ValidationResult;
@@ -37,17 +37,19 @@ public class RegexRowRule implements RowRule, ProvidesAlias, ProvidesValidations
   private static final String REGEX_CONFIG = "regex";
   private static final String FIELDS_CONFIG = "fields";
 
-  private String name;
   private Pattern pattern;
   private List<String> fields;
 
   @Override
-  public void configure(String name, Config config) {
-    this.name = name;
-
+  public void configure(Config config) {
     String regex = config.getString(REGEX_CONFIG);
     pattern = Pattern.compile(regex);
     fields = config.getStringList(FIELDS_CONFIG);
+  }
+
+  @Override
+  public void configureName(String name) {
+    // Not used
   }
 
   @Override

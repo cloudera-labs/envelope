@@ -15,8 +15,7 @@
 
 package com.cloudera.labs.envelope.schema;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.Schema;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.validate.AvroSchemaLiteralValidation;
 import com.cloudera.labs.envelope.validate.AvroSchemaPathValidation;

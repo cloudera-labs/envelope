@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,6 +15,8 @@
 
 package com.cloudera.labs.envelope.component;
 
+import com.typesafe.config.Config;
+
 /**
  * An Envelope component is a class that can insert functionality into an Envelope pipeline, such
  * as an input, or a deriver, or a task.
@@ -24,5 +26,7 @@ package com.cloudera.labs.envelope.component;
  * that implement the corresponding component APIs.
  */
 public interface Component {
+
+  void configure(Config config);
 
 }

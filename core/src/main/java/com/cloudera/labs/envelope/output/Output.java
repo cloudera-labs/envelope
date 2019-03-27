@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.output;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 
 /**
  * Outputs write data out of the Spark application.
@@ -25,11 +24,5 @@ import com.typesafe.config.Config;
  */
 public interface Output extends Component {
 
-  /**
-   * Configure the output.
-   * This is called once by Envelope, immediately after output instantiation.
-   * @param config The configuration of the output.
-   */
-  void configure(Config config);
 
 }

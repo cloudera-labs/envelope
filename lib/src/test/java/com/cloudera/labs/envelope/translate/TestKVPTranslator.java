@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -38,7 +38,7 @@ public class TestKVPTranslator {
     String kvps = "field3=100.9---field6=---field7=true---field2=-99.8---field1=hello---field4=-1---field5=120---field8=2018-03-03T20:23:33.897+04:00";
     
     Config config = ConfigFactory.empty()
-        .withValue(KVPTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+        .withValue(KVPTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
             ConfigValueFactory.fromAnyRef("flat")) 
         .withValue(KVPTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG, 
             ConfigValueFactory.fromIterable(
@@ -72,7 +72,7 @@ public class TestKVPTranslator {
     String kvps = "field3=100.9---field6=---field7=true---field2=2018-09-09 23:49:29.00000---field1=2018-09-19 23:49:29.92284---field4=-1---field5=120---field8=2018-09-19 00:00:00";
 
     Config config = ConfigFactory.empty()
-        .withValue(KVPTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+        .withValue(KVPTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
             ConfigValueFactory.fromAnyRef("flat")) 
         .withValue(KVPTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
             ConfigValueFactory.fromIterable(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,19 +16,13 @@
 package com.cloudera.labs.envelope.derive.dq;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 
 import java.io.Serializable;
 
 public interface RowRule extends Component, Serializable {
 
-  /**
-   * Called once by Envelope to configure the data quality rule
-   * @param name name of the rule
-   * @param config configuration for the rule
-   */
-  void configure(String name, Config config);
+  void configureName(String name);
 
   /**
    * Apply the rule to the supplied row

@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -32,7 +32,6 @@ import org.apache.spark.sql.types.StructType;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kitesdk.morphline.api.Command;
@@ -69,7 +68,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar", "foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -94,7 +93,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar", "foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -119,7 +118,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "compiler-exception");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -139,7 +138,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -158,7 +157,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "default");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -185,7 +184,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-16");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -214,7 +213,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "US-ASCII");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -244,7 +243,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "no-return");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -266,7 +265,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "invalid-command");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -288,7 +287,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "failed-process");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -308,7 +307,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-16");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -335,7 +334,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "US-ASCII");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "encoding-message");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
@@ -376,7 +375,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.ENCODING_MSG, "UTF-8");
     configMap.put(MorphlineTranslator.MORPHLINE, getResourcePath(MORPHLINE_FILE));
     configMap.put(MorphlineTranslator.MORPHLINE_ID, "multi-record");
-    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME, "flat");
+    configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME, "flat");
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,

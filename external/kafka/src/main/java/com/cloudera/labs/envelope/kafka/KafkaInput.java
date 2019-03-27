@@ -15,13 +15,13 @@
 
 package com.cloudera.labs.envelope.kafka;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.input.CanRecordProgress;
 import com.cloudera.labs.envelope.input.StreamInput;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
 import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
@@ -293,7 +293,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     if (configure) {
       if (offsetsOutput == null) {
         Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
-        Output output = OutputFactory.create(outputConfig, true);
+        Output output = ComponentFactory.create(Output.class, outputConfig, true);
 
         if (!(output instanceof RandomOutput) ||
             !((RandomOutput) output).getSupportedRandomMutationTypes().contains(MutationType.UPSERT)) {
@@ -307,7 +307,7 @@ public class KafkaInput implements StreamInput, CanRecordProgress, ProvidesAlias
     }
     else {
       Config outputConfig = config.getConfig(OFFSETS_OUTPUT_CONFIG);
-      return (RandomOutput)OutputFactory.create(outputConfig, false);
+      return (RandomOutput)ComponentFactory.create(Output.class, outputConfig, false);
     }
   }
 

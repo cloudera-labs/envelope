@@ -58,7 +58,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -89,7 +90,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34l, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -121,7 +123,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34.0f, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -153,7 +156,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", new Float(34.0), new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -185,7 +189,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", 34.0, new BigDecimal("-1.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -216,7 +221,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));
     assertFalse("Row should not pass rule", rule.check(row1));
@@ -240,7 +246,8 @@ public class TestRangeRowRule {
 
     RangeRowRule rule = new RangeRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agerange", config);
+    rule.configure(config);
+    rule.configureName("agerange");
 
     Row row1 = new RowWithSchema(schema, "Ian", "Ian", null, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -266,7 +273,8 @@ public class TestRangeRowRule {
     for ( String rulename : rro.keySet() ) {
       Config rrc = rro.toConfig().getConfig(rulename);
       RangeRowRule rrr = new RangeRowRule() ;
-      rrr.configure(rulename, rrc); 
+      rrr.configure(rrc);
+      rrr.configureName(rulename);
       assertTrue("Row should pass rule " + rulename, rrr.check(row));
     }
   }

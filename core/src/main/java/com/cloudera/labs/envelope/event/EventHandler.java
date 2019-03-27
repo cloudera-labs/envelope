@@ -16,13 +16,8 @@
 package com.cloudera.labs.envelope.event;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
-
-import java.util.Set;
 
 public interface EventHandler extends Component {
-
-  void configure(Config config);
 
   void handle(Event event) throws Exception;
 

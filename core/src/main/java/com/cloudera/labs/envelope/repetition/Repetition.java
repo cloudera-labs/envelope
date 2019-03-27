@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -17,17 +17,12 @@ package com.cloudera.labs.envelope.repetition;
 
 import com.cloudera.labs.envelope.component.Component;
 import com.cloudera.labs.envelope.run.BatchStep;
-import com.typesafe.config.Config;
 
 /**
  * A class which should contain functionality to repeat a step according to some regularly assessed criteria
  */
 public interface Repetition extends Component {
 
-  /**
-   * Configure the repetition instance
-   * @param config the configuration for the repetition instance
-   */
-  void configure(BatchStep step, String name, Config config);
+  void configureStep(BatchStep step, String name);
 
 }

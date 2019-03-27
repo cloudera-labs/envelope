@@ -15,18 +15,17 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.event.CoreEventMetadataKeys;
 import com.cloudera.labs.envelope.event.CoreEventTypes;
-import com.cloudera.labs.envelope.event.EventHandler;
-import com.cloudera.labs.envelope.event.EventHandlerFactory;
-import com.cloudera.labs.envelope.event.EventManager;
 import com.cloudera.labs.envelope.event.Event;
+import com.cloudera.labs.envelope.event.EventHandler;
+import com.cloudera.labs.envelope.event.EventManager;
 import com.cloudera.labs.envelope.event.impl.LogEventHandler;
 import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.input.StreamInput;
 import com.cloudera.labs.envelope.security.SecurityUtils;
 import com.cloudera.labs.envelope.security.TokenProvider;
@@ -155,7 +154,7 @@ public class Runner {
       if (!stepConfig.hasPath(TYPE_PROPERTY) || stepConfig.getString(TYPE_PROPERTY).equals(DATA_TYPE)) {
         if (stepConfig.hasPath(DataStep.INPUT_TYPE)) {
           Config stepInputConfig = stepConfig.getConfig(DataStep.INPUT_TYPE);
-          Input stepInput = InputFactory.create(stepInputConfig, false);
+          Input stepInput = ComponentFactory.create(Input.class, stepInputConfig, false);
 
           if (stepInput instanceof BatchInput) {
             LOG.debug("Adding batch step: " + stepName);
@@ -439,12 +438,12 @@ public class Runner {
 
       for (ConfigObject handlerConfigObject : handlerConfigObjects) {
         Config handlerConfig = handlerConfigObject.toConfig();
-        EventHandler handler = EventHandlerFactory.create(handlerConfig, configure);
+        EventHandler handler = ComponentFactory.create(EventHandler.class, handlerConfig, configure);
         handlers.put(handlerConfig, handler);
 
         // If this handler is a default handler then because it was configured we remove it from the
         // non-configured set. If this handler is not a default handler then this will be a no-op.
-        nonConfiguredDefaultHandlerAliases.remove(handlerConfig.getString(EventHandlerFactory.TYPE_CONFIG_NAME));
+        nonConfiguredDefaultHandlerAliases.remove(handlerConfig.getString(ComponentFactory.TYPE_CONFIG_NAME));
       }
     }
 
@@ -452,8 +451,8 @@ public class Runner {
     // no configurations, so default handlers must only use optional configurations.
     for (String defaultHandlerAlias : nonConfiguredDefaultHandlerAliases) {
       Config defaultHandlerConfig = ConfigFactory.empty().withValue(
-          EventHandlerFactory.TYPE_CONFIG_NAME, ConfigValueFactory.fromAnyRef(defaultHandlerAlias));
-      EventHandler defaultHandler = EventHandlerFactory.create(defaultHandlerConfig, configure);
+          ComponentFactory.TYPE_CONFIG_NAME, ConfigValueFactory.fromAnyRef(defaultHandlerAlias));
+      EventHandler defaultHandler = ComponentFactory.create(EventHandler.class, defaultHandlerConfig, configure);
       handlers.put(defaultHandlerConfig, defaultHandler);
     }
 

@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.ConfigurationDataTypes;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -43,7 +43,6 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
 
   private static final Class<Long> DEFAULT_FIELD_TYPE = Long.class;
 
-  private String name;
   private List<String> fields;
   private Comparable<?> lower;
   private Comparable<?> upper;
@@ -51,8 +50,7 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
   private Class<? extends Comparable<?>> fieldType = DEFAULT_FIELD_TYPE;
 
   @Override
-  public void configure(String name, Config config) {
-    this.name = name;
+  public void configure(Config config) {
     fields = config.getStringList(FIELDS_CONFIG);
     if (config.hasPath(FIELD_TYPE_CONFIG)) {
       fieldType = getFieldType(config.getString(FIELD_TYPE_CONFIG));
@@ -61,6 +59,11 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
     lower = (Comparable<?>) range.get(0);
     upper = (Comparable<?>) range.get(1);
     ignoreNulls = ConfigUtils.getOrElse(config, IGNORE_NULLS_CONFIG, false);
+  }
+
+  @Override
+  public void configureName(String name) {
+    // Not used
   }
 
   @Override

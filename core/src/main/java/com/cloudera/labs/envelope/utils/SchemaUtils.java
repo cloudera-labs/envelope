@@ -15,9 +15,9 @@
 
 package com.cloudera.labs.envelope.utils;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.schema.Schema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.translate.Translator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -90,7 +90,7 @@ public class SchemaUtils {
 
     for (String schemaConfigPath : schemaConfigPaths) {
       Config schemaConfig = config.getConfig(schemaConfigPath);
-      Schema schema = SchemaFactory.create(schemaConfig, configure);
+      Schema schema = ComponentFactory.create(Schema.class, schemaConfig, configure);
       components.add(new InstantiatedComponent(
         schema, config.getConfig(schemaConfigPath), schemaConfigPath));
     }

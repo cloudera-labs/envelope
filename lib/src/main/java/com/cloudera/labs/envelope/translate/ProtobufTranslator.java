@@ -15,20 +15,20 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.ProtobufSchema;
 import com.cloudera.labs.envelope.schema.Schema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ProtobufUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validation;
-import com.cloudera.labs.envelope.validate.Validations;
 import com.cloudera.labs.envelope.validate.ValidationResult;
+import com.cloudera.labs.envelope.validate.Validations;
 import com.cloudera.labs.envelope.validate.Validity;
 import com.google.common.collect.Sets;
 import com.google.protobuf.Descriptors;
@@ -115,7 +115,7 @@ public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesVa
     LOG.debug("Configuring ProtobufTranslator");
 
     // Validations ensure schema is of type protobuf
-    ProtobufSchema protobufSchema = (ProtobufSchema)SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true);
+    ProtobufSchema protobufSchema = (ProtobufSchema) ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true);
     this.descriptor = protobufSchema.getDescriptor();
     this.schema = protobufSchema.getSchema();
   }
@@ -143,7 +143,7 @@ public class ProtobufTranslator implements Translator, ProvidesAlias, ProvidesVa
  
     @Override
     public ValidationResult validate(Config config) {
-      Schema schema = SchemaFactory.create(config, true);
+      Schema schema = ComponentFactory.create(Schema.class, config, true);
       if (!(schema instanceof ProtobufSchema)) { 
         return new ValidationResult(this, Validity.INVALID,
             "Protobuf translator schema can only be of type 'protobuf'.  " +

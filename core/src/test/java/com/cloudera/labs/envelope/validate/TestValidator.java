@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -83,6 +83,9 @@ public class TestValidator {
       public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
         return Sets.newHashSet(new InstantiatedComponent(new ValidatableComponent() {
           @Override
+          public void configure(Config config) {}
+
+          @Override
           public Validations getValidations() {
             return Validations.builder().mandatoryPath("hello").build();
           }
@@ -106,6 +109,9 @@ public class TestValidator {
       @Override
       public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
         return Sets.newHashSet(new InstantiatedComponent(new ValidatableComponent() {
+          @Override
+          public void configure(Config config) {}
+
           @Override
           public Validations getValidations() {
             return Validations.builder().mandatoryPath("hello").build();
@@ -288,6 +294,9 @@ public class TestValidator {
       @Override
       public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
         return Sets.newHashSet(new InstantiatedComponent(new ValidatableComponent() {
+          @Override
+          public void configure(Config config) {}
+
           @Override
           public Validations getValidations() {
             return Validations.builder().mandatoryPath("hello").build();

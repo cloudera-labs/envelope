@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.run;
 
-import com.cloudera.labs.envelope.input.InputFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,7 +37,7 @@ public class TestBatchStep {
   @Test
   public void testInputRepartition() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 5);
     configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
     Config config = ConfigFactory.parseMap(configMap);
@@ -54,7 +54,7 @@ public class TestBatchStep {
   @Test
   public void testInputRepartitionColumns() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 10);
     configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
     Config config = ConfigFactory.parseMap(configMap);
@@ -74,7 +74,7 @@ public class TestBatchStep {
     Map<String, Object> configMap = Maps.newHashMap();
     configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo"));
     configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 10);
     Config config = ConfigFactory.parseMap(configMap);
 
@@ -90,7 +90,7 @@ public class TestBatchStep {
   @Test (expected = AnalysisException.class)
   public void testInputRepartitionInvalidColumn() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 10);
     configMap.put(BatchStep.REPARTITION_COLUMNS_PROPERTY, Lists.newArrayList("modulo == 0"));
     configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 5);
@@ -105,7 +105,7 @@ public class TestBatchStep {
   @Test
   public void testInputCoalesce() throws Exception {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 10);
     configMap.put(BatchStep.COALESCE_NUM_PARTITIONS_PROPERTY, 5);
     Config config = ConfigFactory.parseMap(configMap);
@@ -122,7 +122,7 @@ public class TestBatchStep {
   @Test
   public void testCantRepartitionAndCoalesceInputAtOnce() {
     Map<String, Object> configMap = Maps.newHashMap();
-    configMap.put(DataStep.INPUT_TYPE + "." + InputFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
+    configMap.put(DataStep.INPUT_TYPE + "." + ComponentFactory.TYPE_CONFIG_NAME, DummyInput.class.getName());
     configMap.put(DataStep.INPUT_TYPE + "." + "starting.partitions", 5);
     configMap.put(BatchStep.REPARTITION_NUM_PARTITIONS_PROPERTY, 10);
     configMap.put(BatchStep.COALESCE_NUM_PARTITIONS_PROPERTY, 3);

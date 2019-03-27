@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.repetition;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.run.BatchStep;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -63,8 +63,8 @@ public class FlagFileRepetition
   }
 
   @Override
-  public void configure(BatchStep step, String name, Config config) {
-    super.configure(step, name, config);
+  public void configure(Config config) {
+    super.configure(config);
     flagFile = new Path(config.getString(FLAG_FILE_LOCATION_CONFIG));
     if (config.hasPath(POLL_INTERVAL_CONFIG)) {
       pollInterval = config.getDuration(POLL_INTERVAL_CONFIG, TimeUnit.MILLISECONDS);
@@ -82,6 +82,11 @@ public class FlagFileRepetition
     } catch (IOException e) {
       throw new RuntimeException("Could not instantiate Hadoop FileSystem");
     }
+  }
+
+  @Override
+  public void configureStep(BatchStep step, String name) {
+    super.configureStep(step, name);
   }
 
   private void handlePresentFile() throws IOException {

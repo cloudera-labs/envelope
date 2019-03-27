@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -53,7 +53,8 @@ public class TestRegexRowRule {
 
     RegexRowRule rule = new RegexRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("namecheck", config);
+    rule.configure(config);
+    rule.configureName("namecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));

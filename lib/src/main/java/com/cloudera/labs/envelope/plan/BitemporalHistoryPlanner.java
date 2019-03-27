@@ -15,17 +15,18 @@
 
 package com.cloudera.labs.envelope.plan;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.plan.time.LongMillisTimeModel;
 import com.cloudera.labs.envelope.plan.time.TimeModel;
-import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
-import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -468,28 +469,40 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
   }
 
   private TimeModel getTimestampTimeModel(boolean configure) {
-    return TimeModelFactory.create(
-        getEventTimeModelConfig(), getTimestampFieldNames(), configure);
+    return getTimeModel(getEventTimeModelConfig(), getTimestampFieldNames(), configure);
   }
 
   private TimeModel getEventEffectiveFromTimeModel(boolean configure) {
-    return TimeModelFactory.create(
-        getEventTimeModelConfig(), getEventTimeEffectiveFromFieldNames(), configure);
+    return getTimeModel(getEventTimeModelConfig(), getEventTimeEffectiveFromFieldNames(), configure);
   }
 
   private TimeModel getEventEffectiveToTimeModel(boolean configure) {
-    return TimeModelFactory.create(
-        getEventTimeModelConfig(), getEventTimeEffectiveToFieldNames(), configure);
+    return getTimeModel(getEventTimeModelConfig(), getEventTimeEffectiveToFieldNames(), configure);
   }
 
   private TimeModel getSystemEffectiveFromTimeModel(boolean configure) {
-    return TimeModelFactory.create(
-        getSystemTimeModelConfig(), getSystemTimeEffectiveFromFieldNames(), configure);
+    return getTimeModel(getSystemTimeModelConfig(), getSystemTimeEffectiveFromFieldNames(), configure);
   }
 
   private TimeModel getSystemEffectiveToTimeModel(boolean configure) {
-    return TimeModelFactory.create(
-        getSystemTimeModelConfig(), getSystemTimeEffectiveToFieldNames(), configure);
+    return getTimeModel(getSystemTimeModelConfig(), getSystemTimeEffectiveToFieldNames(), configure);
+  }
+
+  private TimeModel getTimeModel(Config timeModelConfig, List<String> fieldNames, boolean configure) {
+    TimeModel timeModel;
+
+    if (timeModelConfig.hasPath(EVENT_TIME_MODEL_CONFIG_NAME)) {
+      timeModel = ComponentFactory.create(TimeModel.class, timeModelConfig, configure);
+    }
+    else {
+      timeModel = new LongMillisTimeModel();
+    }
+
+    if (configure) {
+      timeModel.configureFieldNames(fieldNames);
+    }
+
+    return timeModel;
   }
   
   @Override

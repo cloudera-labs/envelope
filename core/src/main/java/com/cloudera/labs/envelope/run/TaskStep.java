@@ -15,11 +15,11 @@
 
 package com.cloudera.labs.envelope.run;
 
-import com.cloudera.labs.envelope.task.Task;
-import com.cloudera.labs.envelope.task.TaskFactory;
-import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.validate.ProvidesValidations;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
+import com.cloudera.labs.envelope.component.InstantiatesComponents;
+import com.cloudera.labs.envelope.task.Task;
+import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
@@ -31,12 +31,18 @@ import java.util.Set;
 
 public class TaskStep extends Step implements ProvidesValidations, InstantiatesComponents {
 
+  public static final String CLASS_CONFIG = "class";
+
   public TaskStep(String name) {
     super(name);
   }
   
   public void run(Map<String, Dataset<Row>> dependencies) {
-    Task task = TaskFactory.create(config);
+    Config taskConfig = config
+        .withoutPath(ComponentFactory.TYPE_CONFIG_NAME)
+        .withValue(ComponentFactory.TYPE_CONFIG_NAME, config.getValue(CLASS_CONFIG));
+
+    Task task = ComponentFactory.create(Task.class, taskConfig, true);
     
     task.run(dependencies);
     
@@ -64,7 +70,7 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
 
   @Override
   public Set<InstantiatedComponent> getComponents(Config config, boolean configure) throws Exception {
-    Task task = TaskFactory.create(config, configure);
+    Task task = ComponentFactory.create(Task.class, config, configure);
 
     Set<InstantiatedComponent> components = Sets.newHashSet(
         new InstantiatedComponent(task, config, "Task"));

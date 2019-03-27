@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -81,9 +81,15 @@ public class TestSecurityUtils {
   public void testGetAllSecureComponents() throws Exception {
     TopLevelInstantiates topLevel = new TopLevelInstantiates() {
       @Override
+      public void configure(Config config) {}
+
+      @Override
       public Set<InstantiatedComponent> getComponents(Config config, boolean configure)
           throws Exception {
         SecureInstantiator secondLevel = new SecureInstantiator() {
+
+          @Override
+          public void configure(Config config) {}
 
           @Override
           public TokenProvider getTokenProvider() {
@@ -96,12 +102,18 @@ public class TestSecurityUtils {
 
             SecureComponent thirdLevelA = new SecureComponent() {
               @Override
+              public void configure(Config config) {}
+
+              @Override
               public TokenProvider getTokenProvider() {
                 return new TestTokenProvider();
               }
             };
 
-            Component thirdLevelB = new Component() {};
+            Component thirdLevelB = new Component() {
+              @Override
+              public void configure(Config config) {}
+            };
 
             return Sets.newHashSet(new InstantiatedComponent(thirdLevelA, ConfigFactory.empty(), "tlA"),
                 new InstantiatedComponent(thirdLevelB, ConfigFactory.empty(), "tlB"));

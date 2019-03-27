@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
@@ -65,7 +66,7 @@ public class DelimitedTranslator implements Translator, ProvidesAlias, ProvidesV
     delimiter = resolveDelimiter(config.getString(DELIMITER_CONFIG_NAME));
     delimiterRegex = config.hasPath(DELIMITER_REGEX_CONFIG_NAME) &&
                      config.getBoolean(DELIMITER_REGEX_CONFIG_NAME);
-    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
     if (config.hasPath(TIMESTAMP_FORMAT_CONFIG_NAME)) {
       rowValueMetadata.put(RowUtils.RowValueMetadata.TIMESTAMP_FORMATS,

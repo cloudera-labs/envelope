@@ -15,13 +15,14 @@
 
 package com.cloudera.labs.envelope.schema;
 
-import com.cloudera.labs.envelope.schema.AvroSchema;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertNoValidationFailures;
 import static com.cloudera.labs.envelope.validate.ValidationAssert.assertValidationFailures;
@@ -43,7 +44,7 @@ public class TestAvroSchema {
       .append("{ \"name\" : \"Another_String\", \"type\" : \"string\" }")
       .append("] }");
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "avro");
     paramMap.put(AvroSchema.AVRO_LITERAL_CONFIG, avroLiteral.toString());
     config = ConfigFactory.parseMap(paramMap);
     AvroSchema avroSchema = new AvroSchema(); 
@@ -60,7 +61,7 @@ public class TestAvroSchema {
   @Test
   public void validFileSchema() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "avro");
     paramMap.put(AvroSchema.AVRO_FILE_CONFIG, AvroSchema.class.getResource(AVRO_SCHEMA_DATA).getPath());
     config = ConfigFactory.parseMap(paramMap);
     AvroSchema avroSchema = new AvroSchema(); 
@@ -77,7 +78,7 @@ public class TestAvroSchema {
   @Test
   public void missingConfig() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "avro");
     config = ConfigFactory.parseMap(paramMap);
     AvroSchema avroSchema = new AvroSchema(); 
     assertValidationFailures(avroSchema, config);
@@ -86,7 +87,7 @@ public class TestAvroSchema {
   @Test
   public void missingLiteral() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "avro");
     paramMap.put(AvroSchema.AVRO_LITERAL_CONFIG, "");
     config = ConfigFactory.parseMap(paramMap);
     AvroSchema avroSchema = new AvroSchema(); 
@@ -96,7 +97,7 @@ public class TestAvroSchema {
   @Test
   public void missingTypes() {
     Map<String, Object> paramMap = new HashMap<>();
-    paramMap.put(SchemaFactory.TYPE_CONFIG_NAME, "avro");
+    paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "avro");
     paramMap.put(AvroSchema.AVRO_FILE_CONFIG, "");
     config = ConfigFactory.parseMap(paramMap);
     AvroSchema avroSchema = new AvroSchema(); 

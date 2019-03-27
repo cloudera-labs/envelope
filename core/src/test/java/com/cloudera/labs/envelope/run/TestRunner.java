@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.derive.Deriver;
-import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.event.CoreEventTypes;
 import com.cloudera.labs.envelope.event.Event;
 import com.cloudera.labs.envelope.event.EventManager;
@@ -37,7 +37,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.api.java.UDF1;
-import org.junit.Before;
 import org.junit.Test;
 import scala.Tuple2;
 
@@ -57,7 +56,8 @@ public class TestRunner {
     Config config = ConfigUtils.configFromResource("/udf/udf_valid.conf");
 
     Runner.initializeUDFs(config);
-    Deriver deriver = DeriverFactory.create(config.getConfig(Runner.STEPS_SECTION_CONFIG + ".runudf.deriver"), true);
+    Deriver deriver = ComponentFactory.create(
+        Deriver.class, config.getConfig(Runner.STEPS_SECTION_CONFIG + ".runudf.deriver"), true);
     Dataset<Row> derived = deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
 
     assertEquals(RowFactory.create("hello", 1), derived.collectAsList().get(0));
@@ -70,7 +70,8 @@ public class TestRunner {
     Config config = ConfigUtils.configFromResource("/udf/udf_none.conf");
 
     Runner.initializeUDFs(config);
-    Deriver deriver = DeriverFactory.create(config.getConfig("steps.runudf.deriver"), true);
+    Deriver deriver = ComponentFactory.create(
+        Deriver.class, config.getConfig("steps.runudf.deriver"), true);
     deriver.derive(Maps.<String, Dataset<Row>>newHashMap());
   }
   

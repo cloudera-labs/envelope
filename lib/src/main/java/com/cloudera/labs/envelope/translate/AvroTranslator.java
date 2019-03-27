@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.AvroUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -55,7 +56,7 @@ public class AvroTranslator implements Translator, ProvidesAlias, ProvidesValida
 
   @Override
   public void configure(Config config) {
-    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
     reader = new GenericDatumReader<>(AvroUtils.schemaFor(schema));
   }
 

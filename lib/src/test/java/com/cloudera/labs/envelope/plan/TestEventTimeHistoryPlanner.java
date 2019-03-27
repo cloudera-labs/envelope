@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.plan;
 
-import com.cloudera.labs.envelope.plan.time.TimeModelFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.PlannerUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
@@ -784,9 +784,9 @@ public class TestEventTimeHistoryPlanner {
   @Test
   public void testNonDefaultTimeModel() {
     config = config
-        .withValue(EventTimeHistoryPlanner.EVENT_TIME_MODEL_CONFIG_NAME + "." + TimeModelFactory.TYPE_CONFIG_NAME, 
+        .withValue(EventTimeHistoryPlanner.EVENT_TIME_MODEL_CONFIG_NAME + "." + ComponentFactory.TYPE_CONFIG_NAME,
             ConfigValueFactory.fromAnyRef("longmillis"))
-        .withValue(EventTimeHistoryPlanner.LAST_UPDATED_TIME_MODEL_CONFIG_NAME + "." + TimeModelFactory.TYPE_CONFIG_NAME, 
+        .withValue(EventTimeHistoryPlanner.LAST_UPDATED_TIME_MODEL_CONFIG_NAME + "." + ComponentFactory.TYPE_CONFIG_NAME,
             ConfigValueFactory.fromAnyRef("longmillis"));
     
     p = new EventTimeHistoryPlanner();

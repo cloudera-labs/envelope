@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.plan.time;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -33,7 +33,10 @@ public class LongMillisTimeModel implements TimeModel, ProvidesAlias {
   private Long current;
 
   @Override
-  public void configure(Config config, List<String> fieldNames) {
+  public void configure(Config config) { }
+
+  @Override
+  public void configureFieldNames(List<String> fieldNames) {
     this.field = DataTypes.createStructField(fieldNames.get(0), DataTypes.LongType, true);
   }
 

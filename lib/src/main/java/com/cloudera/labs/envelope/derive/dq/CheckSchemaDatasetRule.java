@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations,  InstantiatesComponents {
+public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, ProvidesValidations, InstantiatesComponents {
 
   public static final String SCHEMA_CONFIG = "schema";
   private static final boolean DEFAULT_EXACT_MATCH = false;
@@ -51,10 +52,14 @@ public class CheckSchemaDatasetRule implements DatasetRule, ProvidesAlias, Provi
   private boolean exactMatch;
 
   @Override
-  public void configure(String name, Config config) {
-    this.name = name;
-    requiredSchema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+  public void configure(Config config) {
+    requiredSchema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
     exactMatch = ConfigUtils.getOrElse(config, EXACT_MATCH_CONFIG, DEFAULT_EXACT_MATCH);
+  }
+
+  @Override
+  public void configureName(String name) {
+    this.name = name;
   }
 
   @Override

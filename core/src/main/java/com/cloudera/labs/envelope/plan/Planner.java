@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.plan;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 
 import java.util.Set;
 
@@ -26,11 +25,6 @@ import java.util.Set;
  * or RandomPlanner.
  */
 public interface Planner extends Component {
-
-  /**
-   * Configure the planner.
-   */
-  void configure(Config config);
 
   /**
    * Get the set of mutation types that the planner may emit.

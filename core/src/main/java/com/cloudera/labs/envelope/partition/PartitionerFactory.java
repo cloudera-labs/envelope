@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.partition;
 
-import com.cloudera.labs.envelope.load.LoadableFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.typesafe.config.Config;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
@@ -30,7 +30,7 @@ import scala.reflect.ClassTag$;
 import java.io.Serializable;
 import java.util.Comparator;
 
-public class PartitionerFactory extends LoadableFactory {
+public class PartitionerFactory {
 
   public static final String TYPE_CONFIG_NAME = "type";
 
@@ -53,19 +53,8 @@ public class PartitionerFactory extends LoadableFactory {
         partitioner = new RangePartitioner<Row, Row>(rdd.getNumPartitions(), rdd.rdd(), true, rowOrdering, rowClassTag);
         break;
       default:
-        try {
-          partitioner = loadImplementation(ConfigurablePartitioner.class, partitionerType);
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-    }
-    
-    if (partitioner == null) {
-      throw new RuntimeException("No partitioner implementation found for: " + partitionerType);
-    }
-
-    if (partitioner instanceof ConfigurablePartitioner) {
-      ((ConfigurablePartitioner)partitioner).configure(config, rdd);
+        partitioner = ComponentFactory.create(ConfigurablePartitioner.class, config, true);
+        ((ConfigurablePartitioner) partitioner).configureRDD(rdd);
     }
 
     return partitioner;

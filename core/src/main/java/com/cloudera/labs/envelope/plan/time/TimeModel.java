@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -16,7 +16,6 @@
 package com.cloudera.labs.envelope.plan.time;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
@@ -36,11 +35,9 @@ import java.util.List;
 public interface TimeModel extends Component, Comparator<Row> {
 
   /**
-   * Configure the time model instance.
-   * @param config The configuration of the time model from the Envelope pipeline.
-   * @param fieldNames The field names that this time model instance will apply to.
+   * Configure the field names that this time model instance will apply to.
    */
-  void configure(Config config, List<String> fieldNames);
+  void configureFieldNames(List<String> fieldNames);
   
   /**
    * Configure the current system time of the time model. This is separate

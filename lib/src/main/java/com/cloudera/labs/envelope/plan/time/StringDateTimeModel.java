@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.plan.time;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -45,17 +45,20 @@ public class StringDateTimeModel implements TimeModel, ProvidesAlias, ProvidesVa
   private Date farFuture = new Date(253402214400000L);
 
   @Override
-  public void configure(Config config, List<String> fieldNames) {
+  public void configure(Config config) {
     if (config.hasPath(DATETIME_FORMAT_CONFIG)) {
       this.format = new SimpleDateFormat(config.getString(DATETIME_FORMAT_CONFIG));
     }
     else {
       this.format = new SimpleDateFormat("yyyy-MM-dd");
     }
-    
+  }
+
+  @Override
+  public void configureFieldNames(List<String> fieldNames) {
     this.field = DataTypes.createStructField(fieldNames.get(0), DataTypes.StringType, true);
   }
-  
+
   @Override
   public void configureCurrentSystemTime(long currentSystemTimeMillis) {
     this.current = new Date(currentSystemTimeMillis);

@@ -15,11 +15,11 @@
 
 package com.cloudera.labs.envelope.event;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -62,7 +62,7 @@ public class OutputEventHandler implements EventHandler, ProvidesAlias, Provides
   @Override
   public void configure(Config config) {
     Config outputConfig = config.getConfig(OUTPUT_CONFIG);
-    this.randomOutput = (RandomOutput)OutputFactory.create(outputConfig, true);
+    this.randomOutput = (RandomOutput) ComponentFactory.create(Output.class, outputConfig, true);
 
     boolean allEventsEnabled = ConfigUtils.getOrElse(config, LOG_ALL_EVENTS_CONFIG, false);
     handledEventTypes = CoreEventTypes.getAllCoreEventTypes();
@@ -134,7 +134,7 @@ public class OutputEventHandler implements EventHandler, ProvidesAlias, Provides
     @Override
     public ValidationResult validate(Config config) {
       Config outputConfig = config.getConfig(OUTPUT_CONFIG);
-      Output output = OutputFactory.create(outputConfig, false);
+      Output output = ComponentFactory.create(Output.class, outputConfig, false);
 
       if (!(output instanceof RandomOutput)) {
         return new ValidationResult(

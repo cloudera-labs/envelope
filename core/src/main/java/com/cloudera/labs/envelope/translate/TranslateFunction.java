@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.schema.DeclaresExpectingSchema;
@@ -126,14 +127,14 @@ public class TranslateFunction implements FlatMapFunction<Row, Row>, Instantiate
   public synchronized Translator getTranslator(boolean configure) {
     if (configure) {
       if (translator == null) {
-        translator = TranslatorFactory.create(getTranslatorConfig(config), true);
+        translator = ComponentFactory.create(Translator.class, getTranslatorConfig(config), true);
         LOG.debug("Translator created: " + translator.getClass().getName());
       }
 
       return translator;
     }
     else {
-      return TranslatorFactory.create(getTranslatorConfig(config), false);
+      return ComponentFactory.create(Translator.class, getTranslatorConfig(config), false);
     }
   }
 

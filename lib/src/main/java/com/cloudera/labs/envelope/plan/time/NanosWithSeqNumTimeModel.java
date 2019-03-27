@@ -15,7 +15,7 @@
 
 package com.cloudera.labs.envelope.plan.time;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.google.common.collect.Lists;
@@ -38,11 +38,13 @@ public class NanosWithSeqNumTimeModel implements TimeModel, ProvidesAlias {
   private static final BigDecimal farFuture = new BigDecimal("253402214400000000000");
   private static final int firstSeqNum = 1;
 
+  @Override
+  public void configure(Config config) { }
 
   @Override
-  public void configure(Config config, List<String> fieldNames) {
+  public void configureFieldNames(List<String> fieldNames) {
     this.nanoField = DataTypes.createStructField(fieldNames.get(0), DataTypes.createDecimalType(38, 0), true);
-    this.seqNumField = DataTypes.createStructField(fieldNames.get(1), DataTypes.IntegerType, true);    
+    this.seqNumField = DataTypes.createStructField(fieldNames.get(1), DataTypes.IntegerType, true);
   }
 
   @Override

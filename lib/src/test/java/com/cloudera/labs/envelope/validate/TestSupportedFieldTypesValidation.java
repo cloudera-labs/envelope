@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.validate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.schema.FlatSchema;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
 import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -36,7 +36,7 @@ public class TestSupportedFieldTypesValidation {
   public static String SCHEMA_CONFIG = "schema";
 
   Config config = ConfigFactory.empty()
-      .withValue(SCHEMA_CONFIG + "." + SchemaFactory.TYPE_CONFIG_NAME,
+      .withValue(SCHEMA_CONFIG + "." + ComponentFactory.TYPE_CONFIG_NAME,
           ConfigValueFactory.fromAnyRef("flat"))
       .withValue(SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
           ConfigValueFactory.fromIterable(

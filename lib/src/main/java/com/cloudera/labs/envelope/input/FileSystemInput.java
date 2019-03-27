@@ -16,12 +16,13 @@
 package com.cloudera.labs.envelope.input;
 
 import com.cloudera.labs.envelope.component.CanReturnErroredData;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.DeclaresProvidingSchema;
 import com.cloudera.labs.envelope.schema.InputTranslatorCompatibilityValidation;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.schema.UsesExpectedSchema;
 import com.cloudera.labs.envelope.spark.Contexts;
@@ -48,7 +49,6 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -147,7 +147,7 @@ public class FileSystemInput implements BatchInput, ProvidesAlias, ProvidesValid
     if ((format.equals(CSV_FORMAT) || format.equals(JSON_FORMAT)) &&
         config.hasPath(SCHEMA_CONFIG)) {
       Config schemaConfig = config.getConfig(SCHEMA_CONFIG);
-      this.schema = SchemaFactory.create(schemaConfig, true).getSchema();
+      this.schema = ComponentFactory.create(Schema.class, schemaConfig, true).getSchema();
     }
 
     if (format.equals(INPUT_FORMAT_FORMAT)) {

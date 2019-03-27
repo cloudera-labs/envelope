@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -42,7 +42,8 @@ public class TestUUIDPartitioner {
     JavaPairRDD<Row, Row> rdd = 
         Contexts.getSparkSession().range(10).javaRDD().map(new LongToRowFunction()).mapToPair(new UUIDKeyFunction()).repartition(10);
     
-    p.configure(ConfigFactory.empty(), rdd);
+    p.configure(ConfigFactory.empty());
+    p.configureRDD(rdd);
     
     assertEquals(p.numPartitions(), 10);
   }
@@ -69,7 +70,8 @@ public class TestUUIDPartitioner {
     .mapToPair(new CopyKeyFunction())
     .repartition(10);
     
-    p.configure(ConfigFactory.empty(), base);
+    p.configure(ConfigFactory.empty());
+    p.configureRDD(base);
     
     int[] partitionIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     List<Tuple2<Row, Iterable<Row>>>[] results = base.groupByKey(p).collectPartitions(partitionIds);
@@ -128,7 +130,8 @@ public class TestUUIDPartitioner {
     .mapToPair(new CopyKeyFunction())
     .repartition(10);
     
-    p.configure(ConfigFactory.empty(), base);
+    p.configure(ConfigFactory.empty());
+    p.configureRDD(base);
     
     int[] partitionIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     List<Tuple2<Row, Iterable<Row>>>[] results = base.groupByKey(p).collectPartitions(partitionIds);

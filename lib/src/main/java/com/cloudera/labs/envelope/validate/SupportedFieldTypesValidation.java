@@ -15,11 +15,10 @@
 
 package com.cloudera.labs.envelope.validate;
 
-import com.cloudera.labs.envelope.schema.SchemaFactory;
-
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.google.common.collect.Sets;
 import com.typesafe.config.Config;
-
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
@@ -48,7 +47,8 @@ public class SupportedFieldTypesValidation implements Validation {
   @Override
   public ValidationResult validate(Config config) {
 
-    for (StructField field : SchemaFactory.create(config.getConfig(this.path), true).getSchema().fields()) { 
+    for (StructField field : ComponentFactory.create(
+        Schema.class, config.getConfig(this.path), true).getSchema().fields()) {
       boolean decimalMatch = (field.dataType() instanceof DecimalType &&
                               validationTypes.contains(new DecimalType()));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.task.Task;
-import com.cloudera.labs.envelope.task.TaskFactory;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -37,8 +37,8 @@ public class TestTaskStep {
     customTaskGlobal = "";
 
     Map<String, Object> taskStepConfigMap = Maps.newHashMap();
-    taskStepConfigMap.put(TaskFactory.TYPE_CONFIG_NAME, "task");
-    taskStepConfigMap.put(TaskFactory.CLASS_CONFIG_NAME, CustomTask.class.getName());
+    taskStepConfigMap.put(ComponentFactory.TYPE_CONFIG_NAME, "task");
+    taskStepConfigMap.put(TaskStep.CLASS_CONFIG, CustomTask.class.getName());
     taskStepConfigMap.put("value", "hello");
     Config taskStepConfig = ConfigFactory.parseMap(taskStepConfigMap);
 

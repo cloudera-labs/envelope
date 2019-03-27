@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -21,12 +21,15 @@ import org.apache.spark.sql.Row;
 
 @SuppressWarnings("serial")
 public class DummyPartitioner extends ConfigurablePartitioner {
-  boolean configured = false;
+  private boolean configured = false;
       
   @Override
-  public void configure(Config config, JavaPairRDD<Row, Row> rdd) {
+  public void configure(Config config) {
     configured = true;
   }
+
+  @Override
+  public void configureRDD(JavaPairRDD<Row, Row> rdd) { }
 
   @Override
   public int getPartition(Object arg0) {
@@ -41,4 +44,5 @@ public class DummyPartitioner extends ConfigurablePartitioner {
   public boolean hasBeenConfigured() {
     return configured;
   }
+
 }

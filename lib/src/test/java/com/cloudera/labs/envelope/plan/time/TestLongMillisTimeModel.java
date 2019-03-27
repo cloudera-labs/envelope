@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -43,7 +43,8 @@ public class TestLongMillisTimeModel {
     schema = DataTypes.createStructType(Lists.newArrayList(field));
     
     tm = new LongMillisTimeModel();
-    tm.configure(ConfigFactory.empty(), Lists.newArrayList(field.name()));
+    tm.configure(ConfigFactory.empty());
+    tm.configureFieldNames(Lists.newArrayList(field.name()));
     
     first = new RowWithSchema(schema, 1000L);
     second = new RowWithSchema(schema, 2000L);

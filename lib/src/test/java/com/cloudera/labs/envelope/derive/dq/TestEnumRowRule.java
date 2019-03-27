@@ -54,7 +54,8 @@ public class TestEnumRowRule {
 
     EnumRowRule rule = new EnumRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("namecheck", config);
+    rule.configure(config);
+    rule.configureName("namecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -74,7 +75,8 @@ public class TestEnumRowRule {
 
     EnumRowRule rule = new EnumRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("namecheck", config);
+    rule.configure(config);
+    rule.configureName("namecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "ian", 34, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -93,7 +95,8 @@ public class TestEnumRowRule {
 
     EnumRowRule rule = new EnumRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("agecheck", config);
+    rule.configure(config);
+    rule.configureName("agecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -112,7 +115,8 @@ public class TestEnumRowRule {
 
     EnumRowRule rule = new EnumRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("scorecheck", config);
+    rule.configure(config);
+    rule.configureName("scorecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34L, new BigDecimal("0.00"));
     assertTrue("Row should pass rule", rule.check(row1));
@@ -131,7 +135,8 @@ public class TestEnumRowRule {
 
     EnumRowRule rule = new EnumRowRule();
     assertNoValidationFailures(rule, config);
-    rule.configure("scorecheck", config);
+    rule.configure(config);
+    rule.configureName("scorecheck");
 
     Row row1 = new RowWithSchema(SCHEMA, "Ian", "Ian", 34, new BigDecimal("0.00"));
     assertFalse("Row should not pass rule", rule.check(row1));

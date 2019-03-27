@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,12 +15,13 @@
 
 package com.cloudera.labs.envelope.task;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.run.TaskStep;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
+import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -52,7 +53,7 @@ public class ExceptionTask implements Task, ProvidesAlias, ProvidesValidations {
     return Validations.builder()
         .mandatoryPath(MESSAGE_CONFIG, ConfigValueType.STRING)
         .optionalPath(TaskStep.DEPENDENCIES_CONFIG)
-        .optionalPath(TaskFactory.CLASS_CONFIG_NAME)
+        .optionalPath(TaskStep.CLASS_CONFIG)
         .build();
   }
 

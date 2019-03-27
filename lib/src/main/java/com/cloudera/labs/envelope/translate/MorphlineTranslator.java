@@ -15,10 +15,11 @@
 
 package com.cloudera.labs.envelope.translate;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.utils.MorphlineUtils;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
@@ -72,7 +73,7 @@ public class MorphlineTranslator implements Translator, ProvidesAlias, ProvidesV
     this.morphlineId = config.getString(MORPHLINE_ID);
 
     // Construct the StructType schema for the Rows
-    this.schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    this.schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
   }
 
   @Override

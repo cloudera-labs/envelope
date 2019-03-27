@@ -16,19 +16,12 @@
 package com.cloudera.labs.envelope.schema;
 
 import com.cloudera.labs.envelope.component.Component;
-import com.typesafe.config.Config;
 import org.apache.spark.sql.types.StructType;
 
 /**
  * Schemas provide alternative methods to define the SparkSQL Row schema 
  */
 public interface Schema extends Component {
-
-  /**
-   * Configure the Schema.
-   * @param config The configuration of the schema.
-   */
-  void configure(Config config);
 
   /**
    * Get the schema.

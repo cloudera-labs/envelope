@@ -16,15 +16,15 @@
 package com.cloudera.labs.envelope.derive;
 
 import com.cloudera.labs.envelope.component.CanReturnErroredData;
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.schema.SchemaNegotiator;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.cloudera.labs.envelope.translate.TranslateFunction;
 import com.cloudera.labs.envelope.translate.TranslationResults;
 import com.cloudera.labs.envelope.translate.Translator;
-import com.cloudera.labs.envelope.translate.TranslatorFactory;
 import com.cloudera.labs.envelope.utils.RowUtils;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
@@ -37,7 +37,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
@@ -133,7 +132,7 @@ public class TranslateDeriver implements Deriver, ProvidesAlias, ProvidesValidat
   @Override
   public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
     return Sets.newHashSet(new InstantiatedComponent(
-        TranslatorFactory.create(config.getConfig(TRANSLATOR_CONFIG), configure),
+        ComponentFactory.create(Translator.class, config.getConfig(TRANSLATOR_CONFIG), configure),
         config.getConfig(TRANSLATOR_CONFIG),
         "Translator"));
   }

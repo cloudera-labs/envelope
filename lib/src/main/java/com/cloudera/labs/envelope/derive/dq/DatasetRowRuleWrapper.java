@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Cloudera, Inc. All Rights Reserved.
+ * Copyright (c) 2015-2019, Cloudera, Inc. All Rights Reserved.
  *
  * Cloudera, Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"). You may not use this file except in
@@ -15,7 +15,8 @@
 
 package com.cloudera.labs.envelope.derive.dq;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
 import com.cloudera.labs.envelope.spark.RowWithSchema;
 import com.typesafe.config.Config;
 import org.apache.spark.api.java.function.MapFunction;
@@ -33,9 +34,14 @@ public class DatasetRowRuleWrapper implements DatasetRule, ProvidesAlias {
   private RowRule rowRule;
 
   @Override
-  public void configure(String name, Config config) {
+  public void configure(Config config) {
+    this.rowRule = ComponentFactory.create(RowRule.class, config, true);
+  }
+
+  @Override
+  public void configureName(String name) {
     this.name = name;
-    this.rowRule = RowRuleFactory.create(name, config, true);
+    this.rowRule.configureName(name);
   }
 
   @Override

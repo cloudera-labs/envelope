@@ -15,26 +15,23 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.component.InstantiatedComponent;
 import com.cloudera.labs.envelope.component.InstantiatesComponents;
 import com.cloudera.labs.envelope.derive.Deriver;
-import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.event.CoreEventMetadataKeys;
 import com.cloudera.labs.envelope.event.CoreEventTypes;
 import com.cloudera.labs.envelope.event.Event;
 import com.cloudera.labs.envelope.event.EventManager;
 import com.cloudera.labs.envelope.event.EventUtils;
 import com.cloudera.labs.envelope.input.Input;
-import com.cloudera.labs.envelope.input.InputFactory;
 import com.cloudera.labs.envelope.output.BulkOutput;
 import com.cloudera.labs.envelope.output.Output;
-import com.cloudera.labs.envelope.output.OutputFactory;
 import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.partition.PartitionerFactory;
 import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.plan.Planner;
-import com.cloudera.labs.envelope.plan.PlannerFactory;
 import com.cloudera.labs.envelope.plan.RandomPlanner;
 import com.cloudera.labs.envelope.spark.AccumulatorRequest;
 import com.cloudera.labs.envelope.spark.Accumulators;
@@ -191,12 +188,12 @@ public abstract class DataStep
 
     if (configure) {
       if (input == null) {
-        input = InputFactory.create(inputConfig, configure);
+        input = ComponentFactory.create(Input.class, inputConfig, configure);
       }
       return input;
     }
     else {
-      return InputFactory.create(inputConfig, configure);
+      return ComponentFactory.create(Input.class, inputConfig, configure);
     }
   }
   
@@ -205,12 +202,12 @@ public abstract class DataStep
 
     if (configure) {
       if (deriver == null) {
-        deriver = DeriverFactory.create(deriverConfig, configure);
+        deriver = ComponentFactory.create(Deriver.class, deriverConfig, true);
       }
       return deriver;
     }
     else {
-      return DeriverFactory.create(deriverConfig, configure);
+      return ComponentFactory.create(Deriver.class, deriverConfig, false);
     }
   }
 
@@ -219,12 +216,12 @@ public abstract class DataStep
 
     if (configure) {
       if (planner == null) {
-        planner = PlannerFactory.create(plannerConfig, configure);
+        planner = ComponentFactory.create(Planner.class, plannerConfig, true);
       }
       return planner;
     }
     else {
-      return PlannerFactory.create(plannerConfig, configure);
+      return ComponentFactory.create(Planner.class, plannerConfig, false);
     }
   }
 
@@ -233,12 +230,12 @@ public abstract class DataStep
 
     if (configure) {
       if (output == null) {
-        output = OutputFactory.create(outputConfig, configure);
+        output = ComponentFactory.create(Output.class, outputConfig, true);
       }
       return output;
     }
     else {
-      return OutputFactory.create(outputConfig, configure);
+      return ComponentFactory.create(Output.class, outputConfig, false);
     }
   }
 
@@ -626,7 +623,7 @@ public abstract class DataStep
 
       // If we have not instantiated the output for this partition, instantiate it
       if (output == null) {
-        output = (RandomOutput)OutputFactory.create(outputConfig, true);
+        output = (RandomOutput)ComponentFactory.create(Output.class, outputConfig, true);
         if (output instanceof UsesAccumulators) {
             ((UsesAccumulators)output).receiveAccumulators(accumulators);
         }
@@ -728,7 +725,7 @@ public abstract class DataStep
       long startTime = System.nanoTime();
       
       if (planner == null) {
-        planner = (RandomPlanner)PlannerFactory.create(config, true);
+        planner = (RandomPlanner)ComponentFactory.create(Planner.class, config, true);
         if (planner instanceof UsesAccumulators) {
           ((UsesAccumulators)planner).receiveAccumulators(accumulators);
         }
@@ -768,7 +765,7 @@ public abstract class DataStep
       long startTime = System.nanoTime();
 
       if (output == null) {
-        output = (RandomOutput)OutputFactory.create(config, true);
+        output = (RandomOutput)ComponentFactory.create(Output.class, config, true);
         if (output instanceof UsesAccumulators) {
           ((UsesAccumulators)output).receiveAccumulators(accumulators);
         }

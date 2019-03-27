@@ -15,8 +15,8 @@
 
 package com.cloudera.labs.envelope.run;
 
+import com.cloudera.labs.envelope.component.ComponentFactory;
 import com.cloudera.labs.envelope.derive.Deriver;
-import com.cloudera.labs.envelope.derive.DeriverFactory;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.utils.StepUtils;
 import com.google.common.collect.Lists;
@@ -533,7 +533,7 @@ public class TestLoopStep {
 
     Map<String, Object> step1ConfigMap = Maps.newHashMap();
     step1ConfigMap.put(Step.DEPENDENCIES_CONFIG, Lists.newArrayList("loop_step"));
-    step1ConfigMap.put("deriver." + DeriverFactory.TYPE_CONFIG_NAME, SQLDeriver.class.getName());
+    step1ConfigMap.put("deriver." + ComponentFactory.TYPE_CONFIG_NAME, SQLDeriver.class.getName());
     step1ConfigMap.put("deriver.query.literal", "SELECT ${loop_value}");
 
     Config step1Config = ConfigFactory.parseMap(step1ConfigMap);

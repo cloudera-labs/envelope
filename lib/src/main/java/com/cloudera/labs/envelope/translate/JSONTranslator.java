@@ -15,8 +15,9 @@
 
 package com.cloudera.labs.envelope.translate;
 
-import com.cloudera.labs.envelope.load.ProvidesAlias;
-import com.cloudera.labs.envelope.schema.SchemaFactory;
+import com.cloudera.labs.envelope.component.ComponentFactory;
+import com.cloudera.labs.envelope.component.ProvidesAlias;
+import com.cloudera.labs.envelope.schema.Schema;
 import com.cloudera.labs.envelope.utils.SchemaUtils;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
@@ -44,7 +45,7 @@ public class JSONTranslator implements Translator, ProvidesAlias, ProvidesValida
 
   @Override
   public void configure(Config config) {
-    schema = SchemaFactory.create(config.getConfig(SCHEMA_CONFIG), true).getSchema();
+    schema = ComponentFactory.create(Schema.class, config.getConfig(SCHEMA_CONFIG), true).getSchema();
 
     // This is wading into internal Spark APIs but it allows us to be fully consistent
     // with Spark because we are delegating it all of the parsing work
