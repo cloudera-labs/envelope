@@ -483,22 +483,8 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
     }
   }
 
-  /**
-   * Returns whether or not we should ignore duplicate rows
-   */
-  private boolean isInsertIgnore() {
-    return ConfigUtils.getOrElse(config, INSERT_IGNORE_CONFIG_NAME, false);
-  }
-
   private KuduConnection getConnection() throws KuduException {
     return KuduConnectionManager.getKuduConnectionManager(config).getConnection();
-  }
-
-  /**
-   * Returns whether or not we should ignore missing columns when writing to Kudu
-   */
-  private boolean ignoreMissingColumns() {
-    return ConfigUtils.getOrElse(config, IGNORE_MISSING_COLUMNS_CONFIG_NAME, false);
   }
   
   private boolean hasAccumulators() {

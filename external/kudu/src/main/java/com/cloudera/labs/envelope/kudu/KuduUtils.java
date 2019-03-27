@@ -15,6 +15,7 @@
 
 package com.cloudera.labs.envelope.kudu;
 
+import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -42,14 +43,14 @@ class KuduUtils {
    * Returns whether or not we should ignore duplicate rows
    */
   static boolean doesInsertIgnoreDuplicates(Config config) {
-    return config.hasPath(INSERT_IGNORE_CONFIG_NAME) && config.getBoolean(INSERT_IGNORE_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, INSERT_IGNORE_CONFIG_NAME, true);
   }
 
   /**
    * Returns whether or not we should ignore missing columns when writing to Kudu
    */
   static boolean ignoreMissingColumns(Config config) {
-    return config.hasPath(IGNORE_MISSING_COLUMNS_CONFIG_NAME) && config.getBoolean(IGNORE_MISSING_COLUMNS_CONFIG_NAME);
+    return ConfigUtils.getOrElse(config, IGNORE_MISSING_COLUMNS_CONFIG_NAME, false);
   }
 
   /**

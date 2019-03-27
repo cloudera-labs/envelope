@@ -1323,7 +1323,7 @@ Output `type` = `kudu`.
 |The name of the Kudu table to write to.
 
 |insert.ignore
-|Ignore duplicate rows in Kudu (default: false)
+|Ignore duplicate rows in Kudu (default: true)
 
 |ignore.missing.columns
 |Ignore writing columns that do not exist in the Kudu schema (default: false)
