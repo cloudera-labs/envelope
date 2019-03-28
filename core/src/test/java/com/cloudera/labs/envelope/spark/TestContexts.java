@@ -18,6 +18,7 @@ package com.cloudera.labs.envelope.spark;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.junit.Before;
@@ -35,10 +36,24 @@ import static org.junit.Assert.assertTrue;
 public class TestContexts {
 
   private static final String RESOURCES_PATH = "/spark";
+  private static final String HADOOP_CONF_PREFIX = Contexts.APPLICATION_SECTION_PREFIX + "." + 
+    Contexts.SPARK_CONF_PROPERTY_PREFIX + ".spark.hadoop.";
 
   @Before
   public void setup() {
     Contexts.closeSparkSession();
+  }
+
+  private Map<String, Object> getTestConfigMap() {
+    Map<String, Object> params = new HashMap<>();
+    params.put(HADOOP_CONF_PREFIX + "javax.jdo.option.ConnectionURL",
+        "jdbc:derby:memory:db;create=true");
+    params.put(HADOOP_CONF_PREFIX + "hive.exec.scratchdir", "core/target/scratch");
+    return params;
+  }
+
+  private Config getTestConfig() {
+    return ConfigFactory.parseMap(getTestConfigMap());
   }
 
   @Test
@@ -73,7 +88,7 @@ public class TestContexts {
   
   @Test
   public void testDefaultBatchConfiguration() {
-    Config config = ConfigFactory.empty();
+    Config config = getTestConfig();
     Contexts.initialize(config, Contexts.ExecutionMode.BATCH);
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     assertTrue(!sparkConf.contains("spark.dynamicAllocation.enabled"));
@@ -83,7 +98,7 @@ public class TestContexts {
   
   @Test
   public void testDefaultStreamingConfiguration() {
-    Config config = ConfigFactory.empty();
+    Config config = getTestConfig();
     Contexts.initialize(config, Contexts.ExecutionMode.STREAMING);
     SparkConf sparkConf = Contexts.getSparkSession().sparkContext().getConf();
     assertTrue(sparkConf.contains("spark.dynamicAllocation.enabled"));
@@ -105,6 +120,7 @@ public class TestContexts {
     Map<String, Object> sparamMap = new HashMap<>();
     sparamMap.put(Contexts.APPLICATION_SECTION_PREFIX + "." +
         Contexts.SPARK_SESSION_ENABLE_HIVE_SUPPORT, false);
+    sparamMap.putAll(getTestConfigMap());
     Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveDisabled(d int)");
     try {
@@ -129,6 +145,7 @@ public class TestContexts {
     Map<String, Object> sparamMap = new HashMap<>();
     sparamMap.put(Contexts.SPARK_CONF_PROPERTY_PREFIX + "spark.sql.warehouse.dir",
         "target/spark-warehouse");
+    sparamMap.putAll(getTestConfigMap());
     Contexts.initialize(ConfigFactory.parseMap(sparamMap), Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
     Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
@@ -137,7 +154,8 @@ public class TestContexts {
 
   @Test
   public void testHiveEnabledByDefault() {
-    Contexts.initialize(ConfigFactory.empty(), Contexts.ExecutionMode.BATCH);
+    Config config = getTestConfig();
+    Contexts.initialize(config, Contexts.ExecutionMode.BATCH);
     Contexts.getSparkSession().sql("CREATE TABLE testHiveEnabled(d int)");
     Contexts.getSparkSession().sql("SELECT count(*) from testHiveEnabled");
     Contexts.getSparkSession().sql("DROP TABLE testHiveEnabled");
