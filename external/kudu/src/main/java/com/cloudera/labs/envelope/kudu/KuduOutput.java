@@ -366,42 +366,51 @@ public class KuduOutput implements RandomOutput, BulkOutput, UsesAccumulators, P
 
         if (!plan.isNullAt(plan.fieldIndex(fieldName))) {
           int fieldIndex = plan.fieldIndex(fieldName);
-          switch (columnSchema.getType()) {
-            case DOUBLE:
-              kuduRow.addDouble(fieldName, plan.getDouble(fieldIndex));
-              break;
-            case FLOAT:
-              kuduRow.addFloat(fieldName, plan.getFloat(fieldIndex));
-              break;
-            case INT8:
-              kuduRow.addByte(fieldName, plan.getByte(fieldIndex));
-              break;
-            case INT16:
-              kuduRow.addShort(fieldName, plan.getShort(fieldIndex));
-              break;
-            case INT32:
-              kuduRow.addInt(fieldName, plan.getInt(fieldIndex));
-              break;
-            case INT64:
-              kuduRow.addLong(fieldName, plan.getLong(fieldIndex));
-              break;
-            case STRING:
-              kuduRow.addString(fieldName, plan.getString(fieldIndex));
-              break;
-            case BOOL:
-              kuduRow.addBoolean(fieldName, plan.getBoolean(fieldIndex));
-              break;
-            case BINARY:
-              kuduRow.addBinary(fieldName, plan.<byte[]>getAs(fieldIndex));
-              break;
-            case UNIXTIME_MICROS:
-              kuduRow.addTimestamp(fieldName, plan.getTimestamp(fieldIndex));
-              break;
-            case DECIMAL:
-              kuduRow.addDecimal(fieldName, plan.getDecimal(fieldIndex));
-              break;
-            default:
-              throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
+          try {
+            switch (columnSchema.getType()) {
+              case DOUBLE:
+                kuduRow.addDouble(fieldName, plan.getDouble(fieldIndex));
+                break;
+              case FLOAT:
+                kuduRow.addFloat(fieldName, plan.getFloat(fieldIndex));
+                break;
+              case INT8:
+                kuduRow.addByte(fieldName, plan.getByte(fieldIndex));
+                break;
+              case INT16:
+                kuduRow.addShort(fieldName, plan.getShort(fieldIndex));
+                break;
+              case INT32:
+                kuduRow.addInt(fieldName, plan.getInt(fieldIndex));
+                break;
+              case INT64:
+                kuduRow.addLong(fieldName, plan.getLong(fieldIndex));
+                break;
+              case STRING:
+                kuduRow.addString(fieldName, plan.getString(fieldIndex));
+                break;
+              case BOOL:
+                kuduRow.addBoolean(fieldName, plan.getBoolean(fieldIndex));
+                break;
+              case BINARY:
+                kuduRow.addBinary(fieldName, plan.<byte[]>getAs(fieldIndex));
+                break;
+              case UNIXTIME_MICROS:
+                kuduRow.addTimestamp(fieldName, plan.getTimestamp(fieldIndex));
+                break;
+              case DECIMAL:
+                kuduRow.addDecimal(fieldName, plan.getDecimal(fieldIndex));
+                break;
+              default:
+                throw new RuntimeException("Unsupported Kudu column type: " + columnSchema.getType());
+            }
+          }
+          catch (ClassCastException e) {
+            throw new RuntimeException(String.format(
+                "Unexpected type found in planned row. For table '%s', field '%s', expected Kudu " +
+                    "type '%s' but found Java type '%s'. Row schema: '%s', values: %s",
+                table.getName(), fieldName, columnSchema.getType(),
+                plan.get(fieldIndex).getClass().getSimpleName(), plan.schema(), plan), e);
           }
         }
       }

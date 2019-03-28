@@ -491,7 +491,7 @@ public class BitemporalHistoryPlanner implements RandomPlanner, ProvidesAlias, P
   private TimeModel getTimeModel(Config timeModelConfig, List<String> fieldNames, boolean configure) {
     TimeModel timeModel;
 
-    if (timeModelConfig.hasPath(EVENT_TIME_MODEL_CONFIG_NAME)) {
+    if (!timeModelConfig.isEmpty()) {
       timeModel = ComponentFactory.create(TimeModel.class, timeModelConfig, configure);
     }
     else {
