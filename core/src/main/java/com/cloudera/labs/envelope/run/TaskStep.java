@@ -39,7 +39,7 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
   }
   
   public void run(Map<String, Dataset<Row>> dependencies) {
-    Task task = ComponentFactory.create(Task.class, config.getConfig(TASK_CONFIG), true);
+    Task task = ComponentFactory.create(Task.class, getTaskConfig(config), true);
     
     task.run(dependencies);
     
@@ -68,12 +68,16 @@ public class TaskStep extends Step implements ProvidesValidations, InstantiatesC
 
   @Override
   public Set<InstantiatedComponent> getComponents(Config config, boolean configure) {
-    Task task = ComponentFactory.create(Task.class, config.getConfig(TASK_CONFIG), configure);
+    Task task = ComponentFactory.create(Task.class, getTaskConfig(config), configure);
 
     Set<InstantiatedComponent> components = Sets.newHashSet(
-        new InstantiatedComponent(task, config, "Task"));
+        new InstantiatedComponent(task, getTaskConfig(config), "Task"));
 
     return components;
+  }
+
+  private Config getTaskConfig(Config config) {
+    return config.getConfig(TASK_CONFIG);
   }
 
 }
