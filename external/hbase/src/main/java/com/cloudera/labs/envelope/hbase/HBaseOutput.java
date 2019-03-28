@@ -63,7 +63,7 @@ import java.util.Set;
  *     zookeeper = "vm1:2181"
  *     table.name = "default:test"
  *     mapping {
- *       rowkey = ["symbol", "transacttime"]
+ *       rowkey.columns = ["symbol", "transacttime"]
  *       columns {
  *         symbol {
  *           cf = "rowkey"
