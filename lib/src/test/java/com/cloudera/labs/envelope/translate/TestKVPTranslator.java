@@ -46,8 +46,8 @@ public class TestKVPTranslator {
                                    "field5", "field6", "field7", "field8")))
         .withValue(KVPTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
             ConfigValueFactory.fromIterable(
-                Lists.newArrayList("string", "float", "double", "integer",
-                                   "long", "integer", "boolean", "timestamp")))
+                Lists.newArrayList("string", "float", "double", "int",
+                                   "long", "int", "boolean", "timestamp")))
         .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
         .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="));
 
@@ -80,8 +80,8 @@ public class TestKVPTranslator {
                                    "field5", "field6", "field7", "field8")))
         .withValue(KVPTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
             ConfigValueFactory.fromIterable(
-            Lists.newArrayList("timestamp", "timestamp", "double", "integer",
-                               "long", "integer", "boolean", "timestamp")))
+            Lists.newArrayList("timestamp", "timestamp", "double", "int",
+                               "long", "int", "boolean", "timestamp")))
         .withValue(KVPTranslator.KVP_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("---"))
         .withValue(KVPTranslator.FIELD_DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("="))
         .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(

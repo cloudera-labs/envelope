@@ -92,7 +92,7 @@ public class RangeRowRule implements RowRule, ProvidesAlias, ProvidesValidations
   private static Class<? extends Comparable<?>> getFieldType(String fieldType) {
     Class<? extends Comparable<?>> clazz;
     switch (fieldType) {
-      case ConfigurationDataTypes.INTEGER:
+      case ConfigurationDataTypes.INT:
         clazz = Integer.class;
         break;
       case ConfigurationDataTypes.LONG:

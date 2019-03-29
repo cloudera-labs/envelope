@@ -78,7 +78,7 @@ public class TestFileSystemInput {
         "schema {\n" +
         "  type = flat\n" +
         "  field.names = [A Long, An Integer]\n" +
-        "  field.types = [long, integer]\n" +
+        "  field.types = [long, int]\n" +
         "}\n" +
         "schema {\n" +
         "  type = avro\n" +
@@ -135,7 +135,7 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
                  Lists.newArrayList("A Long", "An Int", "A String", "Another String"));
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-                 Lists.newArrayList("long", "integer", "string", "string"));
+                 Lists.newArrayList("long", "int", "string", "string"));
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
@@ -206,7 +206,7 @@ public class TestFileSystemInput {
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
                  Lists.newArrayList("field1", "field2", "field3", "field4"));
     paramMap.put(FileSystemInput.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-                 Lists.newArrayList("integer", "string", "boolean", "string"));
+                 Lists.newArrayList("int", "string", "boolean", "string"));
     config = ConfigFactory.parseMap(paramMap);
 
     FileSystemInput csvInput = new FileSystemInput();
@@ -312,7 +312,7 @@ public class TestFileSystemInput {
     configMap.put("translator.delimiter.field", "=");
     configMap.put("translator.schema.type", "flat");
     configMap.put("translator.schema.field.names", Lists.newArrayList("a", "b", "c"));
-    configMap.put("translator.schema.field.types", Lists.newArrayList("integer", "string", "boolean"));
+    configMap.put("translator.schema.field.types", Lists.newArrayList("int", "string", "boolean"));
     config = ConfigFactory.parseMap(configMap);
     
     FileSystemInput formatInput = new FileSystemInput();
@@ -336,7 +336,7 @@ public class TestFileSystemInput {
     configMap.put("translator.delimiter.field", "=");
     configMap.put("translator.schema.type", "flat");
     configMap.put("translator.schema.field.names", Lists.newArrayList("a", "b", "c"));
-    configMap.put("translator.schema.field.types", Lists.newArrayList("integer", "string", "boolean"));
+    configMap.put("translator.schema.field.types", Lists.newArrayList("int", "string", "boolean"));
     configMap.put("translator.append.raw.enabled", true);
     config = ConfigFactory.parseMap(configMap);
 

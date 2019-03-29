@@ -72,7 +72,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar", "foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string"));
+        Lists.newArrayList("int", "string"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -97,7 +97,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar", "foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "boom"));
+        Lists.newArrayList("int", "boom"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -122,7 +122,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer"));
+        Lists.newArrayList("int"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator = new MorphlineTranslator();
@@ -142,7 +142,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "boolean"));
+        Lists.newArrayList("int", "string", "boolean"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -161,7 +161,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -188,7 +188,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -217,7 +217,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -247,7 +247,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -269,7 +269,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -291,7 +291,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -311,7 +311,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -338,7 +338,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("int", "str", "float"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string", "float"));
+        Lists.newArrayList("int", "string", "float"));
     Config config = ConfigFactory.parseMap(configMap);
 
     translator.configure(config);
@@ -379,7 +379,7 @@ public class TestMorphlineTranslator {
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo"));
     configMap.put(MorphlineTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer"));
+        Lists.newArrayList("int"));
     Config config = ConfigFactory.parseMap(configMap);
 
     new Expectations() {{

@@ -338,7 +338,7 @@ steps {
           schema {
             type = flat
             field.names = ["name", "address", "age"]
-            field.types = ["string", "string", "integer"]
+            field.types = ["string", "string", "int"]
           }
         }
         r3 {
@@ -377,7 +377,7 @@ steps {
         r3 {
           type = range
           fields = ["age"]
-          fieldtype = "integer"
+          fieldtype = "int"
           range = [0,150]
           ignore-nulls = true
         }

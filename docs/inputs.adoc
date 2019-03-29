@@ -108,7 +108,7 @@ input {
     schema {
       type = flat
       field.names = [name,score,time]
-      field.types = [string,integer,long]
+      field.types = [string,int,long]
     }
   }
   offsets {

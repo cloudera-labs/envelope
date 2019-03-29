@@ -80,7 +80,7 @@ public class EnumRowRule implements RowRule, ProvidesAlias, ProvidesValidations 
   private static Class getFieldType(String fieldType) {
     Class clazz;
     switch (fieldType) {
-      case ConfigurationDataTypes.INTEGER:
+      case ConfigurationDataTypes.INT:
         clazz = Integer.class;
         break;
       case ConfigurationDataTypes.LONG:

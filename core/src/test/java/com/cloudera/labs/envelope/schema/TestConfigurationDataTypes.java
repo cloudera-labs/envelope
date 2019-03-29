@@ -33,7 +33,7 @@ public class TestConfigurationDataTypes {
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.DoubleType), ConfigurationDataTypes.DOUBLE);
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.ByteType), ConfigurationDataTypes.BYTE);
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.ShortType), ConfigurationDataTypes.SHORT);
-    assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.IntegerType), ConfigurationDataTypes.INTEGER);
+    assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.IntegerType), ConfigurationDataTypes.INT);
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.LongType), ConfigurationDataTypes.LONG);
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.BooleanType), ConfigurationDataTypes.BOOLEAN);
     assertEquals(ConfigurationDataTypes.getConfigurationDataType(DataTypes.BinaryType), ConfigurationDataTypes.BINARY);
@@ -56,7 +56,7 @@ public class TestConfigurationDataTypes {
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.DOUBLE), DataTypes.DoubleType);
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.BYTE), DataTypes.ByteType);
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.SHORT), DataTypes.ShortType);
-    assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.INTEGER), DataTypes.IntegerType);
+    assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.INT), DataTypes.IntegerType);
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.LONG), DataTypes.LongType);
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.BOOLEAN), DataTypes.BooleanType);
     assertEquals(ConfigurationDataTypes.getSparkDataType(ConfigurationDataTypes.BINARY), DataTypes.BinaryType);

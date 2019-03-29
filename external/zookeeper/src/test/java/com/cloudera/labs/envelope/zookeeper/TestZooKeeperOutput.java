@@ -48,7 +48,7 @@ public class TestZooKeeperOutput implements Watcher {
   private static TestingServer zk;
   private static Config config;
   private static List<String> fieldNames = Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6");
-  private static List<String> fieldTypes = Lists.newArrayList("string", "integer", "long", "boolean", "float", "double");
+  private static List<String> fieldTypes = Lists.newArrayList("string", "int", "long", "boolean", "float", "double");
   private static List<String> keyFieldNames = Lists.newArrayList("field1", "field2", "field3");
   private static StructType schema;
   private static StructType keySchema;

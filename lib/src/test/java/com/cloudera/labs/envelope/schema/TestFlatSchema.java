@@ -44,7 +44,7 @@ public class TestFlatSchema {
         "shortField", "integerField", "longField", "booleanField",
         "binaryField", "dateField", "timestampField", "decimalField2"));
     paramMap.put(FlatSchema.FIELD_TYPES_CONFIG, Lists.newArrayList(
-        "decimal(10,0)", "string", "float", "double", "byte", "short", "integer",
+        "decimal(10,0)", "string", "float", "double", "byte", "short", "int",
         "long", "boolean", "binary", "date", "timestamp", " decimal ( 38 , 38 )"));
     config = ConfigFactory.parseMap(paramMap);
     FlatSchema flatSchema = new FlatSchema(); 
@@ -93,7 +93,7 @@ public class TestFlatSchema {
   public void missingNames() {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put(ComponentFactory.TYPE_CONFIG_NAME, "flat");
-    paramMap.put(FlatSchema.FIELD_TYPES_CONFIG, Lists.newArrayList("long", "integer"));
+    paramMap.put(FlatSchema.FIELD_TYPES_CONFIG, Lists.newArrayList("long", "int"));
     config = ConfigFactory.parseMap(paramMap);
     FlatSchema flatSchema = new FlatSchema(); 
     assertValidationFailures(flatSchema, config);

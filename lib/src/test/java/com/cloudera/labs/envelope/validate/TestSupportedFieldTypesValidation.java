@@ -43,7 +43,7 @@ public class TestSupportedFieldTypesValidation {
               Lists.newArrayList("field1", "field2", "field3", "field4","field5")))
       .withValue(SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
           ConfigValueFactory.fromIterable(
-              Lists.newArrayList("binary", "integer", "string", "decimal(14,7)", "timestamp")));
+              Lists.newArrayList("binary", "int", "string", "decimal(14,7)", "timestamp")));
 
   @Test
   public void testValid() {

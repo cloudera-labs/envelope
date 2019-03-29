@@ -728,7 +728,7 @@ Deriver `type` = `dq`.
 |Required. String list of field names.
 
 |fieldtype
-|Optional. Type of the field to check for defined values: must be `string`, `long`, `integer`, or `decimal`. Defaults to `string`.
+|Optional. Type of the field to check for defined values: must be `string`, `long`, `int`, or `decimal`. Defaults to `string`.
 
 |values
 |Required. List of values. For strings and decimals define the values using string literals. For integral types use number literals.
@@ -744,7 +744,7 @@ Deriver `type` = `dq`.
 
 |fieldtype
 |Optional. The field type to use when doing range checks. Range values will be interpreted as this type. Must be numeric: allowed values are
-`integer`, `long`, `double`, `float`, `decimal`. Take care when using floating point values as exact boundary matches may not behave as expected - use
+`int`, `long`, `double`, `float`, `decimal`. Take care when using floating point values as exact boundary matches may not behave as expected - use
 `decimal` if exact boundaries are required. Defaults to `long`.
 
 |range
@@ -1398,7 +1398,7 @@ so for binary separators use the `\uXXXX` syntax. Defaults to "`:`".
 |Required for `default` serde. A map of column definitions specifying how to map Row fields into HBase columns. Each
 column requires three attributes: the column family `cf`, the column qualifier `col` and
 the column type `type`. The columns which comprise the row key are denoted with `cf = rowkey`.
-Supported types are integer, long, boolean, float, double and string. For example:
+Supported types are int, long, boolean, float, double and string. For example:
 
 ....
 mapping.columns {
@@ -1420,7 +1420,7 @@ mapping.columns {
   orderqty {
     cf = "cf1"
     col = "orderqty"
-    type = "integer"
+    type = "int"
   }
 }
 ....
@@ -1698,7 +1698,7 @@ Envelope supports the following Spark data types when defining a schema in-line 
 * `string`
 * `byte`
 * `short`
-* `integer`
+* `int`
 * `long`
 * `float`
 * `double`

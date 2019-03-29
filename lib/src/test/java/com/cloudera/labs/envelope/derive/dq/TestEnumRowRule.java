@@ -89,7 +89,7 @@ public class TestEnumRowRule {
   public void testIntEnums() {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put("fields", Lists.newArrayList("age"));
-    configMap.put("fieldtype", "integer");
+    configMap.put("fieldtype", "int");
     configMap.put("values", Lists.newArrayList(34, 42, 111));
     Config config = ConfigFactory.parseMap(configMap);
 

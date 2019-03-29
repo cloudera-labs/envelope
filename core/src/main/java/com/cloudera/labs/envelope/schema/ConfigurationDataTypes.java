@@ -32,7 +32,7 @@ public class ConfigurationDataTypes {
   public static final String DOUBLE = "double";
   public static final String BYTE = "byte";
   public static final String SHORT = "short";
-  public static final String INTEGER = "integer";
+  public static final String INT = "int";
   public static final String LONG = "long";
   public static final String BOOLEAN = "boolean";
   public static final String BINARY = "binary";
@@ -41,11 +41,14 @@ public class ConfigurationDataTypes {
 
   public static String getConfigurationDataType(DataType type) {
     Set<String> supportedTypes = Sets.newHashSet(
-        STRING, FLOAT, DOUBLE, BYTE, SHORT, INTEGER,
-        LONG, BOOLEAN, BINARY, DATE, TIMESTAMP);    
-
+        STRING, FLOAT, DOUBLE, BYTE, SHORT, INT,
+        LONG, BOOLEAN, BINARY, DATE, TIMESTAMP);
+ 
     if (supportedTypes.contains(type.typeName()) || (type instanceof DecimalType)) {
       return type.typeName();
+    }
+    else if (type.typeName().equals("integer")) {
+      return INT;
     }
     else {
       throw new RuntimeException("Unsupported field type: " + type);
@@ -85,7 +88,7 @@ public class ConfigurationDataTypes {
         case SHORT:
           type = DataTypes.ShortType;
           break;
-        case INTEGER:
+        case INT:
           type = DataTypes.IntegerType;
           break;
         case LONG:

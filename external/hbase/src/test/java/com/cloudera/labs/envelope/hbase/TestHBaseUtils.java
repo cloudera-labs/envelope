@@ -129,15 +129,15 @@ public class TestHBaseUtils {
     def = columnDefs.get("orderqty");
     assertEquals("cf1", def.cf);
     assertEquals("orderqty", def.name);
-    assertEquals("integer", def.type);
+    assertEquals("int", def.type);
     def = columnDefs.get("leavesqty");
     assertEquals("cf1", def.cf);
     assertEquals("leavesqty", def.name);
-    assertEquals("integer", def.type);
+    assertEquals("int", def.type);
     def = columnDefs.get("cumqty");
     assertEquals("cf1", def.cf);
     assertEquals("cumqty", def.name);
-    assertEquals("integer", def.type);
+    assertEquals("int", def.type);
   }
 
   @Test

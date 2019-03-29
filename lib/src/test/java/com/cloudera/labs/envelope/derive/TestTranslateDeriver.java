@@ -70,7 +70,7 @@ public class TestTranslateDeriver {
         "." + FlatSchema.FIELD_NAMES_CONFIG, Lists.newArrayList("e", "f", "g"));
     configMap.put(TranslateDeriver.TRANSLATOR_CONFIG + "." + DelimitedTranslator.SCHEMA_CONFIG +
         "." + FlatSchema.FIELD_TYPES_CONFIG, Lists.newArrayList(
-            ConfigurationDataTypes.STRING, ConfigurationDataTypes.STRING, ConfigurationDataTypes.INTEGER));
+            ConfigurationDataTypes.STRING, ConfigurationDataTypes.STRING, ConfigurationDataTypes.INT));
     Config config = ConfigFactory.parseMap(configMap);
     TranslateDeriver deriver = new TranslateDeriver();
     ValidationAssert.assertNoValidationFailures(deriver, config);

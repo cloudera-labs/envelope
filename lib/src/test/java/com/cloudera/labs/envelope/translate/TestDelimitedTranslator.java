@@ -46,8 +46,8 @@ public class TestDelimitedTranslator {
                                    "field5", "field6", "field7", "field8")))
         .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
             ConfigValueFactory.fromIterable(
-                Lists.newArrayList("string", "float", "double", "integer", 
-                                   "long", "integer", "boolean", "timestamp")))
+                Lists.newArrayList("string", "float", "double", "int", 
+                                   "long", "int", "boolean", "timestamp")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"));
 
     Translator t = new DelimitedTranslator();
@@ -121,7 +121,7 @@ public class TestDelimitedTranslator {
                 Lists.newArrayList("field1", "field2", "field3", "field4", "field5")))
         .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
             ConfigValueFactory.fromIterable(
-                Lists.newArrayList("string", "integer", "long", "integer", "boolean")))
+                Lists.newArrayList("string", "int", "long", "int", "boolean")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef(" "));
 
     DelimitedTranslator t = new DelimitedTranslator();
@@ -179,7 +179,7 @@ public class TestDelimitedTranslator {
                 Lists.newArrayList("field1", "field2", "field3", "field4", "field5", "field6", "field7", "field8")))
         .withValue(DelimitedTranslator.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
             ConfigValueFactory.fromIterable(
-                Lists.newArrayList("timestamp", "timestamp", "double", "integer", "long", "integer", "boolean", "timestamp")))
+                Lists.newArrayList("timestamp", "timestamp", "double", "int", "long", "int", "boolean", "timestamp")))
         .withValue(DelimitedTranslator.DELIMITER_CONFIG_NAME, ConfigValueFactory.fromAnyRef("%$"))
         .withValue(DelimitedTranslator.TIMESTAMP_FORMAT_CONFIG_NAME, ConfigValueFactory.fromIterable(
             Lists.newArrayList("yyyy-MM-dd HH:mm:ss.SSSSS", "yyyy-MM-dd HH:mm:ss")));

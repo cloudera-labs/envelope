@@ -67,7 +67,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo", "bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer", "string"));
+        Lists.newArrayList("int", "string"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     MorphlineDeriver deriver = new MorphlineDeriver();
@@ -149,7 +149,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer"));
+        Lists.newArrayList("int"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     Map<String, Dataset<Row>> dependencies = Maps.newHashMap();
@@ -174,7 +174,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("bar"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("integer"));
+        Lists.newArrayList("int"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     new Expectations() {{
@@ -208,7 +208,7 @@ public class TestMorphlineDeriver {
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_NAMES_CONFIG,
         Lists.newArrayList("foo", "bar", "baz"));
     paramMap.put(MorphlineDeriver.SCHEMA_CONFIG + "." + FlatSchema.FIELD_TYPES_CONFIG,
-        Lists.newArrayList("string", "integer", "integer"));
+        Lists.newArrayList("string", "int", "int"));
     final Config config = ConfigFactory.parseMap(paramMap);
 
     Dataset<Row> dataFrame = Contexts.getSparkSession().createDataFrame(

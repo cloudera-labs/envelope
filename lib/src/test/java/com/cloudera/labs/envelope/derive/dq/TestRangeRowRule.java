@@ -52,7 +52,7 @@ public class TestRangeRowRule {
 
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
-    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "integer");
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
     configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
     Config config = ConfigFactory.parseMap(configMap);
 
@@ -215,7 +215,7 @@ public class TestRangeRowRule {
 
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
-    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "integer");
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
     configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
     Config config = ConfigFactory.parseMap(configMap);
 
@@ -239,7 +239,7 @@ public class TestRangeRowRule {
 
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(RangeRowRule.FIELDS_CONFIG, Lists.newArrayList("age"));
-    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "integer");
+    configMap.put(RangeRowRule.FIELD_TYPE_CONFIG, "int");
     configMap.put(RangeRowRule.RANGE_CONFIG, Lists.newArrayList(0,105));
     configMap.put(RangeRowRule.IGNORE_NULLS_CONFIG, true);
     Config config = ConfigFactory.parseMap(configMap);

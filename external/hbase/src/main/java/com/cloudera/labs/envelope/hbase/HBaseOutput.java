@@ -83,17 +83,17 @@ import java.util.Set;
  *         orderqty {
  *           cf = "cf1"
  *           col = "orderqty"
- *           type = "integer"
+ *           type = "int"
  *         }
  *         leavesqty {
  *           cf = "cf1"
  *           col = "leavesqty"
- *           type = "integer"
+ *           type = "int"
  *         }
  *         cumqty {
  *           cf = "cf1"
  *           col = "cumqty"
- *           type = "integer"
+ *           type = "int"
  *         }
  *       }
  *     }

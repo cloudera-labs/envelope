@@ -245,7 +245,7 @@ public class DefaultHBaseSerde implements HBaseSerde {
 
   private static Object getColumnValue(byte[] source, int offset, int length, String type) {
     switch (type) {
-      case ConfigurationDataTypes.INTEGER:
+      case ConfigurationDataTypes.INT:
         return Bytes.toInt(source, offset, length);
       case ConfigurationDataTypes.LONG:
         return Bytes.toLong(source, offset, length);
@@ -266,7 +266,7 @@ public class DefaultHBaseSerde implements HBaseSerde {
   private static int addColumnValue(byte[] source, int offset, int endIndex,
                                     Object[] values, String type, int valueIndex, byte[] keySeparator, boolean last) {
     switch (type) {
-      case ConfigurationDataTypes.INTEGER:
+      case ConfigurationDataTypes.INT:
         values[valueIndex] = Bytes.toInt(source, offset, 4);
         return 4;
       case ConfigurationDataTypes.LONG:
@@ -333,7 +333,7 @@ public class DefaultHBaseSerde implements HBaseSerde {
       switch (type) {
         case ConfigurationDataTypes.STRING:
           return Bytes.toBytes((String) row.getAs(name));
-        case ConfigurationDataTypes.INTEGER:
+        case ConfigurationDataTypes.INT:
           return Bytes.toBytes((int) row.getAs(name));
         case ConfigurationDataTypes.LONG:
           return Bytes.toBytes((long) row.getAs(name));
