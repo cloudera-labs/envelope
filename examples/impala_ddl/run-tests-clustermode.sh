@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
 
 ENV_JAR=$1
-IMPALA_HOST=$2
 
-if [[ -z ${IMPALA_HOST} || -z ${ENV_JAR} ]]; then
-  echo "Usage: setup-tests.sh <env_jar> <impala_daemon>" >&2
+if [[ -z ${ENV_JAR} ]]; then
+  echo "Usage: setup-tests.sh <env_jar>" >&2
   exit 1
 fi
 
+source env.sh
+
 echo "Running Unpartitioned Example"
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output"
-spark2-submit --files env.conf,simple-impala-unpart.conf --keytab user.kt --principal ian --deploy-mode client ${ENV_JAR} simple-impala-unpart.conf
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output"
+${SPARK_CMD} ${SPARK_EXTRA_ARGS} --files env.conf,simple-impala-unpart.conf --deploy-mode cluster ${ENV_JAR} simple-impala-unpart.conf
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output"
 
 echo "Running Partitioned Example"
-impala-shell -i ${IMPALA_HOST} -q "show partitions example_output_part"
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output_part"
-spark2-submit --files user.kt,env.conf,simple-impala-part.conf --deploy-mode cluster ${ENV_JAR} simple-impala-part.conf
-impala-shell -i ${IMPALA_HOST} -q "show partitions example_output_part"
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output_part"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "show partitions example_output_part"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output_part"
+${SPARK_CMD} ${SPARK_EXTRA_ARGS} --files env.conf,simple-impala-part.conf --deploy-mode cluster ${ENV_JAR} simple-impala-part.conf
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "show partitions example_output_part"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output_part"
 
 echo "Running Kudu Example"
-impala-shell -i ${IMPALA_HOST} -q "show partitions example_output_kudu"
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output_kudu"
-spark2-submit --files env.conf,simple-impala-kudu.conf --keytab user.kt --principal ian --deploy-mode cluster ${ENV_JAR} simple-impala-kudu.conf
-impala-shell -i ${IMPALA_HOST} -q "show partitions example_output_kudu"
-impala-shell -i ${IMPALA_HOST} -q "select * from example_output_kudu"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "show partitions example_output_kudu"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output_kudu"
+${SPARK_CMD} ${SPARK_EXTRA_ARGS} --files env.conf,simple-impala-kudu.conf --deploy-mode cluster ${ENV_JAR} simple-impala-kudu.conf
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "show partitions example_output_kudu"
+impala-shell -i ${IMPALA_HOST} ${IMPALA_SHELL_EXTRA_ARGS} -q "select * from example_output_kudu"

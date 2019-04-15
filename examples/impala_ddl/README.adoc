@@ -10,12 +10,14 @@ There are three example scenarios provided:
 
 # Setting up the test environment
 
-To prepare the environment for running the tests we first need to populate the `env.conf` file with the relevant parameters for the cluster on which we want to run the tests. All instances of `REPLACEME` should be substituted with the appropriate values. In addition, you will need to provide a keytab called `user.kt` with a user who can create tables and write data to HDFS.
+To prepare the environment for running the tests we first need to populate the `env.sh` file with the relevant parameters for the cluster on which we want to run the tests. All instances of `REPLACEME` should be substituted with the appropriate values. If using Kerberos authentication you will need to provide a keytab with a user who can create tables and write data to HDFS.
 
 Once the environement is configured, we can setup the test pre-requisites by running the following commands:
 
 ```
+# If using Kerberos authentication
 kinit -kt user.kt <user>
+# Bootstrap tests
 bash setup-tests.sh <impala_host>
 ```
 
@@ -28,7 +30,7 @@ The first set of tests are run in client mode and assume a pre-existing Kerberos
 Run the tests as follows:
 
 ```
-bash run-tests.sh <path_to_envelope_jar> <impala_host>
+bash run-tests.sh <path_to_envelope_jar>
 ```
 
 The tests run through each of the three scenarios listed above, using Impala to run before-and-after queries to demonstrate data loading. You should see Impala output similar to the following snippets:
@@ -120,5 +122,5 @@ Query: select * from example_output_kudu
 Run the tests in cluster mode as follows:
 
 ```
-bash run-tests-clustermode.sh <path_to_envelope_jar> <impala_host>
+bash run-tests-clustermode.sh <path_to_envelope_jar>
 ```
