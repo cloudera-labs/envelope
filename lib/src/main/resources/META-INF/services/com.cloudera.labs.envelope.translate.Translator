@@ -1,6 +1,5 @@
 com.cloudera.labs.envelope.translate.AvroTranslator
 com.cloudera.labs.envelope.translate.DelimitedTranslator
-com.cloudera.labs.envelope.translate.JSONTranslator
 com.cloudera.labs.envelope.translate.KVPTranslator
 com.cloudera.labs.envelope.translate.MorphlineTranslator
 com.cloudera.labs.envelope.translate.RawTranslator

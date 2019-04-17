@@ -132,16 +132,6 @@ Envelope provides seven translator implementations.
 
 _Documentation for this translator has not yet been added._
 
-=== JSON
-
-The `json` translator converts JSON strings into structured rows.
-This is equivalent to using Spark SQL's `from_json` SQL function.
-
-The translator must be configured with the schema of the JSON strings.
-This schema is specified using the Avro schema format, either directly using `schema.literal`, or via a file using `schema.path`.
-
-NOTE: Specifying the schema via the Avro schema format does not imply that the data itself is related to Avro records or files
-
 === Delimited
 
 _Documentation for this translator has not yet been added._

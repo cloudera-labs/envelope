@@ -428,7 +428,7 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 |Configuration suffix|Description
 
 |type
-|The translator type to be used. Envelope provides `avro`, `json`, `delimited`, `kvp`, `morphline`, `protobuf`, `raw`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
+|The translator type to be used. Envelope provides `avro`, `delimited`, `kvp`, `morphline`, `protobuf`, `raw`. To use a custom translator, specify the fully qualified name or alias of the `Translator` implementation class.
 
 |append.raw.enabled
 |If `true` then the translator will append the raw fields to the translated row. Each appended field name will be prefixed with an underscore, e.g. `_value`. Default `false`.
@@ -438,19 +438,6 @@ Translator configurations belong to data steps, and have the `steps.[stepname].i
 ==== Avro
 
 Translator `type` = `avro`.
-
-[cols="2,8", options="header"]
-|===
-|Configuration suffix|Description
-
-|schema
-|The schema to translate to.  Refer to the link:configurations.adoc#schema[Schema documentation]
-
-|===
-
-==== JSON
-
-Translator `type` = `json`.
 
 [cols="2,8", options="header"]
 |===
@@ -561,7 +548,7 @@ Deriver configurations belong to data steps, and have the `steps.[stepname].deri
 |Configuration suffix|Description
 
 |type
-|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, `dq`, `translate`, and `sparkml`.
+|The deriver type to be used. Envelope provides `morphline`, `nest`, `passthrough`, `sql`, `pivot`, `exclude`, `distinct`, `select`, `in-list`, `hash`, `latest`, `dq`, `translate`, `sparkml`, `parse-json`.
 To use a custom deriver, specify the fully qualified name or alias of the `Deriver` implementation class.
 
 |===
@@ -906,6 +893,37 @@ Only required if there is more than one dependency, otherwise optional.
 
 |model-path
 |The path to the pipeline model directory that was created by the Spark ML pipeline model save.
+
+|===
+
+==== Parse JSON
+
+Derive `type` = `parse-json`.
+
+[cols="2,8", options="header"]
+|===
+|Configuration suffix|Description
+
+|step
+|The name of the dependency step that contains the field that contains the JSON strings.
+
+|field
+|The name of the field that contains the JSON strings.
+
+|as-struct
+|Whether to place the parsed fields within their own struct field, instead of directly on the record.
+Default false.
+
+|struct-field
+|If `as-struct` is `true`, then the name of the struct field to place the parsed fields within.
+
+|schema
+|The schema of the JSON records. Refer to the link:configurations.adoc#schema[Schema documentation]
+
+|option.*
+|Passes through Spark-specific JSON options to Spark.
+For example, `option.mode = FAILFAST` will set the option `mode` to `FAILFAST`.
+Refer to the link:https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#json-scala.collection.Seq-[Spark JSON documentation] for available options.
 
 |===
 
