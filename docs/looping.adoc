@@ -62,7 +62,9 @@ steps {
 
 The pipeline could be run with the dates provided like below:
 
-  spark2-submit envelope-*.jar process_dates.conf first_date=20170501,last_date=20170531
+  spark-submit envelope-*.jar process_dates.conf first_date=20170501,last_date=20170531
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 When Envelope reaches the loop step (after `read_month`) it would unroll the loop into:
 

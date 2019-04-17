@@ -1,12 +1,12 @@
-# FIX example
+= FIX example
 
 The FIX example is an Envelope pipeline that receives https://en.wikipedia.org/wiki/Financial_Information_eXchange[FIX financial messages] of order fulfillment (new orders and execution reports), updates the representation of the order in Apache Kudu, and sends alerts of outliers to Apache Kafka. This use case would allow near-real-time analytics of order history.
 
 The configuration for this example is found link:fix.conf[here]. The messages do not fully conform to the real FIX protocol but should be sufficient to demonstrate how a complete implementation could be developed.
 
-## Running the example
+== Running the example
 
-. Modify `create_fix_tables.sql`, `fix.conf`, and `fix_generator.conf` to point to your cluster. If your cluster has secured Kafka, you will also need to modify the configuration files and below `spark2-submit` calls (see the FIX HBase example for more details) and the `kafka-topics` and `kafka-console-consumer` calls (see the test steps in the link:https://www.cloudera.com/documentation/kafka/latest/topics/kafka_security.html#concept_lcn_4mm_s5[Cloudera Kafka documentation] for more details).
+. Modify `fix.conf` and `fix_generator.conf` to point to your cluster. If your cluster has secured Kafka, you will also need to modify the configuration files and below `spark-submit` calls (see the link:../../docs/security.adoc[Security guide] for more details) and the `kafka-topics` and `kafka-console-consumer` calls (see the test steps in the link:https://www.cloudera.com/documentation/kafka/latest/topics/kafka_security.html#concept_lcn_4mm_s5[Cloudera Kafka documentation] for more details).
 
 . Create the required Kudu tables using the provided Apache Impala script:
 
@@ -19,11 +19,14 @@ The configuration for this example is found link:fix.conf[here]. The messages do
 
 . Run the example by submitting the Envelope application with the example's configuration:
 
-    SPARK_KAFKA_VERSION=0.10 spark2-submit envelope-*.jar fix.conf
+    spark-submit envelope-*.jar fix.conf
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
+CDH5 clusters may also require the environment variable `SPARK_KAFKA_VERSION` to be set to `0.10`.
 
 . In another terminal session start the data generator, which is itself an Envelope pipeline that writes out one million example orders to Kafka:
 
-    spark2-submit envelope-*.jar fix_generator.conf
+    spark-submit envelope-*.jar fix_generator.conf
 
 . View the arriving large order alerts by running the Kafka console consumer:
 
@@ -57,7 +60,7 @@ The configuration for this example is found link:fix.conf[here]. The messages do
 [NOTE]
 The CAST logic is used as a workaround until Kudu supports the TIMESTAMP type. This logic could be wrapped in an Impala view so that users do not need to write it themselves.
 
-## Requirements
+== Requirements
 
 This example aims to solve the following requirements:
 
@@ -69,7 +72,7 @@ This example aims to solve the following requirements:
 6. Detect orders with a large quantity (i.e. quantity = 9999) and send those to another Kafka topic.
 7. Messages must be processed end-to-end within typical human response time, i.e. a few seconds.
 
-## Why use a Cloudera EDH?
+== Why use a Cloudera EDH?
 The requirements are very well suited to a Cloudera EDH based solution because the platform contains all the components we need to do the ETL and querying, and which are all distributed for very high scalability:
 
 - Apache Kafka for receiving the messages, and sending back the large orders
@@ -79,7 +82,7 @@ The requirements are very well suited to a Cloudera EDH based solution because t
 
 The Kafka->Spark->Kudu->Impala data flow makes up a powerful architecture for many streaming use cases.
 
-## Why use Envelope?
+== Why use Envelope?
 The requirements are very well suited to Envelope for building out the Spark application:
 
 - Envelope can read from Kafka topics
@@ -93,7 +96,7 @@ Envelope can run more complex transformations with user-provided DataFrame-based
 
 Best of all, Envelope can implement all of the requirements without a single line of user-provided code.
 
-## Walkthrough
+== Walkthrough
 
 The walkthrough is a discussion of the FIX Envelope pipeline that goes over how it works and why it was built in this particular way. By getting a feel for the thought process behind this example it is intended that the reader can more successfully build out other applications on Envelope.
 
@@ -103,7 +106,7 @@ For reference:
 - The Envelope configuration of the FIX data generator is found link:fix_generator.conf[here].
 - The Impala/Kudu data model of the FIX example application is found link:create_fix_tables.sql[here].
 
-### Architecture
+=== Architecture
 
 image::architecture.png[FIX architecture diagram]
 
@@ -119,11 +122,11 @@ Using Kudu for persistent storage is the key to the application being able to ef
 
 Using Impala for end user querying exposes a familiar SQL interface to the state of the application, and at high query performance, including under heavy concurrency. Impala is integrated with Kudu so that the queryable data looks just like any other table, and so that many query predicates can be pushed down into Kudu to reduce I/O. The speed and standard JDBC/ODBC interfaces of Impala makes it an obvious choice for connecting with most well established industry BI tools, which means that the application can be quickly set up to be accessible by a whole community of end users. In the FIX example the end users can query Impala to get the latest trade order information, which may have occurred just seconds earlier, and also the deep history of all processed messages, which could have spanned years, and all at the same non-aggregated granularity. Rolling up and slicing/dicing the Kudu data can be very efficiently run by Impala using standard SQL.
 
-### Data model
+=== Data model
 
 The data model of the application is defined using Kafka topics for interacting with external systems, and Impala/Kudu tables for interacting with end users.
 
-#### Kafka topics
+==== Kafka topics
 
 In the FIX example there are two topics:
 
@@ -131,7 +134,7 @@ In the FIX example there are two topics:
 
 - `largeorders` is used for the downstream alerting system (the Kafka console consumer) to read the processed order records that are considered 'large'. The number of partitions for the topic is less important than for the `fix` topic because the volume is expected to be much smaller, although it could hypothetically need to scale to handle sudden bursts of large orders. The replication factor of at least 3 remains important for all topics.
 
-#### Impala/Kudu tables
+==== Impala/Kudu tables
 
 In the FIX example there are four Impala/Kudu tables:
 
@@ -235,9 +238,9 @@ This table is an output of the Spark processing, and contains the history of par
 
 The range of time (real world/event time, not Envelope/system time) that each state was active/effective/current for is captured by the `startdate` and `enddate` columns. The latest state of each order is conveniently expressed by the `currentflag` column having the value `Y`, otherwise `N`. These metadata fields allow the latest and historical states of the order to be easily and efficiently queried with just filters. Without these fields the end user queries would have to resort to complex and slow aggregation queries to find the desired record of each order. This modeling technique is known as a Type 2 slowly changing dimension. One of the major benefits of using Envelope is that it will automatically manage the different records, and metadata columns on each record, of a natural key (here the `clordid`). Without Envelope this complex logic would need to be coded from scratch.
 
-### Configuration
+=== Configuration
 
-#### Application section
+==== Application section
 The configuration begins with an `application` section:
 
 ----
@@ -261,7 +264,7 @@ We specify the name so that YARN will show that the application is running the F
 
 We specify a micro-batch duration of 5 seconds, and a single executor with 4 cores and 4GB of memory, but purely as an example. For a real application these should be determined based on benchmarking and requirements.
 
-#### Steps
+==== Steps
 The configuration then contains the steps of the pipeline:
 
 ----
@@ -304,7 +307,7 @@ The data for each step can also be written out to an external output (e.g. Kudu 
 
 Each step can also define which steps it is dependent on. This allows Envelope to run the pipeline in the correct order and to parallelize steps that are independent.
 
-#### Step `fix`
+==== Step `fix`
 ----
 fix {
   input {
@@ -333,7 +336,7 @@ The `fix` step contains only an `input` section. This means that it only reads i
 [TIP]
 When an Envelope pipeline contains at least one streaming input (such as Kafka) then the entire pipeline will run in Spark Streaming mode, and the steps will be repeated for each micro-batch. Pipelines that do not have any streaming inputs will run as a 'normal' Spark application that executes the steps once and then exits.
 
-##### Input
+===== Input
 
 The first configuration of the input is the `type`. This defines which input implementation to use. Envelope provides not only an API for implementing inputs (and other pluggable points) but also some widely useful implementations, such as for Kafka and Kudu. By specifying `kafka` for the `type` Envelope knows to use its provided Kafka input.
 
@@ -346,7 +349,7 @@ User-provided inputs (and other pluggable points such as derivers, planners, and
 
 `encoding` tells Envelope which data type to use to read the Kafka messages. In this example we do not have binary data so we can use `string`. The encoding needs to match the expected encoding of the translator.
 
-##### Translator
+===== Translator
 
 The `translator` section defines how the Kafka messages (where a message is just a single string) can be translated to DataFrame rows (where a row has fields with names and types).
 
@@ -363,7 +366,7 @@ User-provided translators can be specified with the fully qualified name of the 
 
 `field.types` specifies the data types of the values for the key-value pairs that we want to read from the messages. These become the field types of the DataFrame for the step. The list must match the order of `field.names`. We specify the data types for the fields that we are reading from the FIX messages.
 
-#### Step `messagetypes`
+==== Step `messagetypes`
 
 ----
 messagetypes {
@@ -380,7 +383,7 @@ In this step we read in the English descriptions for the `msgtype` field codes. 
 
 Again this step only contains an `input` section.
 
-##### Input
+===== Input
 
 For `type` we specify `kudu` because we are reading the descriptions from Kudu.
 
@@ -392,7 +395,7 @@ Kudu tables created from Impala have the naming convention `impala::[impala data
 
 `hint.small` tells Spark to consider the step's DataFrame as small enough for broadcasting in a broadcast join. The descriptions are very small so we want to do that here to improve performance when we join the stream to the message type descriptions.
 
-#### Step `newordersingle`
+==== Step `newordersingle`
 
 ----
 newordersingle {
@@ -421,11 +424,11 @@ We use `dependencies` to specify which steps need to run before this one can sta
 
 This is the first step that will additionally write out its data to an external output. To do this we need to specify a `planner` section and an `output` section.
 
-##### Dependencies
+===== Dependencies
 
 This step uses the FIX message stream and the Kudu descriptions table, so we need to specify the `fix` and `messagetypes` steps as dependencies.
 
-##### Deriver
+===== Deriver
 
 In this case we can achieve the derivation through a SQL query that:
 
@@ -442,7 +445,7 @@ This simple 'earlier step = temporary table' mapping allows large graphs of deri
 
 The result of the SQL query is now the DataFrame for this step.
 
-##### Planner
+===== Planner
 
 The `planner` section defines how to apply the step's DataFrame to the output. The planner does this by mapping the arriving records to mutations required on the output. Some planners additionally use the corresponding existing records for the arriving records to fully plan the required mutations.
 
@@ -451,13 +454,13 @@ For this table we want to insert the record if it does not already exist, or to 
 [NOTE]
 For a step to write to an external output the planner and output must be compatible. Refer to the link:../../docs/planners.adoc[Planners guide] for detailed information on planners and their compatibility with outputs.
 
-##### Output
+===== Output
 
 The `output` section defines where to apply the mutations created by the planner. In this step we reference the Kudu table that we want the upserts to be applied to.
 
 We are writing to Kudu so we use `kudu` for the `type`. `connection` and `table.name` have the same meaning as in the Kudu input.
 
-#### Step `execrpt`
+==== Step `execrpt`
 
 ----
 execrpt {
@@ -486,7 +489,7 @@ In this step we follow mostly the same logic as the `newordersingle` step, but h
 
 We set `field.last.updated` on the planner to tell it to append a last updated timestamp string column with the name `lastupdated`. Because the column is added by the planner it does not exist in the step's DataFrame (i.e. the SQL query output), but must exist on the Kudu table.
 
-#### Step `orderhistory`
+==== Step `orderhistory`
 
 ----
 orderhistory {
@@ -525,15 +528,15 @@ orderhistory {
 
 In this step we use the new orders and execution reports to build up the history of the orders over time. Rather than just storing each message with the single provided timestamp, which would make querying the state of the order difficult for arbitrary points in time, we use Type 2 slowly changing dimension logic to track the range of timestamps that each state was effective. Envelope provides a planner for this logic.
 
-##### Dependencies
+===== Dependencies
 
 This step is only dependent on the `fix` step because we are not joining to the message type description table.
 
-##### Deriver
+===== Deriver
 
 We again use the `sql` deriver to use SQL to transform the stream into the data model we want to write to Kudu. The query for this step selects the relevant fields, such as order id (`clordid`), order/execution timestamp (`transacttime`), order quantity (`orderqty`), and remaining quantity (`leavesqty`). When the remaining quantity is missing (i.e. on new orders) we substitute it with the order quantity, and when the cumulative quantity (`cumqty`) is missing (also on new orders) we substitute it with `0`.
 
-##### Partitioner
+===== Partitioner
 
 In order for the step to track the history of the orders over time we are going to use the `history` planner (as described in the next section), which to function requires the existing records of the keys of the arriving records from the step. For Envelope to retrieve the existing records it groups the arriving records by key, and then for each subset of distinct keys Envelope sends a single request to the output asking for all the existing records of all of the subset's keys. The way that each key is assigned to a subset (in Spark as an RDD partition) is by the partitioner.
 
@@ -541,7 +544,7 @@ By default Envelope uses Spark's default `hash` partitioner, which produces a ro
 
 For this example the keys are known to be UUIDs, and the Kudu output is known to provide existing records dramatically faster where the range of keys in each request covers a narrow range of the keyspace, so we utilize the `uuid` partitioner. We could have had similar improvements from the `range` partitioner, but at the cost of a sort/sample of the arriving records every micro-batch. For other streaming applications that use a planner which requires existing records, and that have a non-UUID keyspace, it may be prudent to make a custom partitioner for the keyspace to enable fast partitioning and fast existing record retrieval.
 
-##### Planner
+===== Planner
 
 To apply Type 2 slowly changing dimension logic to the Kudu table we use the `history` planner to plan the required mutations. This uses the event time (i.e. record timestamp) instead of system time (i.e. Envelope time) for tracking the history. By using event time the messages can arrive out of order, or be replayed an arbitrary number of times, and the history will still be correctly maintained according to the sequence of the states in the real world.
 
@@ -565,11 +568,11 @@ For the latest state of the key, where it is not known when the state will no lo
 
 `time.model.last.updated.type` defines the type of the time model to use for representing the last updated time. In this examples `stringdatetime` is used to represent the last updated time as a string of the date and time.
 
-##### Output
+===== Output
 
 With the required mutations generated by the planner, the output just needs to specify the Kudu table to apply the mutations to.
 
-#### Step `largeorderalert`
+==== Step `largeorderalert`
 
 ----
 largeorderalert {
@@ -592,19 +595,19 @@ largeorderalert {
 
 In this step we find outlier orders that are considered 'large' (i.e. where the order quantity is 9999) and send an 'alert' by writing the order details to another Kafka topic.
 
-##### Dependencies
+===== Dependencies
 
 Rather than reading from the `fix` step, where we would have to filter for just the orders, we can read from the `newordersingle` step that has already done that for us.
 
-##### Deriver
+===== Deriver
 
 We run a SQL query to select a handful of fields of the order records where the quantity is 9999. The FIX field names have already been projected by the `newordersingle` step.
 
-##### Planner
+===== Planner
 
 While previously in the pipeline we have used planners that could potentially update existing records, Kafka only supports inserts of new records. For this step we can use the `append` planner, which will only plan insert mutations.
 
-##### Output
+===== Output
 
 Writing to Kafka can be specified by using `kafka` as the output `type`.
 
@@ -612,7 +615,7 @@ Writing to Kafka can be specified by using `kafka` as the output `type`.
 
 `field.delimiter` is used to specify the string to separate the fields of the record when writing the single-string message to the topic.
 
-### Generator
+=== Generator
 
 The data generator for this example is another Envelope pipeline, that in this case creates the example orders within the pipeline and then writes them to Kafka. The pipeline is implemented as a single step that 'reads' in the example orders and appends them to the Kafka topic.
 
@@ -642,7 +645,7 @@ steps {
 
 `FIXInput` is an implementation of the `BatchInput` interface, and is bundled with Envelope as part of the example. For Envelope to load implementations that are not part of Envelope itself, the implementation should be compiled into a separate jar to Envelope and then the pipeline submitted similarly to:
 
-    spark2-submit --jars yourimplementation.jar envelope-*.jar yourpipeline.conf
+    spark-submit --jars yourimplementation.jar envelope-*.jar yourpipeline.conf
 
 `FIXInput` reads in two configurations. `tasks` defines how many Spark tasks should generate the orders, and `orders.per.task` defines how many orders each task should create. Note that because a new order record is followed by one to many execution records that there will be more than one million (1000 tasks * 1000 orders per task) records written to Kafka.
 

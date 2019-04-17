@@ -1,10 +1,10 @@
-# FIX HBase Example
+= FIX HBase Example
 
 The FIX example is an Envelope pipeline that receives https://en.wikipedia.org/wiki/Financial_Information_eXchange[FIX financial messages] of order fulfillment (new orders and execution reports) and updates an HBase history table. This example shows how historical order information can be maintained for each stock symbol.
 
 The configuration for this example is found link:fix_hbase.conf[here]. The messages do not fully conform to the real FIX protocol but should be sufficient to demonstrate how a complete implementation could be developed.
 
-## Pre-requisites
+== Pre-requisites
 
 . Create the required HBase table using the provided HBase shell script:
 
@@ -14,26 +14,27 @@ The configuration for this example is found link:fix_hbase.conf[here]. The messa
 
     kafka-topics --zookeeper YOURZOOKEEPERHOSTNAME:2181 --create --topic fix --partitions 9 --replication-factor 3
 
-## Running the example
+== Running the example
 
 Run the example in non-secure clusters by submitting the Envelope application with the example's configuration:
 
-    $ export SPARK_KAFKA_VERSION=0.10
     $ export EXTRA_CP=/etc/hbase/conf:/opt/cloudera/parcels/CDH/lib/hbase/hbase-common.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-client.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-protocol.jar:/opt/cloudera/parcels/CDH/lib/hbase/lib/htrace-core.jar
-    $ spark2-submit \
+    $ spark-submit \
       --driver-class-path ${EXTRA_CP} \
       --conf spark.executor.extraClassPath=${EXTRA_CP} \
       envelope-*.jar fix_hbase.conf
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
+CDH5 clusters may also require the environment variable `SPARK_KAFKA_VERSION` to be set to `0.10`.
 
 For secure clusters, we need to supply a keytab and a JAAS file to the Spark job, as well as ensure that Spark obtains an HBase token on startup. For this we need a couple of supporting files. Firstly, a keytab file `user.kt` containing entries for the user submitting the job. Second, we need a JAAS configuration file `jaas.conf` for the driver and executors to reference. A sample JAAS file is supplied link:jaas.conf[here].
 
 A method that works on secure clusters in both client and cluster mode is as follows:
 
     $ ln -s user.kt kafka.kt
-    $ export SPARK_KAFKA_VERSION=0.10
     $ export PRINCNAME=REPLACEME
     $ HADOOP_CONF_DIR=/etc/hbase/conf:/etc/hive/conf:/etc/spark2/conf:/opt/cloudera/parcels/CDH/lib/hbase/hbase-common.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-client.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-protocol.jar:/opt/cloudera/parcels/CDH/lib/hbase/lib/htrace-core.jar \
-        spark2-submit \
+        spark-submit \
         --keytab user.kt \
         --principal ${PRINCNAME} \
         --files jaas.conf,fix_hbase.conf,kafka.kt \
@@ -46,19 +47,17 @@ A method that works on secure clusters in both client and cluster mode is as fol
 
 In another terminal session start the data generator, which is itself an Envelope pipeline that writes out one million example orders to Kafka. For unsecure clusters, this can be launched via:
 
-    $ export SPARK_KAFKA_VERSION=0.10
-    $ spark2-submit envelope-*.jar fix_generator.conf
+    $ spark-submit envelope-*.jar fix_generator.conf
 
 For secure clusters, use something like:
 
-    $ export SPARK_KAFKA_VERSION=0.10
-    $ spark2-submit \
+    $ spark-submit \
         --files jaas.conf,kafka.kt \
         --driver-java-options=-Djava.security.auth.login.config=jaas.conf \
         --conf spark.executor.extraJavaOptions=-Djava.security.auth.login.config=jaas.conf \
         envelope-*.jar fix_generator.conf
 
-## Seeing the results
+== Seeing the results
 
 You can verify the data is being loaded into HBase by running a few sample scans from the HBase shell:
 

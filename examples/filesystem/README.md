@@ -12,7 +12,9 @@ This example demonstrates a simple HDFS-based data processing pipeline.
 
 **Run the Envelope job**
 
-    spark2-submit build/envelope/target/envelope-*.jar examples/filesystem/filesystem.conf
+    spark-submit build/envelope/target/envelope-*.jar examples/filesystem/filesystem.conf
+
+Note: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 **Grab the results**
 

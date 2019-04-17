@@ -67,15 +67,17 @@ The system environment variable can be provided as follows when executed in clie
 ----
 export KUDU_MASTER_CONNECTION_STRING="master1:7051,master2:7051,master3:7051"
 
-spark2-submit --master yarn --deploy-mode client envelope-<version>.jar application.conf
+spark-submit --master yarn --deploy-mode client envelope-<version>.jar application.conf
 ----
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 ===== yarn-cluster mode
 
 The system environment variable can be provided as follows when executed in cluster deployment mode:
 
 ----
-spark2-submit --master yarn --deploy-mode cluster --files application.conf --conf spark.yarn.appMasterEnv.KUDU_MASTER_CONNECTION_STRING="master1:7051,master2:7051,master3:7051"  envelope-<version>.jar application.conf
+spark-submit --master yarn --deploy-mode cluster --files application.conf --conf spark.yarn.appMasterEnv.KUDU_MASTER_CONNECTION_STRING="master1:7051,master2:7051,master3:7051"  envelope-<version>.jar application.conf
 ----
 
 === Kafka
@@ -217,7 +219,7 @@ _Documentation for this translator has not yet been added._
 
 In cases that Envelope does not provide an input or translator for a required data source, a custom class can be developed and referenced in the Envelope pipeline.
 
-To create a batch input implement the `BatchInput` interface, or to create a stream input implement the `StreamInput` interface. Translators must implement the `Translator` interface. With the implemented class compiled into its own jar file the input or translator can be referenced in the pipeline by using the fully qualified class name (or alias -- see below) as the input `type`, and it can be provided to the Envelope application using the `--jars` argument when calling `spark2-submit`.
+To create a batch input implement the `BatchInput` interface, or to create a stream input implement the `StreamInput` interface. Translators must implement the `Translator` interface. With the implemented class compiled into its own jar file the input or translator can be referenced in the pipeline by using the fully qualified class name (or alias -- see below) as the input `type`, and it can be provided to the Envelope application using the `--jars` argument when calling `spark-submit`.
 
 === Using Aliases
 

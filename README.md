@@ -20,16 +20,21 @@ Envelope requires Apache Spark 2.1.0 or above.
 Additionally, if using these components, Envelope requires:
 - Apache Kafka 0.10 or above
 - Apache Kudu 1.4.0 or above
-- Apache HBase 1.2.0 or above (note: 2.x has not yet been tested)
+- Apache HBase 1.2.0 or above
 - Apache ZooKeeper 3.4.5 or above
+- Apache Impala 2.7.0 or above
 
-For Cloudera's distributions, Kafka requires Cloudera's Kafka 2.1.0 or above, and HBase and ZooKeeper requires CDH5.7 or above. Note that CDH6.x has not yet been tested.
+For Cloudera CDH 5, Kafka requires Cloudera's Kafka 2.1.0 or above, HBase and ZooKeeper requires CDH 5.7 or above, and Impala requires CDH 5.9 or above. For Cloudera CDH 6, any CDH 6.0 or above is required.
 
-### Compiling Envelope  
+### Downloading Envelope
 
-You can build the Envelope application from the top-level directory of the source code by running the Maven command:
+Envelope and its dependencies can be downloaded as a single jar file from the GitHub repository [Releases page](https://github.com/cloudera-labs/envelope/releases).
 
-    mvn clean package
+### Compiling Envelope
+
+Alternatively, you can build the Envelope application from the top-level directory of the source code by running the Maven command:
+
+    mvn clean install
 
 This will create `envelope-0.7.0-SNAPSHOT.jar` in the `build/envelope/target` directory.
 
@@ -43,12 +48,15 @@ Envelope provides these example pipelines that you can run for yourself:
 - [Traffic](examples/traffic/): simulates receiving traffic conditions and calculating an aggregate view of traffic congestion.
 - [Filesystem](examples/filesystem/): demonstrates a batch job that reads a JSON file from HDFS and writes the data back to Avro files on HDFS.
 - [Cloudera Navigator](examples/navigator/): implements a streaming job to ingest audit events from Cloudera Navigator into Kudu, HDFS and Solr.
+- [Impala DDL](examples/impala_ddl): demonstrates updating Impala metadata, such as adding partitions and refreshing table metadata
 
 ### Running Envelope
 
 You can run Envelope by submitting it to Spark with the configuration file for your pipeline:
 
-    spark2-submit envelope-0.7.0-SNAPSHOT.jar yourpipeline.conf
+    spark-submit envelope-0.7.0-SNAPSHOT.jar your_pipeline.conf
+
+Note: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 A helpful place to monitor your running pipeline is from the Spark UI for the job. You can find this via the YARN ResourceManager UI.
 

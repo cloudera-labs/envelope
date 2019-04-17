@@ -12,7 +12,7 @@ A decision step can make a decision using one of three methods, which are outlin
 
 === Literal
 
-The `literal` decision method takes the true or false result directly from the configuration of the decision step. This method would be useful if the result is provided by a parameter, which in turn can be populated by a `spark2-submit` argument or an environment variable.
+The `literal` decision method takes the true or false result directly from the configuration of the decision step. This method would be useful if the result is provided by a parameter, which in turn can be populated by a `spark-submit` argument or an environment variable.
 
 In this self-contained example the value of the `${result}` parameter will determine whether `run_if_true` and `run_after_run_if_true`, or `run_if_false` and `run_after_run_if_false`, are run:
 
@@ -62,7 +62,9 @@ steps {
 
 This pipeline could be run with `${result}` populated by using an argument after the configuration file:
 
-  spark2-submit envelope-*.jar pipeline.conf result=true
+  spark-submit envelope-*.jar pipeline.conf result=true
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 === Step by key
 

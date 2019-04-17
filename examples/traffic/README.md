@@ -4,11 +4,14 @@ The traffic example is an Envelope pipeline that retrieves measurements of traff
 
 A sample configuration file is provided for reference. After creating the required Apache Kudu tables using the provided Apache Impala scripts, and modifying the configuration file to point to your cluster, the example can be run as:
 
-    SPARK_KAFKA_VERSION=0.10 spark2-submit envelope-*.jar traffic.conf
+    spark-submit envelope-*.jar traffic.conf
+    
+Note: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
+CDH5 clusters may also require the environment variable `SPARK_KAFKA_VERSION` to be set to `0.10`.
 
-Note that if your cluster has secured Kafka, you will also need to modify the configuration file and `spark2-submit` call -- see the FIX HBase example for more details.
+If your cluster has secured Kafka, you will also need to modify the configuration file and `spark2-submit` call -- see the FIX HBase example for more details.
 
 An Apache Kafka producer to generate sample messages for the example, and push them in to the "traffic" topic, can be run as:
 
-    spark2-submit --class com.cloudera.labs.envelope.examples.TrafficGenerator envelope-*.jar kafkabrokerhost:9092 traffic
+    spark-submit --class com.cloudera.labs.envelope.examples.TrafficGenerator envelope-*.jar kafkabrokerhost:9092 traffic
     

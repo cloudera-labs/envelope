@@ -1,4 +1,4 @@
-# Navigator Audit example
+= Navigator Audit example
 
 Cloudera Navigator Audit is a tool that collects and consolidates audit records from several Hadoop services. It offers the ability to forward those events into a Kafka topic for downstream consumption.
 
@@ -9,16 +9,15 @@ The Envelope workflow implemented in this example looks like the following:
 .Navigator Audit example
 image::images/nav-audit-envelope-diagram.png[]
 
-
 Audit events are written to Kafka by Navigator Audit as JSON strings. The envelope pipeline reads this payload through a Kafka input, which uses an embedded Morphlines translator to convert the JSON messages into Dataset records.
 
 These records are then processed by Envelope derivers, which filter the records for each particular Hadoop service, and the results are forward to the corresponding outputs (Kudu and Filesystem). The `solrIndexer` deriver is used to index the audit records, using a Morphline to send the events to Solr. This enables searching of the audit events through Solr queries, besides using Impala to queries the data in Kudu and/or HDFS.
 
 Derivers in Envelope must be chained to an Envelope output for them to the processed. If there's no path between a deriver and an output step, the deriver is simply not executed. Hence, the `solrIndexer` deriver is connected to the `hdfsEvents` deriver to ensure it is executed to send the audit records to Solr. The output of the `solrIndexer` deriver is similar to that of the Kafka input, so the `hdfsEvents` deriver is not affected at all. All the other derivers read directly from the Kafka input for efficiency.
 
-## Security
+== Security
 
-### Authentication
+=== Authentication
 
 This example also demonstrates the necessary configuration to run the Envelope job against a secured cluster. It contains all the required configurations to properly authenticate with Kerbero-enabled clusters.
 
@@ -27,7 +26,7 @@ If you're running the example against a non-secured cluster, you will have to ad
 * `parameter.security.protocol = SSL` (if TLS is enabled)
 * `parameter.security.protocol = PLAINTEXT` (if TLS is *not* enabled)
 
-### Authorization
+=== Authorization
 
 If authorization has been configured for your cluster you must ensure that the following privileges have been granted to the user who's running the Envelope job:
 
@@ -37,7 +36,7 @@ If authorization has been configured for your cluster you must ensure that the f
 * Insert privileges on the output Kudu tables (for the Kudu outputs)
 * Read and write permissions on the output HDFS directories (for the HDFS Filesystem outputs)
 
-### Encryption
+=== Encryption
 
 The example has been configured for a Kafka cluster with TLS encryption enabled. To run it successfully you will need a copy of the JKS truststore for the Kafka cluster, as well as the truststore password, which should be configured in the job configuration file.
 
@@ -46,7 +45,7 @@ If TLS is not being used for Kafka you need to adjust the following settings in 
 * `parameter.security.protocol = SASL_PLAINTEXT` (if Kerberos is enabled)
 * `parameter.security.protocol = PLAINTEXT` (if Kerberos is *not* enabled)
 
-## Running the example
+== Running the example
 
 . Create a directory for the Parquet tables, if it doesn't already exist.
 
@@ -88,21 +87,33 @@ Ensure the following permissions have been granted on this directory:
 
 . _If running in a secured cluster_, modify `submit.sh` to update the `KERBEROS_KEYTAB` and `KERBEROS_PRINCIPAL` variables.
 
-. Run the example by submitting the Envelope application using the provided wrapper script:
+. Run the example by submitting the Envelope application using the corresponding provided wrapper script:
 
 * For secured clusters:
 
-    ./submit.sh
+** That are running CDH6 or other Spark distributions:
+
+    ./submit-secured.sh
+
+** That are running CDH5:
+
+    ./submit-secured-cdh5.sh
 
 * For unsecured clusters:
 
-    ./submit-unsecure.sh
+** That are running CDH6 or other Spark distributions:
 
-## Architecture
+    ./submit-unsecured.sh
+
+** That are running CDH5:
+
+    ./submit-unsecured-cdh5.sh
+
+== Architecture
 
 In this section we go into a bit more details of the implementation of this example.
 
-### Audit records
+=== Audit records
 
 The audit records written by Navigator Audit to the Kafka topic are JSON-formatted string containing the attributes of each audit event. The events for all service types share a common set of attributes and each service has additional specific attributes, as shown in the table below. The mapping between the JSON attributes and Impala table columns is also shown below.
 
@@ -174,17 +185,17 @@ The audit records written by Navigator Audit to the Kafka topic are JSON-formatt
 
 |====
 
-### Kafka Input
+=== Kafka Input
 
 An Envelope's Kafka input is used to read the Navigator Audit events from the Kafka topic. A translator is required to convert these event JSON strings into actual records to be processed by the pipeline.
 
 A Morphline translator is associated to the Kafka input to perform this translation. A single Morphline is used for all the types of audit event. This Morphline uses the superset of all JSON event attributes (listed in the table above), and ignores any attributes not found in the event being processed. The output of the input step is a record with fields named after the JSON attributes.
 
-#### Offset management
+==== Offset management
 
 To enable the job to be stopped and restarted, the Kafka input step manages the Kafka message offsets by storing them in a Kudu table (`impala::nav.nav_offsets`). The offsets are committed to this table only after the associated records have been persisted to the job output. With this, if the job is stopped in the middle of a micro-batch, when it is restarted it will reprocess any messages that had not been written at the end of the pipeline. This implements _at-least-once_ delivery semantics.
 
-### Event derivers
+=== Event derivers
 
 The stream of records that come out of the Kafka input step contain all the 8 type of events that Navigator Audit captures. The attribute `type` of the audit event records identify which service they are coming from.
 
@@ -211,7 +222,7 @@ All the tables created in this example are partitioned by day. Since the origina
 
 Some attributes that exist in Navigator Audit, such as the `DELEGATION_TOKEN_ID` listed above, are not added to the messages written to Kafka. I could have removed these attributes altogether from the example, but decided to leave them in just for completeness.
 
-### Solr indexer deriver
+=== Solr indexer deriver
 
 As you may have noticed in the query above, the stream of records selected for the HDFS service come from the `solrIndexerDeriver`, rather than the `kafkaInput`, which is the source for all the other 7 event derivers.
 
@@ -224,11 +235,11 @@ This deriver is a very simple Morphline deriver. Besides sending the audit event
 
 Each deriver is then used as a source in two independent outputs: a Kudu output and a (HDFS) filesystem output, which are explained below.
 
-### Kudu outputs
+=== Kudu outputs
 
 Kudu is our recommended output for this example. It provides a efficient and easy way to store and query audit records at scale. The configuration of the Kudu outputs is fairly straight forward. Those outputs have been configured with `insert.ignore = true` to allow records to be _upserted_ in case a restart of the job causes an event to be reprocessed.
 
-#### Managing partitions for Kudu tables
+==== Managing partitions for Kudu tables
 
 The Kudu tables used in this example are (range) partitioned by day, and each day partitioned is further partitioned in multiple hash buckets, for performance. This increases parallelism and makes it faster to query events for a particular day.
 
@@ -273,7 +284,7 @@ $ impala-shell -v -f create_partitions.sql
 
 ----
 
-### Filesystem outputs
+=== Filesystem outputs
 
 For the sake of showing an example of writing to partitioned Impala Parquet-based tables, we have also added Filesystem outputs to this example, besides the Kudu ones.
 
@@ -283,7 +294,7 @@ Writing to HDFS-based tables using short microbatches, as the one in this exampl
 
 A better approach for long-term storage of events in HDFS would be the creation of a separate Envelope job that runs less frequently (once a day, for example), and copy older partitions of the Kudu table to HDFS. This implementation, though, is out of the scope of this example.
 
-#### Managing partitions and refreshes for Impala tables
+==== Managing partitions and refreshes for Impala tables
 
 Differently from the Kudu tables, HDFS partition directories will be automatically created every time the first event for a new day is ingested. There's no need to precreate the directories in advance.
 
@@ -304,7 +315,7 @@ This example provides a DDL script with these commands for all the Parquet table
 impala-shell -v -f refresh_parquet_tables.sql
 ----
 
-## Querying data through Impala
+== Querying data through Impala
 
 [source,shell]
 ----
@@ -320,7 +331,7 @@ impala-shell -v -f refresh_parquet_tables.sql
 Fetched 3 row(s) in 0.34s
 ----
 
-## Querying data through Solr
+== Querying data through Solr
 
 [source,shell]
 ----

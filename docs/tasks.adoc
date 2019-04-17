@@ -199,7 +199,9 @@ To develop a custom task:
 . Add task step to your pipeline by setting `type` to `task`, `class` to the fully qualified class name of your task, and any other configurations for your task.
 . Run the pipeline with your task similarly to:
 
-  spark2-submit --jars yourtask.jar envelope-*.jar yourpipeline.conf
+  spark-submit --jars yourtask.jar envelope-*.jar yourpipeline.conf
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 === Custom task example
 

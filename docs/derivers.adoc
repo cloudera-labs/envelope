@@ -58,7 +58,7 @@ This shows both methods for populating parameters. In this example `${DECIMAL_PL
 
 The `morphline` deriver is used to run Morphline transformations over the records of a single dependency of the step defined by the `step.name` parameter.
 
-The Morphline transformation is provided to the Envelope pipeline by a local file to the Spark executors. The local file is retrieved from the location in the `morphline.file` configuration. The local file can be provided to the Spark executors from `spark2-submit` using the `--files` option.
+The Morphline transformation is provided to the Envelope pipeline by a local file to the Spark executors. The local file is retrieved from the location in the `morphline.file` configuration. The local file can be provided to the Spark executors from `spark-submit` using the `--files` option.
 
 The ID of the specific transformation within the Morphline file is specified with the `morphline.id` configuration.
 
@@ -711,7 +711,9 @@ To use an alias in configuration files, Envelope needs to be able to find your c
 
 With the project compiled into a jar file the deriver can be submitted as part of the Envelope pipeline similarly to:
 
-  spark2-submit --jars customderiver.jar envelope-*.jar pipeline.conf
+  spark-submit --jars customderiver.jar envelope-*.jar pipeline.conf
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
 The jar file can contain multiple derivers, and other pluggable classes such as custom inputs, outputs, etc.
 

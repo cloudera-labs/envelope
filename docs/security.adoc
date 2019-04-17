@@ -32,11 +32,14 @@ achieve this is via something like the following:
 ----
 export EXTRA_CP=/etc/hbase/conf:/opt/cloudera/parcels/CDH/lib/hbase/hbase-common.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-client.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-protocol.jar:/opt/cloudera/parcels/CDH/lib/hbase/lib/htrace-core.jar
 
-spark2-submit \
+spark-submit \
   --driver-class-path ${EXTRA_CP} \
   --conf spark.executor.extraClassPath=${EXTRA_CP} \
   envelope-*.jar envelope_app.conf
 ----
+
+NOTE: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
+CDH5 clusters may also require the environment variable `SPARK_KAFKA_VERSION` to be set to `0.10`.
 
 Kudu:: If using a bulk planner (`append`, `delete`, `overwrite`, `upsert`), there is no extra
 configuration required to work with secure Kudu clusters--the underlying `KuduContext` automatically handles the security.
@@ -62,7 +65,7 @@ variable as follows:
 +
 ----
 HADOOP_CONF_DIR=/etc/hbase/conf:/etc/hive/conf:/etc/spark2/conf:/opt/cloudera/parcels/CDH/lib/hbase/hbase-common.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-client.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-protocol.jar:/opt/cloudera/parcels/CDH/lib/hbase/lib/htrace-core.jar \
-spark2-submit \
+spark-submit \
   --deploy-mode cluster \
   --files jaas.conf,envelope_app.conf,kafka.kt \
   --driver-java-options=-Djava.security.auth.login.config=jaas.conf \
@@ -77,7 +80,7 @@ Kudu:: Kudu requires a keytab to operate correctly in cluster mode. Additionally
 `secure = true` is required in the step config as in client mode. An example submission would be:
 +
 ----
-spark2-submit \
+spark-submit \
   --deploy-mode cluster \
   --files envelope_app.conf \
   --keytab user.kt \ <1>
@@ -122,7 +125,7 @@ We can then submit the job with something like the following:
 
 ----
 export SPARK_KAFKA_VERSION=0.10
-spark2-submit \
+spark-submit \
   --files jaas.conf,kafka.kt \
   --driver-java-options=-Djava.security.auth.login.config=jaas.conf \
   --conf spark.executor.extraJavaOptions=-Djava.security.auth.login.config=jaas.conf \
@@ -153,7 +156,7 @@ ln -s user.kt kafka.kt
 export SPARK_KAFKA_VERSION=0.10 <1>
 export PRINCNAME=REPLACEME
 HADOOP_CONF_DIR=/etc/hbase/conf:/etc/hive/conf:/etc/spark2/conf:/opt/cloudera/parcels/CDH/lib/hbase/hbase-common.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-client.jar:/opt/cloudera/parcels/CDH/lib/hbase/hbase-protocol.jar:/opt/cloudera/parcels/CDH/lib/hbase/lib/htrace-core.jar \
-spark2-submit \
+spark-submit \
   --keytab user.kt \
   --principal ${PRINCNAME} \
   --files jaas.conf,envelope_app.conf,kafka.kt \
