@@ -51,6 +51,10 @@
                   <pattern>com.google.common</pattern>
                   <shadedPattern>envelope.shaded.com.google.common</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>org.apache.kerby</pattern>
+                  <shadedPattern>envelope.shaded.org.apache.kerby</shadedPattern>
+                </relocation>
               </relocations>
             </configuration>
           </execution>

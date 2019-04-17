@@ -115,13 +115,21 @@ public class KerberosUtils {
     else return getSparkConf().get("spark.yarn.principal");
   }
 
-  public static String getKerberosRealm(Config config) throws KrbException {
+  public static String getKerberosRealm(Config config) {
     if (config.hasPath(REALM_CONFIG)) {
       return config.getString(REALM_CONFIG);
     }
 
     // Infer realm
-    return getKrb5config().getDefaultRealm();
+    String realm;
+    try {
+      realm = getKrb5config().getDefaultRealm();
+    }
+    catch (KrbException e) {
+      throw new RuntimeException(e);
+    }
+
+    return realm;
   }
 
   private synchronized static SparkConf getSparkConf() {
@@ -220,7 +228,7 @@ public class KerberosUtils {
     }
   }
 
-  public static void loginIfRequired(KerberosLoginContext loginContext, Config config) throws KrbException {
+  public static void loginIfRequired(KerberosLoginContext loginContext, Config config) {
     try {
       if ((System.currentTimeMillis() - loginContext.getLastLoggedIn()) > getRenewInterval(config) * 1000) {
         LOG.debug("Kerberos ticket is due for renewal, authenticating again");
@@ -238,6 +246,8 @@ public class KerberosUtils {
       LOG.error("Login attempt failed: {}", e.getMessage());
       String errorMsg = String.format("Problem running login: %s", e.getMessage());
       throw new RuntimeException(errorMsg);
+    } catch (KrbException e) {
+      throw new RuntimeException(e);
     }
   }
 

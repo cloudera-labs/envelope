@@ -113,9 +113,9 @@ public class ImpalaMetadataTask implements Task, ProvidesAlias, ProvidesValidati
           url += String.format(";principal=%s/%s@%s;auth=kerberos;kerberosAuthType=fromSubject",
               config.getString(SERVICE_PRINCIPAL_NAME_CONFIG), config.getString(HOST_CONFIG),
               KerberosUtils.getKerberosRealm(config));
-        } catch (KrbException e) {
+        } catch (Exception e) {
           LOG.error("Could not obtain default Kerberos realm: " + e.getMessage());
-          throw new RuntimeException(e);
+          throw e;
         }
         break;
       case "none":
