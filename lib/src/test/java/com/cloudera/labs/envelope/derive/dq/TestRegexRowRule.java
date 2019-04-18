@@ -67,6 +67,9 @@ public class TestRegexRowRule {
 
     Row row4 = new RowWithSchema(SCHEMA, "First Last", "Ian Last", 110, new BigDecimal("450.10"));
     assertTrue("Row should pass rule", rule.check(row4));
+    
+    Row row5 = new RowWithSchema(SCHEMA, null, null, 110, new BigDecimal("450.10"));
+    assertFalse("Row 5 should not pass rule", rule.check(row5));
   }
 
 }
