@@ -36,7 +36,7 @@ Alternatively, you can build the Envelope application from the top-level directo
 
     mvn clean install
 
-This will create `envelope-0.7.0-SNAPSHOT.jar` in the `build/envelope/target` directory.
+This will create `envelope-0.7.0.jar` in the `build/envelope/target` directory.
 
 ### Finding examples
 
@@ -54,7 +54,7 @@ Envelope provides these example pipelines that you can run for yourself:
 
 You can run Envelope by submitting it to Spark with the configuration file for your pipeline:
 
-    spark-submit envelope-0.7.0-SNAPSHOT.jar your_pipeline.conf
+    spark-submit envelope-0.7.0.jar your_pipeline.conf
 
 Note: CDH5 uses `spark2-submit` instead of `spark-submit` for Spark 2 applications such as Envelope.
 
