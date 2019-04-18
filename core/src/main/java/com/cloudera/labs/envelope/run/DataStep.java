@@ -331,10 +331,10 @@ public abstract class DataStep
   private void printData() {
     if (config.hasPath(PRINT_DATA_LIMIT_PROPERTY)) {
       int limit = config.getInt(PRINT_DATA_LIMIT_PROPERTY);
-      data.limit(limit).show();
+      data.show(limit, false);
     }
     else {
-      data.show();
+      data.show(false);
     }
   }
   
