@@ -171,6 +171,7 @@ public class Runner {
           runBatch(independentNonStreamingSteps);
 
           streamingStep.setData(streamingStep.translate(raw));
+          streamingStep.writeData();
           streamingStep.setState(StepState.FINISHED);
 
           Set<Step> batchSteps = StepUtils.mergeLoadedSteps(steps, streamingStep, baseConfig);
