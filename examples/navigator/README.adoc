@@ -1,19 +1,15 @@
 = Navigator Audit example
 
-Cloudera Navigator Audit is a tool that collects and consolidates audit records from several Hadoop services. It offers the ability to forward those events into a Kafka topic for downstream consumption.
+Cloudera Navigator Audit is a tool that collects and consolidates audit records from several Hadoop services.
+It offers the ability to forward those events into a Kafka topic for downstream consumption.
 
-This example reads audit events from a Kafka topic populated by Navigator Audit and writes them to Kudu and Solr. We have also added a HDFS filesystem output for the sake of showing how to handle writes to table partitions on HDFS, but this option comes with caveats (see link:#caveats-of-using-parquet-tables[below]).
+This example reads audit events from a Kafka topic populated by Navigator Audit and writes them to Kudu.
+We have also added a HDFS filesystem output for the sake of showing how to handle writes to table partitions on HDFS, but this option comes with caveats (see link:#caveats-of-using-parquet-tables[below]).
 
-The Envelope workflow implemented in this example looks like the following:
+Audit events are written to Kafka by Navigator Audit as JSON strings.
+The Envelope pipeline reads this payload through a Kafka input, and then uses the Parse JSON deriver to convert the JSON messages into Dataset records.
 
-.Navigator Audit example
-image::images/nav-audit-envelope-diagram.png[]
-
-Audit events are written to Kafka by Navigator Audit as JSON strings. The envelope pipeline reads this payload through a Kafka input, which uses an embedded Morphlines translator to convert the JSON messages into Dataset records.
-
-These records are then processed by Envelope derivers, which filter the records for each particular Hadoop service, and the results are forward to the corresponding outputs (Kudu and Filesystem). The `solrIndexer` deriver is used to index the audit records, using a Morphline to send the events to Solr. This enables searching of the audit events through Solr queries, besides using Impala to queries the data in Kudu and/or HDFS.
-
-Derivers in Envelope must be chained to an Envelope output for them to the processed. If there's no path between a deriver and an output step, the deriver is simply not executed. Hence, the `solrIndexer` deriver is connected to the `hdfsEvents` deriver to ensure it is executed to send the audit records to Solr. The output of the `solrIndexer` deriver is similar to that of the Kafka input, so the `hdfsEvents` deriver is not affected at all. All the other derivers read directly from the Kafka input for efficiency.
+The records are then processed by further Envelope derivers, which filter the records for each particular Hadoop service, and the results are forward to the corresponding outputs (Kudu and Filesystem).
 
 == Security
 
@@ -31,7 +27,6 @@ If you're running the example against a non-secured cluster, you will have to ad
 If authorization has been configured for your cluster you must ensure that the following privileges have been granted to the user who's running the Envelope job:
 
 * Read privileges on the Kafka topic containing the audit events
-* Write privileges on the Solr collection where the messages will be indexed
 * Select and insert privileges on the Kudu table used for Kafka offset management
 * Insert privileges on the output Kudu tables (for the Kudu outputs)
 * Read and write permissions on the output HDFS directories (for the HDFS Filesystem outputs)
@@ -75,17 +70,11 @@ Ensure the following permissions have been granted on this directory:
 
 . _If running in a secured cluster_, link:https://www.cloudera.com/documentation/enterprise/latest/topics/cdh_sg_kadmin_kerberos_keytab.html[create a keytab file] for the Kerberos principal that will run the example job. Ensure that the permissions of the keytab file are set to `400`.
 
-. From a host that has been configured as a Solr client (i.e. has the `solrctl` binary and the `/etc/solr/conf` client configuration files), run the script below. This script will create a new Solr collection to receive the audit records. By default the collection will be called `nav-audit` and will have 3 shards. These settings can be changed by changing the values of the `COLLECTION_NAME` and `NUM_SHARDS` variables in the script, respectively.
-
-    ./solr-setup.sh
-
 . _If running in a secured cluster_, modify `jaas.conf` to set the correct values for the `keyTab` and `principal` properties. Note that `KEYTABFILENAME` should be just the file name, **not** the full path.
-
-. Modify `nav-morphline.conf` to update the `zkHost` property to point to your ZooKeeper ensemble. If you changed the Solr collection name in step 6 above, you should also update the `collection` property to reflect the new name.
 
 . Modify `nav-audit.conf`, reviewing all the properties in the `vars` section and updating them as per your environment.
 
-. _If running in a secured cluster_, modify `submit.sh` to update the `KERBEROS_KEYTAB` and `KERBEROS_PRINCIPAL` variables.
+. _If running in a secured cluster_, modify your corresponding submit shell script (see below) to update the `KERBEROS_KEYTAB` and `KERBEROS_PRINCIPAL` variables.
 
 . Run the example by submitting the Envelope application using the corresponding provided wrapper script:
 
@@ -187,9 +176,10 @@ The audit records written by Navigator Audit to the Kafka topic are JSON-formatt
 
 === Kafka Input
 
-An Envelope's Kafka input is used to read the Navigator Audit events from the Kafka topic. A translator is required to convert these event JSON strings into actual records to be processed by the pipeline.
+An Envelope's Kafka input is used to read the Navigator Audit events from the Kafka topic.
 
-A Morphline translator is associated to the Kafka input to perform this translation. A single Morphline is used for all the types of audit event. This Morphline uses the superset of all JSON event attributes (listed in the table above), and ignores any attributes not found in the event being processed. The output of the input step is a record with fields named after the JSON attributes.
+A translator is required to provide the input messages to the rest of the pipeline.
+The raw translator is used to provide the Kafka message as-is, so that we can parse it into record fields in a subsequent deriver.
 
 ==== Offset management
 
@@ -197,7 +187,11 @@ To enable the job to be stopped and restarted, the Kafka input step manages the 
 
 === Event derivers
 
-The stream of records that come out of the Kafka input step contain all the 8 type of events that Navigator Audit captures. The attribute `type` of the audit event records identify which service they are coming from.
+The Kafka input step provides the raw Kafka message, which in this case is the JSON event, as a binary value.
+The string events step then uses the SQL deriver to cast the binary JSON to a string.
+Following that, the parsed events step uses the Parse JSON deriver to parse the JSON string into individual fields for downstream processing.
+
+The records that come out of the parsed events step then contain all the 8 type of events that Navigator Audit captures. The attribute `type` of the audit event records identify which service they are coming from.
 
 The goal of this Envelope pipeline is to separate the events by service type and store them in service-specific tables/directories. To filter the records for each service we use SQL derivers, which use a SQL query, like the one in the example below, to filter all the events for a particular service.
 
@@ -205,16 +199,17 @@ The goal of this Envelope pipeline is to separate the events by service type and
 ----
 SELECT
   -- partitioning column
-  from_unixtime(time/1000, 'yyyy-MM-dd') as day,
+  from_unixtime(CAST(time as BIGINT) / 1000, 'yyyy-MM-dd') as day,
   -- generic attributes
   service as service_name, allowed as allowed, user as username,
-  impersonator as impersonator, ip as ip_addr, time as event_time, op as operation,
+  impersonator as impersonator, ip as ip_addr, op as operation,
+  CAST(CAST(time as BIGINT) / 1000 as TIMESTAMP) as event_time,
   -- event specific attributes
   src as src, dst as dest, perms as permissions,
-  -- the attribute below is not exposed by Navigator through Kafka;
-  -- it's included here for completeness sake only
+  -- the attribute below is not exposed by Navigator through Kafka; it's included here for
+  -- completeness only
   DELEGATION_TOKEN_ID as delegation_token_id
-FROM solrIndexerDeriver
+FROM parsedEvents
 WHERE type = 'HDFS'
 ----
 
@@ -222,22 +217,11 @@ All the tables created in this example are partitioned by day. Since the origina
 
 Some attributes that exist in Navigator Audit, such as the `DELEGATION_TOKEN_ID` listed above, are not added to the messages written to Kafka. I could have removed these attributes altogether from the example, but decided to leave them in just for completeness.
 
-=== Solr indexer deriver
-
-As you may have noticed in the query above, the stream of records selected for the HDFS service come from the `solrIndexerDeriver`, rather than the `kafkaInput`, which is the source for all the other 7 event derivers.
-
-The reason for that is that the `solrIndexerDeriver` is only executed if it's connected, directly or indirectly, to an Envelope output. Hence, to enable the indexing of records in Solr, we replaced the input of one of the derivers, which by chance happens to be the HDFS deriver, with the `solrIndexerDeriver`. The output of this deriver contains all the attributes that exist in the Kafka input's output.
-
-This deriver is a very simple Morphline deriver. Besides sending the audit event records to Solr for indexing the Morphline only adds two fields of information to the record:
-
-* `id` - a mandatory unique identifier, which is built as the concatenation of the `time`, `service` and `ip` fields.
-* `timeStr` - a formatted date/time string representation of the `time` field, which contains the time of the event in link:https://en.wikipedia.org/wiki/Unix_time[Unix Epoch time] format (in milliseconds).
-
-Each deriver is then used as a source in two independent outputs: a Kudu output and a (HDFS) filesystem output, which are explained below.
-
 === Kudu outputs
 
-Kudu is our recommended output for this example. It provides a efficient and easy way to store and query audit records at scale. The configuration of the Kudu outputs is fairly straight forward. Those outputs have been configured with `insert.ignore = true` to allow records to be _upserted_ in case a restart of the job causes an event to be reprocessed.
+Kudu is our recommended output for this example. It provides a efficient and easy way to store and query audit records at scale.
+The configuration of the Kudu outputs is fairly straight forward.
+Those outputs have been configured with `insert.ignore = true` to allow records to be _upserted_ in case a restart of the job causes an event to be reprocessed.
 
 ==== Managing partitions for Kudu tables
 
@@ -329,33 +313,4 @@ impala-shell -v -f refresh_parquet_tables.sql
 | 2018-06-03 | 1528086344032 | HDFS-1       | root     | 172.31.116.6 | getfileinfo | true    | NULL         | /data/nav/hdfs_events_parquet/_temporary/0/_temporary/attempt_20180603212544_0014_m_000002_0  | NULL | NULL        | NULL                |
 +------------+---------------+--------------+----------+--------------+-------------+---------+--------------+-----------------------------------------------------------------------------------------------+------+-------------+---------------------+
 Fetched 3 row(s) in 0.34s
-----
-
-== Querying data through Solr
-
-[source,shell]
-----
-$ curl "http://solr1.example.com:8983/solr/nav-audit_shard2_replica1/select?q=(time:1528086321905)&wt=json&indent=true"
-{
-  "responseHeader":{
-    "status":0,
-    "QTime":20,
-    "params":{
-      "q":"(time:1528086321905)",
-      "indent":"true",
-      "wt":"json"}},
-  "response":{"numFound":1,"start":0,"maxScore":6.4875593,"docs":[
-      {
-        "allowed":"true",
-        "timeStr":"2018-06-04T04:25:21.905Z",
-        "type":"HDFS",
-        "id":"1528086321905_HDFS-1_172.31.116.9",
-        "ip":"172.31.116.9",
-        "op":"listStatus",
-        "src":"/data/nav/sentry_events_parquet/_temporary",
-        "service":"HDFS-1",
-        "time":"1528086321905",
-        "user":"root",
-        "_version_":1602314700517801984}]
-  }}
 ----

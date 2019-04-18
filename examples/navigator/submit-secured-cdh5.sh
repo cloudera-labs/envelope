@@ -9,7 +9,7 @@ JKS_TRUSTSTORE=/opt/cloudera/security/jks/truststore.jks
 #export PATH=$JAVA_HOME/bin:$PATH
 
 BASE_DIR=$( readlink -f $( dirname $0 ) )
-FILES=$BASE_DIR/jaas.conf#jaas.conf,$BASE_DIR/nav-morphline.conf#nav-morphline.conf,$JKS_TRUSTSTORE#truststore.jks
+FILES=$BASE_DIR/jaas.conf#jaas.conf,$JKS_TRUSTSTORE#truststore.jks
 
 export SPARK_KAFKA_VERSION=0.10
 
