@@ -284,6 +284,10 @@ public class Runner {
         LOG.debug("Finished looking into step: " + step.getName());
       }
 
+      // Wait for the submitted steps that haven't yet finished
+      awaitAllOffMainThreadsFinished(offMainThreadSteps);
+      offMainThreadSteps.clear();
+
       // Add all steps created while looping through previous set of steps.
       steps.addAll(newSteps);
 
@@ -303,13 +307,7 @@ public class Runner {
             "that do not exist. Steps: " + steps);
       }
       previousStepStates = stepStates;
-
-      // Avoid the driver getting bogged down in checking for new steps to submit
-      Thread.sleep(20);
     }
-
-    // Wait for the submitted steps that haven't yet finished
-    awaitAllOffMainThreadsFinished(offMainThreadSteps);
 
     LOG.debug("Finished batch for steps: {}", StepUtils.stepNamesAsString(steps));
   }
