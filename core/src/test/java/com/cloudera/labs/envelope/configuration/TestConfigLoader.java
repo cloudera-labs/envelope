@@ -118,7 +118,7 @@ public class TestConfigLoader {
 
     @Override
     public void configure(Config config) {
-      loadCount = config.getInt("load-count");
+      loadCount = ConfigUtils.getOrElse(config, "load-count", 0);
     }
 
     @Override

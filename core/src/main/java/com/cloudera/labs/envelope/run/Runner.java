@@ -222,7 +222,6 @@ public class Runner {
         LOG.debug("Looking into step: " + step.getName());
 
         if (step instanceof BatchStep) {
-          LOG.debug("Step is batch");
           BatchStep batchStep = (BatchStep)step;
 
           if (batchStep.getState() == StepState.WAITING) {
@@ -248,12 +247,7 @@ public class Runner {
           // retrieve those and add them in.
           newSteps.addAll(batchStep.loadNewBatchSteps());
         }
-        else if (step instanceof StreamingStep) {
-          LOG.debug("Step is streaming");
-        }
         else if (step instanceof RefactorStep) {
-          LOG.debug("Step is a refactor step");
-
           RefactorStep refactorStep = (RefactorStep)step;
           
           if (refactorStep.getState() == StepState.WAITING) {
@@ -271,8 +265,6 @@ public class Runner {
           }
         }
         else if (step instanceof TaskStep) {
-          LOG.debug("Step is a task");
-
           TaskStep taskStep = (TaskStep)step;
           
           if (taskStep.getState() == StepState.WAITING) {
@@ -287,12 +279,6 @@ public class Runner {
               LOG.debug("Task finished");
             }
           }
-        }
-        else if (step instanceof StreamingStep) {
-          LOG.debug("Step is streaming");
-        }
-        else {
-          throw new RuntimeException("Unknown step class type: " + step.getClass().getName());
         }
 
         LOG.debug("Finished looking into step: " + step.getName());

@@ -358,7 +358,7 @@ public class StepUtils {
       return mergedSteps;
     }
     else {
-      return baseSteps;
+      return Sets.newHashSet(baseSteps);
     }
   }
 

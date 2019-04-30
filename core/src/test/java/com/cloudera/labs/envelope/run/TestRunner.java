@@ -26,6 +26,7 @@ import com.cloudera.labs.envelope.output.RandomOutput;
 import com.cloudera.labs.envelope.plan.BulkPlanner;
 import com.cloudera.labs.envelope.plan.MutationType;
 import com.cloudera.labs.envelope.spark.Contexts;
+import com.cloudera.labs.envelope.task.Task;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -47,6 +48,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestRunner {
 
@@ -217,6 +219,46 @@ public class TestRunner {
     }
 
     assertTrue(eventTypes.contains(CoreEventTypes.PIPELINE_EXCEPTION_OCCURRED));
+  }
+
+  public static class CheckRefactoredStepsContainedTask implements Task {
+    private static int runCount = 0;
+
+    @Override
+    public void configure(Config config) { }
+
+    @Override
+    public void run(Map<String, Dataset<Row>> dependencies) {
+      if (dependencies.size() > 2) {
+        throw new RuntimeException("Too many loop iterations!");
+      }
+
+      if (++runCount == 2) {
+        throw new RuntimeException("End of stream");
+      }
+    }
+  }
+
+  @Test
+  public void testRefactoredStepsContainedToStreamBatch() throws Exception {
+    Config config = ConfigUtils.configFromResource("/run/refactored_contained.conf");
+
+    try {
+      new Runner().run(config);
+    }
+    catch (Exception e) {
+      if (e.getMessage().equals("End of stream")) {
+        return;
+      }
+      else if (e.getMessage().equals("Too many loop iterations!")) {
+        fail("Micro-batch loop ran too many iterations");
+      }
+      else {
+        throw e;
+      }
+    }
+
+    fail("Pipeline expected to throw an exception");
   }
   
 }

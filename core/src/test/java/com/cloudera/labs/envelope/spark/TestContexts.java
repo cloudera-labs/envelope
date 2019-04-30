@@ -18,7 +18,6 @@ package com.cloudera.labs.envelope.spark;
 import com.cloudera.labs.envelope.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.junit.Before;

@@ -83,7 +83,7 @@ public enum Contexts {
   }
 
   public static synchronized SparkSession getSparkSession() {
-    if (INSTANCE.ss == null) {
+    if (!hasSparkSession()) {
       startSparkSession();
     }
 
@@ -126,6 +126,7 @@ public enum Contexts {
     INSTANCE.config = config.hasPath(APPLICATION_SECTION_PREFIX) ?
         config.getConfig(APPLICATION_SECTION_PREFIX) : ConfigFactory.empty();
     INSTANCE.mode = mode;
+    closeSparkSession();
     getSparkSession();
   }
 
