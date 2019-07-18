@@ -24,6 +24,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import scala.Tuple2;
 
 import java.util.List;
