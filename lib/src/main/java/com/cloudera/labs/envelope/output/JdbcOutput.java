@@ -66,7 +66,7 @@ public class JdbcOutput implements BulkOutput, ProvidesAlias, ProvidesValidation
       Dataset<Row> mutation = plan._2();
       switch (mutationType) {
         case INSERT:
-          mutation.write().jdbc(url, tableName, properties);
+          mutation.write().mode(SaveMode.Append).jdbc(url, tableName, properties);
           break;
         default:
           throw new RuntimeException("JDBC output does not support mutation type: " + mutationType);
