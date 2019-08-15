@@ -27,8 +27,12 @@ export KUDU_MASTERS=REPLACEME
 ### DO NOT EDIT BELOW
 
 IMPALA_SHELL_EXTRA_ARGS=""
+SPARK_EXTRA_ARGS=""
+SPARK_EXTRA_FILES=""
 if [[ ${IMPALA_SECURITY} == "kerberos" ]]; then
   IMPALA_SHELL_EXTRA_ARGS="${IMPALA_SHELL_EXTRA_ARGS} -k"
+  SPARK_EXTRA_FILES=",jaas.conf,${IMPALA_KRB_KEYTAB}" # comma first, then CSV
+  SPARK_EXTRA_ARGS="--driver-java-options=\"-Djava.security.auth.login.config=jaas.conf\" --conf spark.executor.extraJavaOptions=\"-Djava.security.auth.login.config=jaas.conf\""
 elif [[ ${IMPALA_SECURITY} == "ldap" ]]; then
   IMPALA_SHELL_EXTRA_ARGS="${IMPALA_SHELL_EXTRA_ARGS} -l -u ${IMPALA_USERNAME} --ldap_password_cmd='echo -n ${IMPALA_PASSWORD}'"
 fi
@@ -38,6 +42,8 @@ elif [[ ${IMPALA_SECURITY} == "ldap" ]]; then
   IMPALA_SHELL_EXTRA_ARGS="${IMPALA_SHELL_EXTRA_ARGS} --auth_creds_ok_in_clear"
 fi
 export IMPALA_SHELL_EXTRA_ARGS
+export SPARK_EXTRA_ARGS
+export SPARK_EXTRA_FILES
 
 SPARK_CMD="spark-submit"
 if which spark2-submit &>/dev/null; then
