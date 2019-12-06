@@ -135,6 +135,7 @@ public class Runner {
     finally {
       shutdownThreadPool();
       shutdownSecurity();
+      Contexts.closeSparkSession();
     }
 
     notifyPipelineFinished();
