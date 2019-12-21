@@ -24,6 +24,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import scala.Tuple2;
 
 import java.util.List;
@@ -66,7 +67,7 @@ public class JdbcOutput implements BulkOutput, ProvidesAlias, ProvidesValidation
       Dataset<Row> mutation = plan._2();
       switch (mutationType) {
         case INSERT:
-          mutation.write().jdbc(url, tableName, properties);
+          mutation.write().mode(SaveMode.Append).jdbc(url, tableName, properties);
           break;
         default:
           throw new RuntimeException("JDBC output does not support mutation type: " + mutationType);
