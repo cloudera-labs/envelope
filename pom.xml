@@ -36,7 +36,7 @@
   <properties>
     <!-- Dependencies -->
     <scala.version>2.11</scala.version>
-    <spark.version>2.1.0</spark.version>
+    <spark.version>2.4.7</spark.version>
     <guava.version>16.0.1</guava.version>
     <typesafe.config.version>1.2.1</typesafe.config.version>
     <slf4j.version>1.7.5</slf4j.version>
