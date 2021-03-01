@@ -33,6 +33,12 @@
       <artifactId>kite-morphlines-json</artifactId>
       <version>${kite-sdk.version}</version>
       <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.kitesdk</groupId>
